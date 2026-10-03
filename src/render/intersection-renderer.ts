@@ -24,7 +24,7 @@ export interface RenderStats {
   integrator: 'pt'|'sppm'; phase: string; emittedPhotons: number; batch: number;
 }
 
-/** RGB / spectral progressive path tracing and shared intersection debug views. */
+/** RGB / spectral PT and SPPM with shared intersection debug views. */
 export class IntersectionRenderer {
   private preparer = new ScenePreparer();
   private packed?: PreparedScene;
@@ -101,7 +101,6 @@ export class IntersectionRenderer {
   setSettings(settings: Partial<PathSettings>): void {
     const next = { ...this.settings, ...settings };
     if(!['pt','sppm'].includes(next.integrator)||!Number.isInteger(next.photonsPerIteration)||next.photonsPerIteration<1||next.photonsPerIteration>1048576||!Number.isInteger(next.photonBatchSize)||next.photonBatchSize<1||next.photonBatchSize>4096||!Number.isFinite(next.initialRadius)||next.initialRadius<0.0001||next.initialRadius>0.5) throw new Error('Invalid SPPM settings');
-    if(next.integrator==='sppm'&&next.mode!=='rgb') throw new Error('Spectral SPPM is introduced at stage 7');
     if (!['rgb', 'spectral'].includes(next.mode) || (next.mode === 'spectral' && this.packed && !this.packed.spectralReady)) throw new Error('Spectral mode requires valid material spectra');
     if (!Number.isInteger(next.maxDepth) || next.maxDepth < 1 || next.maxDepth > 64 || !Number.isInteger(next.seed) || next.seed < 0 || next.seed > 0xffffffff || !['mis', 'light', 'bsdf'].includes(next.strategy) || !Number.isInteger(next.maxPixels) || next.maxPixels < 1 || next.maxPixels > 640 * 480) throw new Error('Invalid path tracing settings');
     if (Object.keys(next).every(key => next[key as keyof PathSettings] === this.settings[key as keyof PathSettings])) return;
@@ -115,7 +114,7 @@ export class IntersectionRenderer {
   async capture(): Promise<RenderCapture> {
     await this.activeFrame;
     const { device, accumulation, revision } = this;
-    if (!device || !accumulation || this.disposed || this.view !== 3 || this.needsClear) throw new Error('Linear capture requires a rendered PT image');
+    if (!device || !accumulation || this.disposed || this.view !== 3 || this.needsClear) throw new Error('Linear capture requires a rendered image');
     if(this.settings.integrator==='sppm'&&this.samples===0) throw new Error('Wait for a completed SPPM iteration before capture');
     const width = this.stats.width, height = this.stats.height, samples = this.samples;
     const settings = { ...this.settings }, camera = structuredClone(this.camera!), exposure = this.exposure;

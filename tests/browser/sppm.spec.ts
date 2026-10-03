@@ -8,10 +8,10 @@ test('GPU photon hash handles collisions and progressive updates match brute for
   expect(result.counts).toEqual([3,3,1,0]);expect(result.errors).toBe(0);expect(result.maxError).toBeLessThan(2e-6);expect(result.invalidLinks).toBe(3);
 });
 
-test('photon batch partition preserves energy and interrupted iterations reset cleanly',async({page})=>{
+for(const mode of ['rgb','spectral'] as const) test(`${mode} photon batches preserve energy and interrupted iterations reset cleanly`,async({page})=>{
   test.setTimeout(60000);
   await page.goto('/');await expect(page.locator('#status')).toHaveText('WebGPU готов');await page.getByRole('button',{name:'Пауза',exact:true}).click();
-  const result=await page.evaluate(async()=>{
+  const result=await page.evaluate(async(mode)=>{
     const rendererUrl='/src/render/intersection-renderer.ts',sceneUrl='/src/scene/cornell.ts';
     const {IntersectionRenderer}=await import(/* @vite-ignore */rendererUrl);const {cornellScene}=await import(/* @vite-ignore */sceneUrl);
     const canvas=document.createElement('canvas');canvas.style.cssText='width:32px;height:32px';document.body.append(canvas);
@@ -19,18 +19,19 @@ test('photon batch partition preserves energy and interrupted iterations reset c
     const renderer=new IntersectionRenderer(canvas,(stats:{samples:number;phase:string})=>{samples=stats.samples;phase=stats.phase;if(samples===target&&!stopped){stopped=true;renderer.pause();}},(error:Error)=>errors.push(error.message));
     const wait=async(condition:()=>boolean)=>{const start=performance.now();while(!condition()&&!errors.length&&performance.now()-start<20000)await new Promise(r=>setTimeout(r,10));if(!condition())throw new Error('SPPM stalled '+JSON.stringify({samples,phase,errors}));};
     try {
-      const scene=cornellScene('glass');renderer.setDebugView('beauty');renderer.setSettings({integrator:'sppm',maxPixels:1024,maxDepth:8,seed:17,photonsPerIteration:2048,photonBatchSize:256,initialRadius:0.15});
+      const scene=cornellScene('glass');renderer.setDebugView('beauty');renderer.setSettings({integrator:'sppm',mode,maxPixels:1024,maxDepth:8,seed:17,photonsPerIteration:2048,photonBatchSize:256,initialRadius:0.15});
       await renderer.setScene(scene);await renderer.initialize();await wait(()=>stopped);const first=await renderer.capture();
       renderer.setExposure(1);await new Promise(r=>setTimeout(r,50));const exposed=await renderer.capture();const exposurePreserved=first.linearRgb.every((v:number,i:number)=>v===exposed.linearRgb[i]);
       renderer.setSettings({photonBatchSize:512});stopped=false;renderer.resume();await wait(()=>stopped);const second=await renderer.capture();
       let difference=0,energy=0;for(let i=0;i<first.linearRgb.length;i++){difference+=Math.abs(first.linearRgb[i]-second.linearRgb[i]);energy+=Math.abs(first.linearRgb[i]);}
       target=100;stopped=false;renderer.resume();await wait(()=>phase==='gather');renderer.pause();const partial=await renderer.capture();const partialPreserved=partial.samples===4&&partial.linearRgb.every((v:number,i:number)=>v===second.linearRgb[i]);renderer.setCamera(scene.camera);const reset=samples===0;
       target=1;stopped=false;await wait(()=>stopped);const restarted=await renderer.capture();
-      return {errors,relativeDifference:difference/energy,energy,exposurePreserved,partialPreserved,uniformCounts:first.sampleCounts.every((v:number)=>v===4),photons:first.emittedPhotons,reset,restartedSamples:restarted.samples,restartedCounts:restarted.sampleCounts.every((v:number)=>v===1),restartedPhotons:restarted.emittedPhotons};
+      return {errors,relativeDifference:difference/energy,energy,accumulationSpace:first.accumulationSpace,hasXyz:!!first.linearXyz,negativeRgb:first.linearRgb.some((v:number)=>v<0),exposurePreserved,partialPreserved,uniformCounts:first.sampleCounts.every((v:number)=>v===4),photons:first.emittedPhotons,reset,restartedSamples:restarted.samples,restartedCounts:restarted.sampleCounts.every((v:number)=>v===1),restartedPhotons:restarted.emittedPhotons};
     } finally {renderer.dispose();canvas.remove();}
-  });
+  },mode);
   console.log('SPPM batch acceptance:',JSON.stringify(result));
   expect(result.errors).toEqual([]);expect(result.relativeDifference).toBeLessThan(1e-5);expect(result.energy).toBeGreaterThan(0);expect(result.exposurePreserved).toBe(true);expect(result.partialPreserved).toBe(true);expect(result.uniformCounts).toBe(true);expect(result.photons).toBe(8192);expect(result.reset).toBe(true);expect(result.restartedSamples).toBe(1);expect(result.restartedCounts).toBe(true);expect(result.restartedPhotons).toBe(2048);
+  expect(result.accumulationSpace).toBe(mode==='spectral'?'cie-xyz':'linear-srgb');expect(result.hasXyz).toBe(mode==='spectral');if(mode==='spectral')expect(result.negativeRgb).toBe(true);
 });
 
 test('UI switches RGB SPPM and spectral PT without GPU errors',async({page})=>{
@@ -40,7 +41,9 @@ test('UI switches RGB SPPM and spectral PT without GPU errors',async({page})=>{
   await expect(page.locator('#mode')).toHaveValue('rgb');await expect(page.locator('#strategy')).toBeDisabled();
   await expect.poll(async()=>Number(await page.locator('canvas').getAttribute('data-samples')),{timeout:30000}).toBeGreaterThanOrEqual(2);
   await expect(page.locator('#stats')).toContainText('фотонов');await page.getByRole('button',{name:'Пауза',exact:true}).click();
-  await page.locator('#mode').selectOption('spectral');await expect(page.locator('#integrator')).toHaveValue('pt');await expect(page.locator('#strategy')).toBeEnabled();
+  await page.locator('#mode').selectOption('spectral');await expect(page.locator('#integrator')).toHaveValue('sppm');await expect(page.locator('#strategy')).toBeDisabled();
+  await expect.poll(async()=>Number(await page.locator('canvas').getAttribute('data-samples')),{timeout:15000}).toBeGreaterThanOrEqual(1);
+  await page.locator('#integrator').selectOption('pt');await expect(page.locator('#strategy')).toBeEnabled();
   await expect.poll(async()=>Number(await page.locator('canvas').getAttribute('data-samples')),{timeout:15000}).toBe(1);
   await expect(page.locator('#error')).toBeHidden();expect(errors).toEqual([]);
 });

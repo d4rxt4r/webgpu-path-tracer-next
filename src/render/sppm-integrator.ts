@@ -22,7 +22,7 @@ export class SppmIntegrator {
     this.uniform=device.createBuffer({label:'SPPM parameters',size:this.parameters.arrayBuffer.byteLength,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});
   }
   static async create(device: GPUDevice): Promise<SppmIntegrator> {
-    const module=await checkedShader(device,sppmShader,'RGB SPPM');
+    const module=await checkedShader(device,sppmShader,'RGB / spectral SPPM');
     const entries=['camera','photon','hash','gather','update'] as const;
     const pipelines=await Promise.all(entries.map(entry=>device.createComputePipelineAsync({layout:'auto',compute:{module,entryPoint:entry+'Main'}})));
     return new SppmIntegrator(device,Object.fromEntries(entries.map((entry,i)=>[entry,pipelines[i]!])) as Record<typeof entries[number],GPUComputePipeline>);

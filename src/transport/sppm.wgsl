@@ -10,7 +10,13 @@ fn pointRadius(point: SppmPoint) -> f32 { return select(point.radius,sppm.initia
 fn cellHash(cell: vec3i) -> u32 {
   return hash32((bitcast<u32>(cell.x)*73856093u) ^ (bitcast<u32>(cell.y)*19349663u) ^ (bitcast<u32>(cell.z)*83492791u)) & sppm.hashMask;
 }
-fn cameraPoint(initial: Ray, pixel: u32) -> SppmPoint {
+// One Owen-Sobol wavelength for the whole iteration, stratified in power-of-two blocks.
+// Keep photon throughput unweighted; cameraPoint is converted to XYZ exactly once.
+fn iterationWavelength() -> WavelengthSample {
+  if(params.transportMode==0u) {return WavelengthSample(0.0,1.0);}
+  return sampleWavelength(sample1D(params.frame,2u,0x7370706du,params.seed));
+}
+fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
   var point: SppmPoint; var ray=initial; var beta=vec3f(1); var etaScale=1.0;
   var medium=NO_HIT; var previous=initial.origin;
   for(var depth=0u;depth<=params.maxDepth;depth++) {
@@ -20,17 +26,18 @@ fn cameraPoint(initial: Ray, pixel: u32) -> SppmPoint {
     let triangle=triangles[hit.triangle];
     if(triangle.material>=arrayLength(&materials)) {atomicAdd(&errors,1u);break;}
     let material=materials[triangle.material];
+    let color=spectralColor(material.color,material.spectrumOffset,wavelength);
     let ng=geometricNormal(triangle); let position=ray.origin+hit.t*ray.direction;
     if(depth==0u&&material.kind==2u&&dot(ng,ray.direction)>0.0) {medium=hit.triangle;}
-    if(medium!=NO_HIT) { beta*=exp(-materials[triangles[medium].material].absorption*length(position-previous)); }
+    if(medium!=NO_HIT) {let inside=materials[triangles[medium].material];beta*=exp(-spectralColor(inside.absorption,inside.absorptionOffset,wavelength)*length(position-previous));}
     let n=select(ng,-ng,dot(ng,-ray.direction)<0.0);
-    if(material.kind==1u) { if(dot(ng,-ray.direction)>0.0) {point.direct=beta*material.color;} break; }
+    if(material.kind==1u) { if(dot(ng,-ray.direction)>0.0) {point.direct=beta*color;} break; }
     let dimension=3u+depth*7u;
     if(material.kind==0u) {
       point.position=position; point.surface=triangle.surface; point.normal=n;
-      point.weight=beta*material.color/PI; point.valid=u32(any(point.weight>vec3f(0)));
+      point.weight=beta*color/PI; point.valid=u32(any(point.weight>vec3f(0)));
       if(params.lightCount>0u) {
-        let light=sampleLightAtWavelength(sample1D(params.frame,dimension,pixel,params.seed),vec2f(sample1D(params.frame,dimension+1u,pixel,params.seed),sample1D(params.frame,dimension+2u,pixel,params.seed)),params.lightCount,0.0);
+        let light=sampleLightAtWavelength(sample1D(params.frame,dimension,pixel,params.seed),vec2f(sample1D(params.frame,dimension+1u,pixel,params.seed),sample1D(params.frame,dimension+2u,pixel,params.seed)),params.lightCount,wavelength);
         let delta=light.position-position; let d2=dot(delta,delta); let wi=normalize(delta);
         let cosine=max(0.0,dot(n,wi)); let lightCosine=dot(light.normal,-wi);
         if(d2>0.0&&cosine>0.0&&lightCosine>0.0) {
@@ -46,7 +53,7 @@ fn cameraPoint(initial: Ray, pixel: u32) -> SppmPoint {
     if(depth==params.maxDepth) {break;}
     let entering=dot(ng,ray.direction)<0.0;
     if((entering&&medium!=NO_HIT)||(!entering&&(medium==NO_HIT||triangles[medium].surface!=triangle.surface))) {atomicAdd(&errors,1u);break;}
-    let eta=select(1.0/material.ior,material.ior,entering);
+    let ior=materialIor(material,wavelength);let eta=select(1.0/ior,ior,entering);
     let ns=shadingNormal(triangle,hit);
     let event=sampleDielectricSurface(ray.direction,n,select(-ns,ns,entering),eta,sample1D(params.frame,dimension+5u,pixel,params.seed),false);
     if(event.weight==0.0) {break;} beta*=event.weight;
@@ -63,7 +70,12 @@ fn cameraPoint(initial: Ray, pixel: u32) -> SppmPoint {
   let jitter=vec2f(sample1D(params.frame,0u,pixel,params.seed),sample1D(params.frame,1u,pixel,params.seed));
   let uv=(vec2f(id)+jitter)/vec2f(params.size); let p=vec2f(2.0*uv.x-1.0,1.0-2.0*uv.y);
   let direction=normalize(params.forward.xyz+p.x*f32(params.size.x)/f32(params.size.y)*params.right.xyz+p.y*params.up.xyz);
-  let point=cameraPoint(Ray(params.eye.xyz,0.00001,direction,1e20),pixel);
+  let wavelength=iterationWavelength();
+  var point=cameraPoint(Ray(params.eye.xyz,0.00001,direction,1e20),pixel,wavelength.wavelength);
+  if(wavelength.wavelength!=0.0) {
+    let xyzWeight=cieXyz(wavelength.wavelength)/(wavelength.pdf*CIE_Y_INTEGRAL);
+    point.weight=point.weight.x*xyzWeight;point.direct=point.direct.x*xyzWeight;
+  }
   points[pixel].position=point.position; points[pixel].surface=point.surface; points[pixel].normal=point.normal; points[pixel].valid=point.valid;
   points[pixel].weight=point.weight;points[pixel].direct=point.direct;points[pixel].phi=vec3f(0);points[pixel].M=0u;
 }
@@ -74,7 +86,8 @@ fn cameraPoint(initial: Ray, pixel: u32) -> SppmPoint {
   if(params.lightCount==0u) {return;}
   // Global index within the iteration; batch partition never changes samples.
   let index=sppm.batchStart+id.x; let seed=params.seed^hash32(sppm.iteration+0x51eedu); let stream=0x70686f74u;
-  let light=sampleLightAtWavelength(sample1D(index,0u,stream,seed),vec2f(sample1D(index,1u,stream,seed),sample1D(index,2u,stream,seed)),params.lightCount,0.0);
+  let wavelength=iterationWavelength().wavelength;
+  let light=sampleLightAtWavelength(sample1D(index,0u,stream,seed),vec2f(sample1D(index,1u,stream,seed),sample1D(index,2u,stream,seed)),params.lightCount,wavelength);
   let direction=cosineDirection(light.normal,vec2f(sample1D(index,3u,stream,seed),sample1D(index,4u,stream,seed)));
   var beta=light.emission*PI/light.pdfArea;
   var ray=Ray(offsetOrigin(light.position,light.normal,direction),0.0,direction,1e20);
@@ -86,7 +99,7 @@ fn cameraPoint(initial: Ray, pixel: u32) -> SppmPoint {
     if(triangle.material>=arrayLength(&materials)) {atomicAdd(&errors,1u);break;}
     let material=materials[triangle.material];let ng=geometricNormal(triangle);
     let position=ray.origin+hit.t*ray.direction;let n=select(ng,-ng,dot(ng,-ray.direction)<0.0);
-    if(medium!=NO_HIT) {beta*=exp(-materials[triangles[medium].material].absorption*length(position-previous));}
+    if(medium!=NO_HIT) {let inside=materials[triangles[medium].material];beta*=exp(-spectralColor(inside.absorption,inside.absorptionOffset,wavelength)*length(position-previous));}
     if(!all(beta>=vec3f(0))||!all(beta<vec3f(FAR))) {atomicAdd(&errors,1u);break;}
     if(material.kind==1u) {break;}
     let dimension=5u+depth*7u;var wi:vec3f;
@@ -94,13 +107,13 @@ fn cameraPoint(initial: Ray, pixel: u32) -> SppmPoint {
       // The first direct diffuse hit is estimated by camera NEE, not photons.
       if(depth>0u&&any(beta>vec3f(0))) {photons[first+depth]=Photon(position,triangle.surface,n,1u,beta,0u,vec3i(0),0u);}
       if(depth==params.maxDepth) {break;}
-      beta*=material.color;
+      beta*=spectralColor(material.color,material.spectrumOffset,wavelength);
       wi=cosineDirection(n,vec2f(sample1D(index,dimension+3u,stream,seed),sample1D(index,dimension+4u,stream,seed)));
     } else {
       if(depth==params.maxDepth) {break;}
       let entering=dot(ng,ray.direction)<0.0;
       if((entering&&medium!=NO_HIT)||(!entering&&(medium==NO_HIT||triangles[medium].surface!=triangle.surface))) {atomicAdd(&errors,1u);break;}
-      let eta=select(1.0/material.ior,material.ior,entering);let ns=shadingNormal(triangle,hit);
+      let ior=materialIor(material,wavelength);let eta=select(1.0/ior,ior,entering);let ns=shadingNormal(triangle,hit);
       let event=sampleDielectricSurface(ray.direction,n,select(-ns,ns,entering),eta,sample1D(index,dimension+5u,stream,seed),true);
       if(event.weight==0.0) {break;}beta*=event.weight;wi=event.direction;
       if(event.transmitted!=0u) {medium=select(NO_HIT,hit.triangle,entering);}

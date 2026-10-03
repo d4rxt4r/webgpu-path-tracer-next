@@ -6,9 +6,8 @@ import { fileURLToPath } from 'node:url';
 // GPU regression artifact, not an independent transport reference.
 const spectral = process.argv.includes('--spectral');
 const sppm = process.argv.includes('--sppm');
-if(sppm&&spectral) throw new Error('Spectral SPPM is introduced at stage 7');
 const glass = sppm || spectral || process.argv.includes('--glass');
-const stage = sppm ? 6 : spectral ? 5 : glass ? 4 : 3;
+const stage = sppm && spectral ? 7 : sppm ? 6 : spectral ? 5 : glass ? 4 : 3;
 const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', '5175', '--strictPort'], { stdio: 'ignore', windowsHide: true });
 let browser;
 try {
@@ -29,7 +28,7 @@ try {
     const { cornellScene } = await import(sceneUrl);
     const canvas = document.createElement('canvas'); canvas.id = 'control-canvas'; canvas.style.cssText = 'width:128px;height:96px'; document.body.append(canvas);
     let lastStats, stopped = false, failure;
-    const targets=sppm?[8,16,32,64]:[128];let target=targets[0];
+    const targets=sppm?(spectral?[8,16,32,64,128]:[8,16,32,64]):[128];let target=targets[0];
     const renderer = new IntersectionRenderer(canvas, stats => {
       lastStats = stats;
       if (stats.samples === target && !stopped) { stopped = true; renderer.pause(); }
@@ -69,12 +68,12 @@ try {
   await writeFile(new URL(`stage${stage}-cornell.json`, directory), JSON.stringify(result.metadata, null, 2) + '\n');
   console.log(JSON.stringify(result.metadata));
   if(sppm) {
-    await writeFile(new URL('stage6-convergence.json',directory),JSON.stringify({roi:{x:[0.35,0.65],y:[0.8,0.95]},checkpoints:result.convergence},null,2)+'\n');
+    await writeFile(new URL(`stage${stage}-convergence.json`,directory),JSON.stringify({roi:{x:[0.35,0.65],y:[0.8,0.95]},checkpoints:result.convergence},null,2)+'\n');
     const checks=await page.evaluate(async()=>{const {verifySppm}=await import('/src/debug/verify-sppm.ts');return verifySppm();});
-    await writeFile(new URL('stage6-hash-checks.json',directory),JSON.stringify(checks,null,2)+'\n');
+    await writeFile(new URL(`stage${stage}-hash-checks.json`,directory),JSON.stringify(checks,null,2)+'\n');
     console.log(JSON.stringify(result.convergence));
   }
-  if (spectral) {
+  if (spectral && !sppm) {
     const checks = await page.evaluate(async () => { const { verifySpectral } = await import('/src/debug/verify-spectral.ts'); return verifySpectral(); });
     await writeFile(new URL('stage5-spectral-checks.json', directory), JSON.stringify(checks, null, 2) + '\n');
   }

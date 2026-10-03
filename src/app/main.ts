@@ -6,11 +6,11 @@ import { attachOrbit } from './orbit';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <main>
-    <header><span class="eyebrow">WEBGPU / ЭТАП 06</span><h1>Спектральный рендерер</h1><p>Коробка Корнелла · PT / RGB SPPM</p></header>
+    <header><span class="eyebrow">WEBGPU / ЭТАП 07</span><h1>Спектральный рендерер</h1><p>Коробка Корнелла · PT / SPPM</p></header>
     <div class="controls">
-      <label>Вид <select id="view" disabled><option value="beauty">Path tracing</option><option value="normal">Нормали</option><option value="depth">Глубина</option><option value="bvh">Обход BVH</option></select></label>
+      <label>Вид <select id="view" disabled><option value="beauty">Изображение</option><option value="normal">Нормали</option><option value="depth">Глубина</option><option value="bvh">Обход BVH</option></select></label>
       <label>Перенос <select id="mode" disabled><option value="rgb">RGB</option><option value="spectral">Спектральный</option></select></label>
-      <label>Интегратор <select id="integrator" disabled><option value="pt">Path tracing</option><option value="sppm">RGB SPPM</option></select></label>
+      <label>Интегратор <select id="integrator" disabled><option value="pt">Path tracing</option><option value="sppm">SPPM</option></select></label>
       <label>Разрешение <select id="resolution" disabled><option value="19200">Быстрое</option><option value="76800" selected>Среднее</option><option value="307200">640 × 480</option></select></label>
       <label>Семплирование <select id="strategy" disabled><option value="mis">MIS</option><option value="light">Light</option><option value="bsdf">BSDF</option></select></label>
       <label>Материал <select id="material" disabled><option value="diffuse">Диффузный</option><option value="glass">Стекло RGB</option><option value="nbk7">N-BK7</option><option value="nbk7-constant">N-BK7 без дисперсии</option></select></label>
@@ -60,13 +60,12 @@ async function start(): Promise<void> {
   const orbit = attachOrbit(canvas, description.camera, camera => { currentCamera = camera; renderer.setCamera(camera); });
   document.querySelector<HTMLSelectElement>('#mode')!.addEventListener('change', event => {
     const mode=(event.target as HTMLSelectElement).value as 'rgb'|'spectral';
-    if(mode==='spectral') {document.querySelector<HTMLSelectElement>('#integrator')!.value='pt';document.querySelector<HTMLSelectElement>('#strategy')!.disabled=false;renderer.setSettings({mode,integrator:'pt'});}
-    else renderer.setSettings({mode});
+    renderer.setSettings({mode});
   });
   document.querySelector<HTMLSelectElement>('#integrator')!.addEventListener('change', event => {
     const integrator=(event.target as HTMLSelectElement).value as 'pt'|'sppm';
     document.querySelector<HTMLSelectElement>('#strategy')!.disabled=integrator==='sppm';
-    if(integrator==='sppm') {document.querySelector<HTMLSelectElement>('#mode')!.value='rgb';renderer.setSettings({integrator,mode:'rgb',maxDepth:32});}
+    if(integrator==='sppm') {renderer.setSettings({integrator,maxDepth:32});}
     else renderer.setSettings({integrator});
   });
   document.querySelector('#reset')!.addEventListener('click', () => orbit.reset());

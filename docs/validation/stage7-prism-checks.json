@@ -1,0 +1,22 @@
+{
+  "wavelengths": [
+    409.9371643066406,
+    790.0404052734375
+  ],
+  "results": [
+    {
+      "dispersive": true,
+      "matchedPaths": 452,
+      "meanFootprintSpread": 0.08909434065145852
+    },
+    {
+      "dispersive": false,
+      "matchedPaths": 468,
+      "meanFootprintSpread": 0
+    }
+  ],
+  "maxPositionError": 0.000044973265026726494,
+  "maxFluxRelativeError": 0.00000565692483045499,
+  "errors": 0,
+  "adapter": "intel gen-12lp"
+}

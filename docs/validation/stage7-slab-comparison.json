@@ -1,0 +1,41 @@
+{
+  "case": "slab",
+  "pbrtSource": "https://github.com/mmp/pbrt-v4",
+  "pbrtCommit": "b4ce9687e6c695f5582997c61b0c66cf064bdb4a",
+  "width": 4,
+  "height": 4,
+  "pbrtSamplesPerPixel": 1048576,
+  "pbrtSeeds": [
+    17,
+    29
+  ],
+  "pbrtThreads": 8,
+  "sppmIterations": 4096,
+  "sppmSeed": 17,
+  "photonsPerIteration": 8192,
+  "photonBatchSize": 4096,
+  "initialRadius": 0.15,
+  "maxDepth": 32,
+  "emittedPhotons": 33554432,
+  "roi": [
+    0,
+    1,
+    0,
+    1
+  ],
+  "referenceMeans": [
+    0.0002612857680462301,
+    0.00025805815531462425
+  ],
+  "referenceRelativeSpread": 0.012429577343348376,
+  "gpuMean": 0.00025626845490478445,
+  "relativeEnergyError": 0.013106947525706958,
+  "linearRgbRmse": 0.000013398806143111027,
+  "cpuXyz": [
+    0.0002441043532642079,
+    0.0002568230143940768,
+    0.0002794801201994664
+  ],
+  "gpuErrors": 0,
+  "adapter": "intel gen-12lp"
+}
