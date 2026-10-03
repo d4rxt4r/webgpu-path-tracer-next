@@ -6,10 +6,11 @@ import { attachOrbit } from './orbit';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <main>
-    <header><span class="eyebrow">WEBGPU / ЭТАП 05</span><h1>Спектральный рендерер</h1><p>Коробка Корнелла · RGB / Spectral path tracing</p></header>
+    <header><span class="eyebrow">WEBGPU / ЭТАП 06</span><h1>Спектральный рендерер</h1><p>Коробка Корнелла · PT / RGB SPPM</p></header>
     <div class="controls">
       <label>Вид <select id="view" disabled><option value="beauty">Path tracing</option><option value="normal">Нормали</option><option value="depth">Глубина</option><option value="bvh">Обход BVH</option></select></label>
       <label>Перенос <select id="mode" disabled><option value="rgb">RGB</option><option value="spectral">Спектральный</option></select></label>
+      <label>Интегратор <select id="integrator" disabled><option value="pt">Path tracing</option><option value="sppm">RGB SPPM</option></select></label>
       <label>Разрешение <select id="resolution" disabled><option value="19200">Быстрое</option><option value="76800" selected>Среднее</option><option value="307200">640 × 480</option></select></label>
       <label>Семплирование <select id="strategy" disabled><option value="mis">MIS</option><option value="light">Light</option><option value="bsdf">BSDF</option></select></label>
       <label>Материал <select id="material" disabled><option value="diffuse">Диффузный</option><option value="glass">Стекло RGB</option><option value="nbk7">N-BK7</option><option value="nbk7-constant">N-BK7 без дисперсии</option></select></label>
@@ -33,10 +34,13 @@ async function start(): Promise<void> {
   const { IntersectionRenderer } = await import('../render/intersection-renderer');
   const renderer = new IntersectionRenderer(canvas, info => {
     status.textContent = ({ ready: 'WebGPU готов', paused: 'Пауза', recovering: 'Восстановление GPU…', error: 'Ошибка GPU' })[info.status];
-    stats.textContent = `${info.adapter} · ${info.width} × ${info.height} · ${info.triangles} треугольников · ${(info.bytes / 1048576).toFixed(2)} MiB · ${info.samples} spp · ${info.tile}/${info.tiles} tiles · завершение ${info.completionMs.toFixed(1)} мс`;
+    const phase=({camera:'камера',photon:'фотоны',gather:'сбор света',update:'обновление'} as Record<string,string>)[info.phase];
+    const progress=info.integrator==='sppm'?`${info.samples} итераций · ${info.emittedPhotons} фотонов · ${phase} / пакет ${info.batch+1}`:`${info.samples} spp`;
+    stats.textContent = `${info.adapter} · ${info.width} × ${info.height} · ${info.triangles} треугольников · ${(info.bytes / 1048576).toFixed(2)} MiB · ${progress} · ${info.tile}/${info.tiles} tiles · завершение ${info.completionMs.toFixed(1)} мс`;
     canvas.dataset.frames = String(info.frames);
     canvas.dataset.samples = String(info.samples);
     canvas.dataset.tile = String(info.tile);
+    canvas.dataset.phase=info.phase;
     pause.disabled = info.status === 'error' || info.status === 'recovering';
   }, error => {
     const panel = document.querySelector<HTMLElement>('#error')!;
@@ -54,7 +58,17 @@ async function start(): Promise<void> {
     });
   });
   const orbit = attachOrbit(canvas, description.camera, camera => { currentCamera = camera; renderer.setCamera(camera); });
-  document.querySelector<HTMLSelectElement>('#mode')!.addEventListener('change', event => renderer.setSettings({ mode: (event.target as HTMLSelectElement).value as 'rgb' | 'spectral' }));
+  document.querySelector<HTMLSelectElement>('#mode')!.addEventListener('change', event => {
+    const mode=(event.target as HTMLSelectElement).value as 'rgb'|'spectral';
+    if(mode==='spectral') {document.querySelector<HTMLSelectElement>('#integrator')!.value='pt';document.querySelector<HTMLSelectElement>('#strategy')!.disabled=false;renderer.setSettings({mode,integrator:'pt'});}
+    else renderer.setSettings({mode});
+  });
+  document.querySelector<HTMLSelectElement>('#integrator')!.addEventListener('change', event => {
+    const integrator=(event.target as HTMLSelectElement).value as 'pt'|'sppm';
+    document.querySelector<HTMLSelectElement>('#strategy')!.disabled=integrator==='sppm';
+    if(integrator==='sppm') {document.querySelector<HTMLSelectElement>('#mode')!.value='rgb';renderer.setSettings({integrator,mode:'rgb',maxDepth:32});}
+    else renderer.setSettings({integrator});
+  });
   document.querySelector('#reset')!.addEventListener('click', () => orbit.reset());
   document.querySelector<HTMLSelectElement>('#view')!.addEventListener('change', event => renderer.setDebugView((event.target as HTMLSelectElement).value as 'normal' | 'depth' | 'bvh' | 'beauty'));
   document.querySelector<HTMLSelectElement>('#resolution')!.addEventListener('change', event => renderer.setSettings({ maxPixels: Number((event.target as HTMLSelectElement).value) }));
@@ -74,7 +88,7 @@ async function start(): Promise<void> {
   try {
     await renderer.setScene(description);
     await renderer.initialize();
-    document.querySelectorAll<HTMLSelectElement | HTMLButtonElement | HTMLInputElement>('#view, #reset, #resolution, #strategy, #exposure, #material, #mode').forEach(control => { control.disabled = false; });
+    document.querySelectorAll<HTMLSelectElement | HTMLButtonElement | HTMLInputElement>('#view, #reset, #resolution, #strategy, #exposure, #material, #mode, #integrator').forEach(control => { control.disabled = false; });
   } catch (error) { observer.disconnect(); orbit.dispose(); renderer.dispose(); throw error; }
 }
 void start().catch(error => {

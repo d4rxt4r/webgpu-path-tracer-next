@@ -1,0 +1,12 @@
+{
+  "counts": [
+    3,
+    3,
+    1,
+    0
+  ],
+  "maxError": 3.4962031847385333e-7,
+  "errors": 0,
+  "invalidLinks": 3,
+  "adapter": "intel gen-12lp"
+}

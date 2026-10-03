@@ -10,16 +10,18 @@ import { makeStructuredView } from 'webgpu-utils';
 import { GpuScene } from '../gpu/scene';
 import { loadSobol } from '../assets/sobol';
 import { xyzToLinearRgb } from '../transport/spectrum';
+import { SppmIntegrator, SPPM_POINT_BYTES } from './sppm-integrator';
 
 export type DebugView = 'normal' | 'depth' | 'bvh' | 'beauty';
-export interface PathSettings { maxDepth: number; seed: number; strategy: 'mis' | 'light' | 'bsdf'; maxPixels: number; mode: 'rgb' | 'spectral' }
-export interface RenderCapture { width: number; height: number; linearRgb: Float32Array; linearXyz?: Float32Array; accumulationSpace: 'linear-srgb' | 'cie-xyz'; sampleCounts: Float32Array; samples: number; settings: PathSettings; camera: CameraDescription; exposure: number }
+export interface PathSettings { maxDepth: number; seed: number; strategy: 'mis' | 'light' | 'bsdf'; maxPixels: number; mode: 'rgb' | 'spectral'; integrator: 'pt'|'sppm'; photonsPerIteration: number; photonBatchSize: number; initialRadius: number }
+export interface RenderCapture { width: number; height: number; linearRgb: Float32Array; linearXyz?: Float32Array; accumulationSpace: 'linear-srgb' | 'cie-xyz'; sampleCounts: Float32Array; samples: number; emittedPhotons: number; settings: PathSettings; camera: CameraDescription; exposure: number }
 
 export interface RenderStats {
   adapter: string; width: number; height: number; frames: number; bytes: number;
   completionMs: number; status: 'ready' | 'paused' | 'recovering' | 'error';
   triangles: number; nodes: number;
   samples: number; tile: number; tiles: number;
+  integrator: 'pt'|'sppm'; phase: string; emittedPhotons: number; batch: number;
 }
 
 /** RGB / spectral progressive path tracing and shared intersection debug views. */
@@ -40,7 +42,8 @@ export class IntersectionRenderer {
   private sobol?: GPUBuffer;
   private pathPipeline?: GPUComputePipeline;
   private pathGroup?: GPUBindGroup;
-  private settings: PathSettings = { maxDepth: 8, seed: 1, strategy: 'mis', maxPixels: 640 * 480, mode: 'rgb' };
+  private sppm?: SppmIntegrator;
+  private settings: PathSettings = { maxDepth: 8, seed: 1, strategy: 'mis', maxPixels: 640 * 480, mode: 'rgb', integrator:'pt', photonsPerIteration:16384, photonBatchSize:1024, initialRadius:0.03 };
   private needsClear = true;
   private tileIndex = 0;
   private samples = 0;
@@ -64,7 +67,7 @@ export class IntersectionRenderer {
   private redraw = false;
   private paused = false;
   private disposed = false;
-  private stats: RenderStats = { adapter: '', width: 0, height: 0, frames: 0, bytes: 0, completionMs: 0, status: 'recovering', triangles: 0, nodes: 0, samples: 0, tile: 0, tiles: 0 };
+  private stats: RenderStats = { adapter: '', width: 0, height: 0, frames: 0, bytes: 0, completionMs: 0, status: 'recovering', triangles: 0, nodes: 0, samples: 0, tile: 0, tiles: 0, integrator:'pt',phase:'camera',emittedPhotons:0,batch:0 };
 
   constructor(private canvas: HTMLCanvasElement, private report: (stats: RenderStats) => void, private error: (error: Error) => void) {}
 
@@ -97,10 +100,12 @@ export class IntersectionRenderer {
   setDebugView(view: DebugView): void { this.view = { normal: 0, depth: 1, bvh: 2, beauty: 3 }[view]; this.invalidate(); this.schedule(true); }
   setSettings(settings: Partial<PathSettings>): void {
     const next = { ...this.settings, ...settings };
+    if(!['pt','sppm'].includes(next.integrator)||!Number.isInteger(next.photonsPerIteration)||next.photonsPerIteration<1||next.photonsPerIteration>1048576||!Number.isInteger(next.photonBatchSize)||next.photonBatchSize<1||next.photonBatchSize>4096||!Number.isFinite(next.initialRadius)||next.initialRadius<0.0001||next.initialRadius>0.5) throw new Error('Invalid SPPM settings');
+    if(next.integrator==='sppm'&&next.mode!=='rgb') throw new Error('Spectral SPPM is introduced at stage 7');
     if (!['rgb', 'spectral'].includes(next.mode) || (next.mode === 'spectral' && this.packed && !this.packed.spectralReady)) throw new Error('Spectral mode requires valid material spectra');
     if (!Number.isInteger(next.maxDepth) || next.maxDepth < 1 || next.maxDepth > 64 || !Number.isInteger(next.seed) || next.seed < 0 || next.seed > 0xffffffff || !['mis', 'light', 'bsdf'].includes(next.strategy) || !Number.isInteger(next.maxPixels) || next.maxPixels < 1 || next.maxPixels > 640 * 480) throw new Error('Invalid path tracing settings');
     if (Object.keys(next).every(key => next[key as keyof PathSettings] === this.settings[key as keyof PathSettings])) return;
-    this.settings = next; this.invalidate(); this.resize(); this.schedule(true);
+    this.settings = next; this.invalidate(); this.resize(); this.updateGroups(); this.schedule(true);
   }
   setExposure(exposure: number): void {
     if (!Number.isFinite(exposure) || exposure < -16 || exposure > 16) throw new Error('Invalid exposure');
@@ -111,6 +116,7 @@ export class IntersectionRenderer {
     await this.activeFrame;
     const { device, accumulation, revision } = this;
     if (!device || !accumulation || this.disposed || this.view !== 3 || this.needsClear) throw new Error('Linear capture requires a rendered PT image');
+    if(this.settings.integrator==='sppm'&&this.samples===0) throw new Error('Wait for a completed SPPM iteration before capture');
     const width = this.stats.width, height = this.stats.height, samples = this.samples;
     const settings = { ...this.settings }, camera = structuredClone(this.camera!), exposure = this.exposure;
     const readback = device.createBuffer({ size: accumulation.size, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
@@ -129,10 +135,10 @@ export class IntersectionRenderer {
           linearXyz.set(xyz,i*3); linearRgb.set(xyzToLinearRgb(xyz),i*3);
         }
       }
-      readback.unmap(); return { width, height, linearRgb, linearXyz, accumulationSpace: linearXyz ? 'cie-xyz' : 'linear-srgb', sampleCounts, samples, settings, camera, exposure };
+      readback.unmap(); return { width, height, linearRgb, linearXyz, accumulationSpace: linearXyz ? 'cie-xyz' : 'linear-srgb', sampleCounts, samples, emittedPhotons:settings.integrator==='sppm'?samples*settings.photonsPerIteration:0, settings, camera, exposure };
     } finally { readback.destroy(); }
   }
-  private invalidate(): void { this.revision++; this.displayOnly = false; this.needsClear = true; this.samples = 0; this.tileIndex = 0; this.stats.samples = 0; this.stats.frames = 0; this.stats.tile = 0; this.report({ ...this.stats }); }
+  private invalidate(): void { this.revision++; this.displayOnly = false; this.needsClear = true; this.samples = 0; this.tileIndex = 0; this.sppm?.reset(); this.stats.samples = 0; this.stats.frames = 0; this.stats.tile = 0;this.stats.integrator=this.settings.integrator;this.stats.phase='camera';this.stats.emittedPhotons=0;this.stats.batch=0; this.report({ ...this.stats }); }
 
   async initialize(): Promise<void> {
     if (!this.packed || !this.camera) throw new Error('Set a scene before initialization');
@@ -158,15 +164,17 @@ export class IntersectionRenderer {
       const [computeModule, pathModule, displayModule, sobolData] = await Promise.all([
         checkedShader(device, debugShader, 'BVH intersections'), checkedShader(device, pathShader, 'RGB / spectral path tracer'), checkedShader(device, displayShader, 'Display'), loadSobol(),
       ]);
-      const [compute, pathPipeline, display] = await Promise.all([
+      const [compute, pathPipeline, display, sppm] = await Promise.all([
         device.createComputePipelineAsync({ layout: 'auto', compute: { module: computeModule, entryPoint: 'main' } }),
         device.createComputePipelineAsync({ layout: 'auto', compute: { module: pathModule, entryPoint: 'main' } }),
         device.createRenderPipelineAsync({ layout: 'auto', vertex: { module: displayModule, entryPoint: 'vertexMain' }, fragment: { module: displayModule, entryPoint: 'fragmentMain', targets: [{ format }] }, primitive: { topology: 'triangle-list' } }),
+        SppmIntegrator.create(device),
       ]);
-      if (this.disposed || generation !== this.generation) return;
+      if (this.disposed || generation !== this.generation) {sppm.dispose();return;}
       this.compute = compute;
       this.pathPipeline = pathPipeline;
       this.display = display;
+      this.sppm = sppm;
       this.uniform = device.createBuffer({ label: 'Camera parameters', size: this.parameters.arrayBuffer.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
       this.displayUniform = device.createBuffer({ label: 'Display parameters', size: this.displayParameters.arrayBuffer.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
       this.scene = new GpuScene(device, this.packed);
@@ -192,7 +200,8 @@ export class IntersectionRenderer {
     const device = this.device;
     if (!device || !this.compute || !this.display || !this.uniform || this.disposed) return;
     const rect = this.canvas.getBoundingClientRect();
-    const maxPixels = Math.min(this.settings.maxPixels, Math.floor(device.limits.maxStorageBufferBindingSize / 16), Math.floor(device.limits.maxBufferSize / 16));
+    const perPixel=this.settings.integrator==='sppm'?SPPM_POINT_BYTES:16;
+    const maxPixels = Math.min(this.settings.maxPixels, Math.floor(device.limits.maxStorageBufferBindingSize / perPixel), Math.floor(device.limits.maxBufferSize / perPixel));
     const size = fitRenderSize(Math.max(1, rect.width), Math.max(1, rect.height), window.devicePixelRatio || 1, maxPixels, device.limits.maxTextureDimension2D);
     if (this.texture && size.width === this.stats.width && size.height === this.stats.height) return;
     this.texture?.destroy();
@@ -219,7 +228,11 @@ export class IntersectionRenderer {
       this.pathGroup = device.createBindGroup({ layout: this.pathPipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: view }, { binding: 1, resource: { buffer: uniform } }, ...scene.entries(), { binding: 4, resource: { buffer: diagnostic } }, ...scene.transportEntries(), { binding: 7, resource: { buffer: this.sobol } }, { binding: 8, resource: { buffer: this.accumulation } }, scene.spectralEntry()] });
     }
     this.displayGroup = device.createBindGroup({ layout: display.getBindGroupLayout(0), entries: [{ binding: 0, resource: view }, { binding: 1, resource: { buffer: displayUniform } }] });
-    this.stats.bytes = this.stats.width * this.stats.height * 24 + this.parameters.arrayBuffer.byteLength + scene.bytes + 8 + (this.sobol?.size ?? 0) + displayUniform.size;
+    if(this.sppm&&this.sobol&&this.accumulation) {
+      if(this.settings.integrator==='sppm') this.sppm.configure(this.stats.width,this.stats.height,this.settings,{scene,camera:uniform,sobol:this.sobol,errors:diagnostic,accumulation:this.accumulation,texture});
+      else this.sppm.releaseBuffers();
+    }
+    this.stats.bytes = this.stats.width * this.stats.height * 24 + this.parameters.arrayBuffer.byteLength + scene.bytes + 8 + (this.sobol?.size ?? 0) + displayUniform.size+(this.sppm?.bytes??0);
   }
 
   pause(): void { this.paused = true; this.redrawSweep = false; cancelAnimationFrame(this.raf); this.raf = 0; this.stats.status = 'paused'; this.report({ ...this.stats }); }
@@ -227,7 +240,8 @@ export class IntersectionRenderer {
 
   private schedule(force = false): void {
     if (force) { this.redraw = true; this.redrawSweep = this.view === 3; }
-    if (this.raf || this.busy || this.loading || this.disposed || this.stats.status === 'error' || (!this.redraw && this.paused && !(this.redrawSweep && this.tileIndex > 0)) || document.hidden || !this.texture) return;
+    const partial=this.settings.integrator==='sppm'&&this.view===3?this.sppm?.inProgress:this.tileIndex>0;
+    if (this.raf || this.busy || this.loading || this.disposed || this.stats.status === 'error' || (!this.redraw && this.paused && !(this.redrawSweep && partial)) || document.hidden || !this.texture) return;
     this.raf = requestAnimationFrame(() => { this.raf = 0; this.activeFrame = this.frame(); });
   }
 
@@ -237,6 +251,7 @@ export class IntersectionRenderer {
     const generation = this.generation;
     const revision = this.revision;
     const pathMode = this.view === 3;
+    const sppmMode=pathMode&&this.settings.integrator==='sppm';
     const displayOnly = this.displayOnly;
     this.displayOnly = false;
     const started = performance.now();
@@ -245,7 +260,7 @@ export class IntersectionRenderer {
     try {
       const basis = cameraBasis(camera);
       const columns = Math.ceil(this.stats.width / 64), rows = Math.ceil(this.stats.height / 64);
-      const tile = pathMode ? [this.tileIndex % columns * 64, Math.floor(this.tileIndex / columns) * 64, 64, 64] : [0, 0, this.stats.width, this.stats.height];
+      const tile = sppmMode?this.sppm!.tileRect():pathMode ? [this.tileIndex % columns * 64, Math.floor(this.tileIndex / columns) * 64, 64, 64] : [0, 0, this.stats.width, this.stats.height];
       this.parameters.set({ size: [this.stats.width, this.stats.height], frame: this.samples, view: this.view, eye: [...basis.eye, 0], forward: [...basis.forward, 0], right: [...basis.right, 0], up: [...basis.up, 0], tile, maxDepth: this.settings.maxDepth, seed: this.settings.seed, strategy: { mis: 0, light: 1, bsdf: 2 }[this.settings.strategy], lightCount: this.packed!.lightCount, transportMode: Number(this.settings.mode === 'spectral') });
       device.queue.writeBuffer(uniform, 0, this.parameters.arrayBuffer);
       this.displayParameters.set({ exposure: 2 ** this.exposure, debugView: Number(!pathMode), colorSpace: Number(pathMode && this.settings.mode === 'spectral') });
@@ -257,7 +272,9 @@ export class IntersectionRenderer {
         const clear = encoder.beginRenderPass({ colorAttachments: [{ view: this.texture!.createView(), loadOp: 'clear', storeOp: 'store', clearValue: { r: 0, g: 0, b: 0, a: 1 } }] }); clear.end();
         this.needsClear = false;
       }
-      if (!displayOnly) {
+      let iterationComplete=false;
+      if(sppmMode&&!displayOnly) {iterationComplete=this.sppm!.encodeStep(encoder);}
+      else if (!displayOnly) {
         const computePass = encoder.beginComputePass();
         computePass.setPipeline(pathMode ? this.pathPipeline! : compute); computePass.setBindGroup(0, pathMode ? this.pathGroup! : computeGroup);
         computePass.dispatchWorkgroups(Math.ceil(tile[2]! / 8), Math.ceil(tile[3]! / 8)); computePass.end();
@@ -270,9 +287,12 @@ export class IntersectionRenderer {
       const errors = new Uint32Array(readback.getMappedRange())[0]!;
       readback.unmap();
       if (generation !== this.generation || this.disposed) return;
-      if (errors) throw new Error(`BVH traversal failed for ${errors} rays (range, stack or non-finite values).`);
+      if (errors) throw new Error(`GPU transport failed for ${errors} operations (intersection, medium, hash or non-finite values).`);
       if (revision !== this.revision) return;
-      if (pathMode && !displayOnly) {
+      if(sppmMode&&!displayOnly) {
+        if(iterationComplete) {this.samples++;this.stats.frames++;this.redrawSweep=false;}
+        this.stats.samples=this.samples;this.stats.tile=this.sppm!.tile;this.stats.tiles=this.sppm!.tiles;this.stats.phase=this.sppm!.phase;this.stats.batch=this.sppm!.batch;this.stats.emittedPhotons=this.sppm!.emittedPhotons;
+      } else if (pathMode && !displayOnly) {
         this.tileIndex++;
         if (this.tileIndex === columns * rows) { this.tileIndex = 0; this.samples++; this.stats.frames++; this.redrawSweep = false; }
         this.stats.samples = this.samples; this.stats.tile = this.tileIndex; this.stats.tiles = columns * rows;
@@ -286,6 +306,7 @@ export class IntersectionRenderer {
   private fail(error: unknown): void { this.pause(); this.stats.status = 'error'; this.report({ ...this.stats }); this.error(error instanceof Error ? error : new Error(String(error))); }
   private release(): void {
     cancelAnimationFrame(this.raf); this.raf = 0;
+    this.sppm?.dispose();this.sppm=undefined;
     this.texture?.destroy(); this.uniform?.destroy(); this.scene?.dispose(); this.diagnostic?.destroy(); this.readback?.destroy(); this.context?.unconfigure(); this.device?.destroy();
     this.scene = undefined; this.diagnostic = undefined; this.readback = undefined;
     this.accumulation?.destroy(); this.sobol?.destroy(); this.accumulation = undefined; this.sobol = undefined; this.pathPipeline = undefined; this.pathGroup = undefined;

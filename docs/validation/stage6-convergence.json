@@ -1,0 +1,42 @@
+{
+  "roi": {
+    "x": [
+      0.35,
+      0.65
+    ],
+    "y": [
+      0.8,
+      0.95
+    ]
+  },
+  "checkpoints": [
+    {
+      "iterations": 8,
+      "emittedPhotons": 131072,
+      "roiMeanLuminance": 0.2877608015649682,
+      "roiPeakLuminance": 3.2785859380722044,
+      "elapsedMs": 4560.200000047684
+    },
+    {
+      "iterations": 16,
+      "emittedPhotons": 262144,
+      "roiMeanLuminance": 0.2892181902346914,
+      "roiPeakLuminance": 3.454142497396469,
+      "elapsedMs": 9087.900000035763
+    },
+    {
+      "iterations": 32,
+      "emittedPhotons": 524288,
+      "roiMeanLuminance": 0.28904450422138817,
+      "roiPeakLuminance": 3.4370384068012236,
+      "elapsedMs": 18173
+    },
+    {
+      "iterations": 64,
+      "emittedPhotons": 1048576,
+      "roiMeanLuminance": 0.28761376056269833,
+      "roiPeakLuminance": 3.3770073386669157,
+      "elapsedMs": 36316.10000002384
+    }
+  ]
+}
