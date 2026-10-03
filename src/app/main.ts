@@ -3,7 +3,7 @@ import { renderEditor } from "./editor-ui";
 import { createDevice } from "../gpu/device";
 import { cornellScene } from "../scene/cornell";
 import type { SphereMaterial } from "../scene/cornell";
-import { suzanneScene } from "../scene/suzanne";
+import { presentationScene } from "../scene/presentation";
 import { attachOrbit } from "./orbit";
 import { profiles } from "./profiles";
 import type { Profile } from "./profiles";
@@ -31,9 +31,12 @@ const stats = document.querySelector<HTMLElement>("#stats")!;
 const activity = document.querySelector<HTMLElement>("#activity")!;
 const exportStatus = document.querySelector<HTMLElement>("#export-status")!;
 const errorPanel = document.querySelector<HTMLElement>("#error")!;
-const description = cornellScene(controlScene ? "diffuse" : "nbk7");
+const description = cornellScene(controlScene ? "diffuse" : "blue-glass");
+if (!controlScene) {
+  input("ior").value = input("ior-value").value = "1.7";
+}
 selectInput("scene").value = controlScene ? "control" : "suzanne";
-selectInput("material").value = controlScene ? "diffuse" : "nbk7";
+selectInput("material").value = controlScene ? "diffuse" : "blue-glass";
 let target: PathSettings = {
   maxDepth: controlScene ? 8 : 32,
   seed: 1,
@@ -253,7 +256,7 @@ async function start(): Promise<void> {
     const material = selectInput("material").value as SphereMaterial;
     const scene =
       selectInput("scene").value === "suzanne"
-        ? await suzanneScene(material)
+        ? await presentationScene(material)
         : cornellScene(material);
     if (revision !== sceneRevision) return;
     const controls = Object.fromEntries(
@@ -294,7 +297,11 @@ async function start(): Promise<void> {
   });
   selectInput("material").addEventListener("change", () => {
     input("ior").value = String(
-      selectInput("material").value === "glass" ? 1.5 : nbk7Ior(587.6),
+      selectInput("material").value === "blue-glass"
+        ? 1.7
+        : selectInput("material").value === "glass"
+          ? 1.5
+          : nbk7Ior(587.6),
     );
     syncSettings();
     queueScene();
@@ -557,7 +564,9 @@ async function start(): Promise<void> {
     controlScene ? target : { ...target, ...profiles.preview },
   );
   try {
-    await renderer.setScene(controlScene ? description : await suzanneScene());
+    await renderer.setScene(
+      controlScene ? description : await presentationScene(),
+    );
     await renderer.initialize();
     ready = true;
     document
@@ -572,7 +581,7 @@ async function start(): Promise<void> {
       idleTimer = setTimeout(settle, 250);
     }
     document.querySelector<HTMLElement>("#scene-name")!.textContent =
-      controlScene ? "Sphere / diffuse" : "Suzanne / N-BK7";
+      controlScene ? "Sphere / diffuse" : "Suzanne / blue-glass";
   } catch (error) {
     observer.disconnect();
     orbit.dispose();

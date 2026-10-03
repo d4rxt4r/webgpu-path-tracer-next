@@ -17,7 +17,8 @@
     "validate:quality": "node scripts/acceptance.mjs",
     "validate:runtime": "node scripts/validate-runtime.mjs",
     "capture:final": "node scripts/capture-final.mjs",
-    "capture:bvh": "node scripts/capture-bvh.mjs"
+    "capture:bvh": "node scripts/capture-bvh.mjs",
+    "capture:reference": "node scripts/capture-final.mjs --reference"
   },
   "dependencies": {
     "gl-matrix": "^3.4.4",

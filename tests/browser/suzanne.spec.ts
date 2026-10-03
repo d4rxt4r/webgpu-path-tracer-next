@@ -7,7 +7,7 @@ test('final solid loads by default, renders all transport modes and switches sce
   await page.goto('/');
   await expect(page.locator('#scene')).toBeEnabled({ timeout: 30000 });
   await expect(page.locator('#scene')).toHaveValue('suzanne');
-  await expect(page.locator('#material')).toHaveValue('nbk7');
+  await expect(page.locator('#material')).toHaveValue('blue-glass');
   await expect(page.locator('#stats')).toContainText('98748');
   await page.locator('#resolution').selectOption('19200');
   await expect.poll(async () => Number(await page.locator('canvas').getAttribute('data-samples')), { timeout: 20000 }).toBeGreaterThan(0);

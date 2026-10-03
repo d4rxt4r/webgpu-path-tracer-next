@@ -1,6 +1,8 @@
 import { createServer } from "vite";
 import { chromium } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
+const reference = process.argv.includes("--reference");
+const prefix = reference ? "reference-look" : "stage10-final";
 
 const server = await createServer({
   server: { host: "127.0.0.1", port: 5323, strictPort: true, hmr: false },
@@ -14,18 +16,23 @@ try {
   await page.locator("#pause:not([disabled])").waitFor();
   await page.locator("#pause").click();
   console.log(
-    "Rendering final raw and filtered Suzanne: 256x192, 2048 iterations",
+    reference
+      ? "Rendering reference presentation: 256x256, 1024 iterations"
+      : "Rendering final raw and filtered Suzanne: 256x192, 2048 iterations",
   );
-  const image = await page.evaluate(async () => {
+  const image = await page.evaluate(async (reference) => {
     const { renderSppm } = await import("/src/debug/render-sppm.ts");
     const { suzanneScene } = await import("/src/scene/suzanne.ts");
+    const { presentationScene } = await import("/src/scene/presentation.ts");
     const { xyzToLinearRgb } = await import("/src/transport/spectrum.ts");
     const options = {
       width: 256,
-      height: 192,
-      iterations: 2048,
-      checkpoints: [128, 256, 512, 1024, 2048],
-      seed: 17,
+      height: reference ? 256 : 192,
+      iterations: reference ? 1024 : 2048,
+      checkpoints: reference
+        ? [128, 256, 512, 1024]
+        : [128, 256, 512, 1024, 2048],
+      seed: reference ? 1 : 17,
       maxDepth: 32,
       initialRadius: 0.03,
       photonsPerIteration: 16384,
@@ -33,7 +40,10 @@ try {
       denoise: { enabled: true, passes: 3, strength: 2, filterGlass: false },
     };
     const start = performance.now();
-    const result = await renderSppm(await suzanneScene(), options);
+    const result = await renderSppm(
+      await (reference ? presentationScene() : suzanneScene()),
+      options,
+    );
     const rgb = (pixels) => {
       const out = [];
       for (let i = 0; i < pixels.length; i += 3)
@@ -101,7 +111,7 @@ try {
           "Actual GPU spatial denoiser; PNG uses exposure 0, Reinhard and sRGB. Delta to raw measures display change, not error against a ground truth. Raw f32 is exported separately.",
       },
     };
-  });
+  }, reference);
   const data = Buffer.alloc(image.width * image.height * 12);
   for (let y = 0; y < image.height; y++)
     for (let x = 0; x < image.width; x++)
@@ -111,22 +121,22 @@ try {
           (y * image.width + x) * 12 + c * 4,
         );
   await writeFile(
-    "docs/validation/stage10-final.pfm",
+    `docs/validation/${prefix}.pfm`,
     Buffer.concat([
       Buffer.from(`PF\n${image.width} ${image.height}\n-1.0\n`),
       data,
     ]),
   );
   await writeFile(
-    "docs/validation/stage10-final-raw.png",
+    `docs/validation/${prefix}-raw.png`,
     Buffer.from(image.rawPng, "base64"),
   );
   await writeFile(
-    "docs/validation/stage10-final-filtered.png",
+    `docs/validation/${prefix}-filtered.png`,
     Buffer.from(image.filteredPng, "base64"),
   );
   await writeFile(
-    "docs/validation/stage10-final.json",
+    `docs/validation/${prefix}.json`,
     JSON.stringify(image.metadata, null, 2) + "\n",
   );
   console.log(JSON.stringify(image.metadata));
