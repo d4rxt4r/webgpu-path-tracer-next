@@ -5,13 +5,34 @@ import type { SceneDescription } from '../scene/types';
 
 export interface PackedTransport { materials: ArrayBuffer; lights: ArrayBuffer; lightCount: number }
 export function packTransport(description: SceneDescription, bvh: Bvh): PackedTransport {
+  for (const [surface, object] of description.objects.entries()) {
+    if (description.materials[object.material]?.type !== 'dielectric') continue;
+    const edges = new Map<string, { count: number; orientation: number }>();
+    let volume = 0;
+    for (const t of bvh.triangles) {
+      if (t.surface !== surface) continue;
+      volume += t.a[0] * (t.b[1] * t.c[2] - t.b[2] * t.c[1]) + t.a[1] * (t.b[2] * t.c[0] - t.b[0] * t.c[2]) + t.a[2] * (t.b[0] * t.c[1] - t.b[1] * t.c[0]);
+      const vertices = [t.a.join(','), t.b.join(','), t.c.join(',')];
+      for (let i = 0; i < 3; i++) {
+        const a = vertices[i]!, b = vertices[(i + 1) % 3]!;
+        const key = a < b ? `${a}|${b}` : `${b}|${a}`;
+        const edge = edges.get(key) ?? { count: 0, orientation: 0 };
+        edge.count++; edge.orientation += a < b ? 1 : -1; edges.set(key, edge);
+      }
+    }
+    if (volume <= 0 || edges.size === 0 || [...edges.values()].some(edge => edge.count !== 2 || edge.orientation !== 0)) throw new Error('Dielectric requires a closed, outward-oriented manifold');
+  }
   const materialDef = definitions.structs.Material!, lightDef = definitions.structs.LightTriangle!;
   const materials = new ArrayBuffer(materialDef.size * description.materials.length);
   description.materials.forEach((material, i) => {
-    if (material.type === 'dielectric') throw new Error('Стекло будет доступно на этапе 4; RGB PT пока принимает diffuse/emissive.');
+    if (material.type === 'dielectric') {
+      if (!Number.isFinite(Math.fround(material.ior)) || material.ior < 1 || !material.absorption.every(v => Number.isFinite(Math.fround(v)) && v >= 0)) throw new Error('Invalid dielectric material');
+      makeStructuredView(materialDef, materials, i * materialDef.size).set({ color: [1, 1, 1], kind: 2, absorption: material.absorption, ior: material.ior });
+      return;
+    }
     const color = material.type === 'diffuse' ? material.reflectance : material.emission;
     if (!color.every(v => Number.isFinite(v) && v >= 0 && (material.type !== 'diffuse' || v <= 1))) throw new Error('Invalid material spectrum');
-    makeStructuredView(materialDef, materials, i * materialDef.size).set({ color, kind: material.type === 'diffuse' ? 0 : 1 });
+    makeStructuredView(materialDef, materials, i * materialDef.size).set({ color, kind: material.type === 'diffuse' ? 0 : 1, absorption: [0, 0, 0], ior: 1 });
   });
   const objects = new Set(description.lights.map(light => light.object));
   if (objects.size !== description.lights.length) throw new Error('Duplicate area light');

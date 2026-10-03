@@ -32,7 +32,7 @@ export function sphereMesh(segments = 32, rings = 16, radius = 0.45): MeshData {
   return { positions: new Float32Array(positions), normals: new Float32Array(positions.map(value => value / radius)), indices: new Uint32Array(indices) };
 }
 
-export function cornellScene(): SceneDescription {
+export function cornellScene(sphere: 'diffuse' | 'glass' = 'diffuse'): SceneDescription {
   const meshes = [
     quad([-1, 0, 1], [1, 0, 1], [1, 0, -1], [-1, 0, -1]),
     quad([-1, 2, -1], [1, 2, -1], [1, 2, 1], [-1, 2, 1]),
@@ -47,7 +47,7 @@ export function cornellScene(): SceneDescription {
   return {
     version: 1, meshes,
     objects: meshes.map((_, mesh) => ({ mesh, material: mesh === 3 ? 1 : mesh === 4 ? 2 : mesh === 5 ? 3 : mesh === 6 ? 4 : 0, transform: mesh === 6 ? sphereTransform : identity })),
-    materials: [ { type: 'diffuse', reflectance: [0.73, 0.73, 0.73] }, { type: 'diffuse', reflectance: [0.65, 0.05, 0.05] }, { type: 'diffuse', reflectance: [0.05, 0.65, 0.05] }, { type: 'emissive', emission: [12, 12, 12] }, { type: 'diffuse', reflectance: [0.65, 0.65, 0.65] } ],
+    materials: [ { type: 'diffuse', reflectance: [0.73, 0.73, 0.73] }, { type: 'diffuse', reflectance: [0.65, 0.05, 0.05] }, { type: 'diffuse', reflectance: [0.05, 0.65, 0.05] }, { type: 'emissive', emission: [12, 12, 12] }, sphere === 'glass' ? { type: 'dielectric', ior: 1.5, absorption: [0.15, 0.03, 0.01] } : { type: 'diffuse', reflectance: [0.65, 0.65, 0.65] } ],
     lights: [{ object: 5 }],
     camera: { position: [0, 1, 3.7], target: [0, 1, 0], up: [0, 1, 0], verticalFov: 40 },
   };

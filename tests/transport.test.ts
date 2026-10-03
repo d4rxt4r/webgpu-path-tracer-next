@@ -27,6 +27,18 @@ describe('Owen-scrambled Sobol', () => {
   });
 });
 describe('RGB transport packing', () => {
+  it('packs closed glass and rejects invalid absorption, IOR and open volumes', () => {
+    const scene = cornellScene('glass');
+    const bvh = buildBvh(bakeTriangles(scene));
+    expect(packTransport(scene, bvh).materials.byteLength).toBe(160);
+    scene.materials[4] = { type: 'dielectric', ior: 0, absorption: [0, 0, 0] };
+    expect(() => packTransport(scene, bvh)).toThrow('Invalid dielectric');
+    scene.materials[4] = { type: 'dielectric', ior: 1.5, absorption: [-1, 0, 0] };
+    expect(() => packTransport(scene, bvh)).toThrow('Invalid dielectric');
+    scene.materials[4] = { type: 'dielectric', ior: 1.5, absorption: [0, 0, 0] };
+    scene.meshes[6]!.indices = scene.meshes[6]!.indices.slice(3);
+    expect(() => packTransport(scene, buildBvh(bakeTriangles(scene)))).toThrow('closed');
+  });
   it('keeps the path shader within the baseline storage binding limit', () => {
     expect(Object.keys(makeShaderDataDefinitions(pathShader).storages).length).toBeLessThanOrEqual(8);
     expect(definitions.structs.DisplayParams!.size).toBe(16);
@@ -42,7 +54,7 @@ describe('RGB transport packing', () => {
     const cdf = definitions.structs.LightTriangle!.fields.cdf!.offset / 4;
     expect(floats[probability]! + floats[stride + probability]!).toBe(1);
     expect(floats[stride + cdf]).toBe(1);
-    expect(packed.materials.byteLength).toBe(scene.materials.length * 16);
+    expect(packed.materials.byteLength).toBe(scene.materials.length * 32);
   });
   it('rejects energy-creating diffuse materials and missing/duplicated emitters', () => {
     const scene = cornellScene(), bvh = buildBvh(bakeTriangles(scene));

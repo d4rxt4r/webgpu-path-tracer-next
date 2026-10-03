@@ -5,12 +5,12 @@ import { attachOrbit } from './orbit';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <main>
-    <header><span class="eyebrow">WEBGPU / ЭТАП 03</span><h1>Спектральный рендерер</h1><p>Коробка Корнелла · RGB path tracing</p></header>
-    <div class="controls"><label>Вид <select id="view" disabled><option value="beauty">RGB PT</option><option value="normal">Нормали</option><option value="depth">Глубина</option><option value="bvh">Обход BVH</option></select></label><label>Разрешение <select id="resolution" disabled><option value="19200">Быстрое</option><option value="76800" selected>Среднее</option><option value="307200">640 × 480</option></select></label><label>Семплирование <select id="strategy" disabled><option value="mis">MIS</option><option value="light">Light</option><option value="bsdf">BSDF</option></select></label><button id="reset" disabled>Сброс камеры</button></div>
+    <header><span class="eyebrow">WEBGPU / ЭТАП 04</span><h1>Спектральный рендерер</h1><p>Коробка Корнелла · RGB path tracing</p></header>
+    <div class="controls"><label>Вид <select id="view" disabled><option value="beauty">RGB PT</option><option value="normal">Нормали</option><option value="depth">Глубина</option><option value="bvh">Обход BVH</option></select></label><label>Разрешение <select id="resolution" disabled><option value="19200">Быстрое</option><option value="76800" selected>Среднее</option><option value="307200">640 × 480</option></select></label><label>Семплирование <select id="strategy" disabled><option value="mis">MIS</option><option value="light">Light</option><option value="bsdf">BSDF</option></select></label><label>Material <select id="material" disabled><option value="diffuse">Diffuse</option><option value="glass">Glass</option></select></label><button id="reset" disabled>Сброс камеры</button></div>
     <label class="exposure">Экспозиция <input id="exposure" type="range" min="-4" max="4" step="0.1" value="0" disabled></label>
     <section class="viewport"><canvas aria-label="Progressive RGB path traced image"></canvas><div id="error" role="alert" hidden></div></section>
     <footer><div><strong id="status">Инициализация…</strong><p id="stats">Запрашиваем GPU-адаптер</p></div><button id="pause" disabled>Пауза</button></footer>
-    <p class="note">Перетаскивание — вращение камеры, колесо — приближение. Изображение постепенно накапливает свет; движение камеры начинает накопление заново. Пока используется диффузная контрольная сфера. Время включает ожидание очереди и не является GPU timestamp.</p>
+    <p class="note">Перетаскивание — вращение камеры, колесо — приближение. Изображение постепенно накапливает свет; движение камеры начинает накопление заново. Материал контрольной сферы можно переключить на стекло. Время включает ожидание очереди и не является GPU timestamp.</p>
   </main>`;
 
 const canvas = document.querySelector('canvas')!;
@@ -34,7 +34,18 @@ async function start(): Promise<void> {
     const panel = document.querySelector<HTMLElement>('#error')!;
     panel.hidden = false; panel.textContent = error.message;
   });
-  const orbit = attachOrbit(canvas, description.camera, camera => renderer.setCamera(camera));
+  let currentCamera = description.camera;
+  document.querySelector<HTMLSelectElement>('#material')!.addEventListener('change', event => {
+    const scene = cornellScene((event.target as HTMLSelectElement).value as 'diffuse' | 'glass');
+    scene.camera = currentCamera;
+    renderer.setSettings({ maxDepth: 32 });
+    void renderer.setScene(scene).catch(error => {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      const panel = document.querySelector<HTMLElement>('#error')!;
+      panel.hidden = false; panel.textContent = String(error);
+    });
+  });
+  const orbit = attachOrbit(canvas, description.camera, camera => { currentCamera = camera; renderer.setCamera(camera); });
   document.querySelector('#reset')!.addEventListener('click', () => orbit.reset());
   document.querySelector<HTMLSelectElement>('#view')!.addEventListener('change', event => renderer.setDebugView((event.target as HTMLSelectElement).value as 'normal' | 'depth' | 'bvh' | 'beauty'));
   document.querySelector<HTMLSelectElement>('#resolution')!.addEventListener('change', event => renderer.setSettings({ maxPixels: Number((event.target as HTMLSelectElement).value) }));
@@ -54,7 +65,7 @@ async function start(): Promise<void> {
   try {
     await renderer.setScene(description);
     await renderer.initialize();
-    document.querySelectorAll<HTMLSelectElement | HTMLButtonElement | HTMLInputElement>('#view, #reset, #resolution, #strategy, #exposure').forEach(control => { control.disabled = false; });
+    document.querySelectorAll<HTMLSelectElement | HTMLButtonElement | HTMLInputElement>('#view, #reset, #resolution, #strategy, #exposure, #material').forEach(control => { control.disabled = false; });
   } catch (error) { observer.disconnect(); orbit.dispose(); renderer.dispose(); throw error; }
 }
 void start().catch(error => {

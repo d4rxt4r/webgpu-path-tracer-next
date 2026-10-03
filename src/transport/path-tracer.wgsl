@@ -4,19 +4,29 @@ struct PathResult { radiance: vec3f, error: u32 }
 fn tracePath(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, maxDepth: u32, strategy: u32, lightCount: u32) -> PathResult {
   var ray = initial; var beta = vec3f(1.0); var radiance = vec3f(0.0);
   var previousPosition = initial.origin; var previousPdf = 0.0;
+  var previousDelta = true; var etaScale = 1.0;
+  var medium = NO_HIT;
   for (var depth = 0u; depth <= maxDepth; depth++) {
     let hit = closestHit(ray);
     if (hit.error != 0u) { return PathResult(vec3f(0), hit.error); }
-    if (hit.id == NO_HIT) { break; }
+    if (hit.id == NO_HIT) {
+      if (medium != NO_HIT) { return PathResult(vec3f(0), 4u); }
+      break;
+    }
     let triangle = triangles[hit.triangle];
     if (triangle.material >= arrayLength(&materials)) { return PathResult(vec3f(0), 1u); }
     let material = materials[triangle.material];
     let ng = geometricNormal(triangle);
     let position = ray.origin + hit.t * ray.direction;
+    // A camera inside a solid starts in that medium. Only disjoint solids are supported.
+    if (depth == 0u && material.kind == 2u && dot(ng, ray.direction) > 0.0) { medium = hit.triangle; }
+    if (medium != NO_HIT) {
+      beta *= exp(-materials[triangles[medium].material].absorption * length(position - previousPosition));
+    }
     if (material.kind == 1u) {
       if (dot(ng, -ray.direction) > 0.0) {
         var weight = 1.0;
-        if (depth > 0u) {
+        if (depth > 0u && !previousDelta) {
           if (strategy == 0u) { weight = powerHeuristic(previousPdf, lightPdf(previousPosition, position, triangle.id, lightCount)); }
           else if (strategy == 1u) { weight = 0.0; }
         }
@@ -27,6 +37,29 @@ fn tracePath(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, maxDepth: u3
     if (depth == maxDepth) { break; }
     let n = select(ng, -ng, dot(ng, -ray.direction) < 0.0);
     let dimension = 3u + depth * 7u;
+    if (material.kind == 2u) {
+      let entering = dot(ng, ray.direction) < 0.0;
+      if ((entering && medium != NO_HIT) || (!entering && (medium == NO_HIT || triangles[medium].surface != triangle.surface))) {
+        return PathResult(vec3f(0), 4u);
+      }
+      let eta = select(1.0 / material.ior, material.ior, entering);
+      let ns = shadingNormal(triangle, hit);
+      let orientedShading = select(-ns, ns, entering);
+      let event = sampleDielectricSurface(ray.direction, n, orientedShading, eta, sample1D(sampleIndex, dimension + 5u, pixel, seed), false);
+      if (event.weight == 0.0) { break; }
+      beta *= event.weight;
+      if (event.transmitted != 0u) {
+        medium = select(NO_HIT, hit.triangle, entering);
+        etaScale *= eta * eta;
+      }
+      previousPosition = position; previousPdf = 0.0; previousDelta = true;
+      if (depth >= 4u) {
+        beta = rouletteWeight(beta, etaScale, sample1D(sampleIndex, dimension + 6u, pixel, seed));
+        if (all(beta == vec3f(0))) { break; }
+      }
+      ray = Ray(offsetOrigin(position, ng, event.direction), 0.0, event.direction, 1e20);
+      continue;
+    }
     if (strategy != 2u && lightCount > 0u) {
       let light = sampleLight(sample1D(sampleIndex, dimension, pixel, seed), vec2f(sample1D(sampleIndex, dimension + 1u, pixel, seed), sample1D(sampleIndex, dimension + 2u, pixel, seed)), lightCount);
       let delta = light.position - position; let distanceSquared = dot(delta, delta);
@@ -47,10 +80,11 @@ fn tracePath(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, maxDepth: u3
     }
     let wi = cosineDirection(n, vec2f(sample1D(sampleIndex, dimension + 3u, pixel, seed), sample1D(sampleIndex, dimension + 4u, pixel, seed)));
     previousPosition = position; previousPdf = max(0.0, dot(n, wi)) / PI;
+    previousDelta = false;
     beta *= material.color;
     // After the fifth scattering, survival is compensated in throughput.
     if (depth >= 4u) {
-      beta = rouletteWeight(beta, 1.0, sample1D(sampleIndex, dimension + 6u, pixel, seed));
+      beta = rouletteWeight(beta, etaScale, sample1D(sampleIndex, dimension + 6u, pixel, seed));
       if (all(beta == vec3f(0))) { break; }
     }
     ray = Ray(offsetOrigin(position, ng, wi), 0.0, wi, 1e20);
