@@ -1,0 +1,28 @@
+{
+  "failingPath": {
+    "adapter": "intel gen-12lp",
+    "width": 960,
+    "height": 720,
+    "paths": 1,
+    "failures": []
+  },
+  "rectangular": {
+    "adapter": "intel gen-12lp",
+    "width": 960,
+    "height": 720,
+    "paths": 11059200,
+    "failures": []
+  },
+  "square": {
+    "adapter": "intel gen-12lp",
+    "width": 831,
+    "height": 831,
+    "paths": 11048976,
+    "failures": []
+  },
+  "sppm": {
+    "errors": 0,
+    "countsComplete": true,
+    "emittedPhotons": 262144
+  }
+}

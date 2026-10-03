@@ -2,6 +2,62 @@ import { expect, test } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { writeFile } from "node:fs/promises";
 
+test("blue glass Buddha keeps valid media across narrow folds at high resolution", async ({
+  page,
+}) => {
+  test.setTimeout(180000);
+  await page.goto("/?scene=control");
+  await expect(page.locator("#status")).toHaveText("WebGPU готов", {
+    timeout: 20000,
+  });
+  await page.locator("#pause").click();
+  const result = await page.evaluate(async () => {
+    const url = "/src/debug/verify-buddha-glass.ts";
+    const { verifyBuddhaGlass } = await import(/* @vite-ignore */ url);
+    const failingPath = await verifyBuddhaGlass(960, 720, 1, {
+      sample: 2,
+      pixel: 309683,
+    });
+    const rectangular = await verifyBuddhaGlass(960, 720, 16);
+    const square = await verifyBuddhaGlass(831, 831, 16);
+    const renderUrl = "/src/debug/render-sppm.ts",
+      sceneUrl = "/src/scene/buddha.ts";
+    const { renderSppm } = await import(/* @vite-ignore */ renderUrl);
+    const { buddhaScene } = await import(/* @vite-ignore */ sceneUrl);
+    const sppm = await renderSppm(await buddhaScene("blue-glass"), {
+      width: 128,
+      height: 128,
+      iterations: 64,
+      photonsPerIteration: 4096,
+      photonBatchSize: 1024,
+      maxDepth: 32,
+      initialRadius: 0.03,
+    });
+    return {
+      failingPath,
+      rectangular,
+      square,
+      sppm: {
+        errors: sppm.errors,
+        countsComplete: sppm.counts.every((n: number) => n === 64),
+        emittedPhotons: sppm.emittedPhotons,
+      },
+    };
+  });
+  console.log("Buddha glass regression:", JSON.stringify(result));
+  await writeFile(
+    "docs/validation/buddha-glass-regression.json",
+    JSON.stringify(result, null, 2) + "\n",
+  );
+  expect(result.failingPath.failures).toEqual([]);
+  expect(result.rectangular.paths).toBe(960 * 720 * 16);
+  expect(result.rectangular.failures).toEqual([]);
+  expect(result.square.paths).toBe(831 * 831 * 16);
+  expect(result.square.failures).toEqual([]);
+  expect(result.sppm.errors).toBe(0);
+  expect(result.sppm.countsComplete).toBe(true);
+});
+
 test("Buddha intersections and wall occlusion agree with CPU from all six sides", async ({
   page,
 }) => {

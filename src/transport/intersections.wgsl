@@ -100,6 +100,30 @@ fn anyHit(ray: Ray) -> Hit { return traceBvh(ray, true); }
 
 fn geometricNormal(triangle: Triangle) -> vec3f { return normalize(cross(triangle.b - triangle.a, triangle.c - triangle.a)); }
 fn shadingNormal(triangle: Triangle, hit: Hit) -> vec3f { return normalize((1.0 - hit.u - hit.v) * triangle.na + hit.u * triangle.nb + hit.v * triangle.nc); }
+fn surfacePosition(triangle: Triangle, hit: Hit) -> vec3f {
+  return (1.0-hit.u-hit.v)*triangle.a + hit.u*triangle.b + hit.v*triangle.c;
+}
+// Bound interpolation roundoff rather than moving every hit by a fixed world epsilon.
+// A large fixed offset can jump across a nearby boundary in a narrow glass fold.
+fn offsetSurface(triangle: Triangle, hit: Hit, direction: vec3f) -> vec3f {
+  let position=surfacePosition(triangle,hit);let normal=geometricNormal(triangle);
+  let pError=8.344657e-7*(abs(1.0-hit.u-hit.v)*abs(triangle.a)+abs(hit.u)*abs(triangle.b)+abs(hit.v)*abs(triangle.c));
+  // The sheared intersection also loses precision on large triangles near zero.
+  let edges=max(abs(triangle.b-triangle.a),abs(triangle.c-triangle.a));
+  let intersectionError=8.344657e-7*max(edges.x,max(edges.y,edges.z));
+  let distance=max(dot(abs(normal),pError)+intersectionError,1e-7);
+  let offset=select(-distance,distance,dot(normal,direction)>=0.0)*normal;
+  var origin=position+offset;
+  // Round away from the surface even when a component is below one local ULP.
+  for(var axis=0u;axis<3u;axis++) {
+    if(offset[axis]!=0.0 && origin[axis]!=0.0) {
+      let positive=offset[axis]>0.0;
+      let step=select(-1,1,positive==(origin[axis]>0.0));
+      origin[axis]=bitcast<f32>(bitcast<i32>(origin[axis])+step);
+    }
+  }
+  return origin;
+}
 // Conservative world-space error offset; geometric normal defines the side.
 fn offsetOrigin(position: vec3f, normal: vec3f, direction: vec3f) -> vec3f {
   let error = 4e-6 * max(1.0, max(abs(position.x), max(abs(position.y), abs(position.z))));

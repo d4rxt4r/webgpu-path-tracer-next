@@ -26,7 +26,7 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
     let triangle=triangles[hit.triangle];
     if(triangle.material>=arrayLength(&materials)) {atomicAdd(&errors,1u);break;}
     let material=materials[triangle.material];
-    let ng=geometricNormal(triangle); let position=ray.origin+hit.t*ray.direction;
+    let ng=geometricNormal(triangle); let position=surfacePosition(triangle,hit);
     let color=surfaceColor(material,position,wavelength);
     if(depth==0u&&material.kind==2u&&dot(ng,ray.direction)>0.0) {medium=hit.triangle;}
     if(medium!=NO_HIT) {let inside=materials[triangles[medium].material];beta*=exp(-spectralColor(inside.absorption,inside.absorptionOffset,wavelength)*length(position-previous));}
@@ -39,7 +39,7 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
         let ns=shadingNormal(triangle,hit);let oriented=select(ns,-ns,dot(ns,n)<0.0);
         let wi=coatingDirection(ray.direction,n,oriented);previous=position;
         if(depth>=4u) {beta=rouletteWeight(beta,etaScale,sample1D(params.frame,dimension+6u,pixel,params.seed));if(all(beta==vec3f(0))) {break;}}
-        ray=Ray(offsetOrigin(position,ng,wi),0.0,wi,1e20);continue;
+        ray=Ray(offsetSurface(triangle,hit,wi),0.0,wi,1e20);continue;
       }
       point.position=position; point.surface=triangle.surface; point.normal=n;
       point.weight=beta*color/PI; point.valid=u32(any(point.weight>vec3f(0)));
@@ -48,7 +48,7 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
         let delta=light.position-position; let d2=dot(delta,delta); let wi=normalize(delta);
         let cosine=max(0.0,dot(n,wi)); let lightCosine=dot(light.normal,-wi);
         if(d2>0.0&&cosine>0.0&&lightCosine>0.0) {
-          let origin=offsetOrigin(position,ng,wi); let end=offsetOrigin(light.position,light.normal,-wi);
+          let origin=offsetSurface(triangle,hit,wi); let end=offsetOrigin(light.position,light.normal,-wi);
           let segment=end-origin; let distance=length(segment);
           let shadow=anyHit(Ray(origin,0.0,segment/distance,distance*(1.0-1e-6)));
           if(shadow.error!=0u) {atomicAdd(&errors,1u);}
@@ -67,7 +67,7 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
     if(event.transmitted!=0u) {medium=select(NO_HIT,hit.triangle,entering);etaScale*=eta*eta;}
     previous=position;
     if(depth>=4u) {beta=rouletteWeight(beta,etaScale,sample1D(params.frame,dimension+6u,pixel,params.seed));if(all(beta==vec3f(0))) {break;}}
-    ray=Ray(offsetOrigin(position,ng,event.direction),0.0,event.direction,1e20);
+    ray=Ray(offsetSurface(triangle,hit,event.direction),0.0,event.direction,1e20);
   }
   return point;
 }
@@ -105,7 +105,7 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
     let triangle=triangles[hit.triangle];
     if(triangle.material>=arrayLength(&materials)) {atomicAdd(&errors,1u);break;}
     let material=materials[triangle.material];let ng=geometricNormal(triangle);
-    let position=ray.origin+hit.t*ray.direction;let n=select(ng,-ng,dot(ng,-ray.direction)<0.0);
+    let position=surfacePosition(triangle,hit);let n=select(ng,-ng,dot(ng,-ray.direction)<0.0);
     if(medium!=NO_HIT) {let inside=materials[triangles[medium].material];beta*=exp(-spectralColor(inside.absorption,inside.absorptionOffset,wavelength)*length(position-previous));}
     if(!all(beta>=vec3f(0))||!all(beta<vec3f(FAR))) {atomicAdd(&errors,1u);break;}
     if(material.kind==1u) {break;}
@@ -132,7 +132,7 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
     }
     // Importance transport has no radiance eta compression to compensate.
     if(depth>=4u) {beta=rouletteWeight(beta,1.0,sample1D(index,dimension+6u,stream,seed));if(all(beta==vec3f(0))) {break;}}
-    previous=position;ray=Ray(offsetOrigin(position,ng,wi),0.0,wi,1e20);
+    previous=position;ray=Ray(offsetSurface(triangle,hit,wi),0.0,wi,1e20);
   }
 }
 @compute @workgroup_size(64) fn hashMain(@builtin(global_invocation_id) id:vec3u) {

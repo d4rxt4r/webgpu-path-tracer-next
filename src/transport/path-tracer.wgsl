@@ -19,7 +19,7 @@ fn tracePathAtWavelength(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, 
     if (triangle.material >= arrayLength(&materials)) { return PathResult(vec3f(0), 1u, interactions); }
     let material = materials[triangle.material];
     let ng = geometricNormal(triangle);
-    let position = ray.origin + hit.t * ray.direction;
+    let position = surfacePosition(triangle,hit);
     let color = surfaceColor(material, position, wavelength);
     // A camera inside a solid starts in that medium. Only disjoint solids are supported.
     if (depth == 0u && material.kind == 2u && dot(ng, ray.direction) > 0.0) { medium = hit.triangle; }
@@ -62,7 +62,7 @@ fn tracePathAtWavelength(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, 
         beta = rouletteWeight(beta, etaScale, sample1D(sampleIndex, dimension + 6u, pixel, seed));
         if (all(beta == vec3f(0))) { break; }
       }
-      ray = Ray(offsetOrigin(position, ng, event.direction), 0.0, event.direction, 1e20);
+      ray = Ray(offsetSurface(triangle,hit,event.direction), 0.0, event.direction, 1e20);
       continue;
     }
     let coating=coatingProbability(material);
@@ -73,7 +73,7 @@ fn tracePathAtWavelength(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, 
       if (cosine > 0.0 && lightCosine > 0.0 && distanceSquared > 0.0) {
         let pdf = light.pdfArea * distanceSquared / lightCosine;
         // Offset both endpoints. Glass is not treated as an opacity shadow pass.
-        let origin = offsetOrigin(position, ng, wi);
+        let origin = offsetSurface(triangle,hit,wi);
         let lightEndpoint = offsetOrigin(light.position, light.normal, -wi);
         let segment = lightEndpoint - origin; let distance = length(segment);
         let shadow = anyHit(Ray(origin, 0.0, segment / distance, distance * (1.0 - 1e-6)));
@@ -90,7 +90,7 @@ fn tracePathAtWavelength(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, 
       let wi=coatingDirection(ray.direction,n,oriented);
       previousPosition=position;previousPdf=0.0;previousDelta=true;
       if(depth>=4u) {beta=rouletteWeight(beta,etaScale,sample1D(sampleIndex,dimension+6u,pixel,seed));if(all(beta==vec3f(0))) {break;}}
-      ray=Ray(offsetOrigin(position,ng,wi),0.0,wi,1e20);
+      ray=Ray(offsetSurface(triangle,hit,wi),0.0,wi,1e20);
       continue;
     }
     let wi = cosineDirection(n, vec2f(sample1D(sampleIndex, dimension + 3u, pixel, seed), sample1D(sampleIndex, dimension + 4u, pixel, seed)));
@@ -102,7 +102,7 @@ fn tracePathAtWavelength(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, 
       beta = rouletteWeight(beta, etaScale, sample1D(sampleIndex, dimension + 6u, pixel, seed));
       if (all(beta == vec3f(0))) { break; }
     }
-    ray = Ray(offsetOrigin(position, ng, wi), 0.0, wi, 1e20);
+    ray = Ray(offsetSurface(triangle,hit,wi), 0.0, wi, 1e20);
   }
   if (!all(radiance >= vec3f(0.0)) || !all(radiance < vec3f(FAR))) { return PathResult(vec3f(0), 3u, interactions); }
   return PathResult(radiance, 0u, interactions);

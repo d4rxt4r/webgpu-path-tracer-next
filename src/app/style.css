@@ -291,6 +291,12 @@ details[open] summary {
   border-radius: 5px;
   z-index: 2;
 }
+#error-message {
+  display: block;
+}
+#error-dismiss {
+  margin-top: 12px;
+}
 .statusbar {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;

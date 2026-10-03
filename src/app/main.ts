@@ -52,6 +52,16 @@ const stats = document.querySelector<HTMLElement>("#stats")!;
 const activity = document.querySelector<HTMLElement>("#activity")!;
 const exportStatus = document.querySelector<HTMLElement>("#export-status")!;
 const errorPanel = document.querySelector<HTMLElement>("#error")!;
+const errorMessage = document.querySelector<HTMLElement>("#error-message")!;
+button("error-dismiss").addEventListener("click", () => {
+  errorPanel.hidden = true;
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !errorPanel.hidden) {
+    errorPanel.hidden = true;
+    event.preventDefault();
+  }
+});
 const description = cornellScene(initialMaterial);
 if (initialScene === "buddha") {
   input("object-y").value = "0.86";
@@ -246,7 +256,7 @@ async function start(): Promise<void> {
   function showError(error: unknown): void {
     if (error instanceof DOMException && error.name === "AbortError") return;
     errorPanel.hidden = false;
-    errorPanel.textContent =
+    errorMessage.textContent =
       error instanceof Error ? error.message : String(error);
   }
   let currentCamera = description.camera,
@@ -671,6 +681,6 @@ void start().catch((error) => {
   status.textContent = "Ошибка запуска";
   button("pause").disabled = true;
   errorPanel.hidden = false;
-  errorPanel.textContent =
+  errorMessage.textContent =
     error instanceof Error ? error.message : String(error);
 });
