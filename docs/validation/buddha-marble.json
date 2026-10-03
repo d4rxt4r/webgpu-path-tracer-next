@@ -1,0 +1,54 @@
+{
+  "scene": "buddha",
+  "material": "marble",
+  "options": {
+    "width": 256,
+    "height": 256,
+    "iterations": 512,
+    "checkpoints": [
+      128,
+      256,
+      512
+    ],
+    "seed": 17,
+    "maxDepth": 32,
+    "initialRadius": 0.03,
+    "photonsPerIteration": 16384,
+    "photonBatchSize": 4096,
+    "denoise": {
+      "enabled": true,
+      "passes": 3,
+      "strength": 2,
+      "filterGlass": false
+    }
+  },
+  "convergence": [
+    {
+      "iterations": 128,
+      "emittedPhotons": 2097152,
+      "floorMeanY": 0.10989550223805204,
+      "elapsedMs": 7516
+    },
+    {
+      "iterations": 256,
+      "emittedPhotons": 4194304,
+      "floorMeanY": 0.11017958069157927,
+      "elapsedMs": 13790.900000035763
+    },
+    {
+      "iterations": 512,
+      "emittedPhotons": 8388608,
+      "floorMeanY": 0.11027789704258156,
+      "elapsedMs": 25659.5
+    }
+  ],
+  "adapter": "intel gen-12lp",
+  "errors": 0,
+  "emittedPhotons": 8388608,
+  "elapsedMs": 28871.30000001192,
+  "allSamplesComplete": true,
+  "displayLuminanceDeltaRmse": 0.1525050810743366,
+  "rawMean": 0.27987448218632,
+  "filteredMean": 0.277690515678134,
+  "interpretation": "Actual GPU spatial denoiser; PNG uses exposure 0, Reinhard and sRGB. Delta to raw measures display change, not error against a ground truth. Raw f32 is exported separately."
+}

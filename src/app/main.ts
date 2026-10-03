@@ -4,17 +4,38 @@ import { createDevice } from "../gpu/device";
 import { cornellScene } from "../scene/cornell";
 import type { SphereMaterial } from "../scene/cornell";
 import { presentationScene } from "../scene/presentation";
+import { buddhaScene } from "../scene/buddha";
 import { attachOrbit } from "./orbit";
 import { profiles } from "./profiles";
 import type { Profile } from "./profiles";
 import type { PathSettings, DebugView } from "../render/intersection-renderer";
 import { download, encodePfm } from "./export";
 import { nbk7Ior } from "../transport/spectrum";
-import { applySceneControls, sceneControlIds } from "../scene/editor";
-import type { SceneControls } from "../scene/editor";
+import {
+  applySceneControls,
+  sceneControlIds,
+  applyTextureControls,
+  textureControlIds,
+} from "../scene/editor";
+import type { SceneControls, TextureControls } from "../scene/editor";
 
-const controlScene =
-  new URLSearchParams(location.search).get("scene") === "control";
+const query = new URLSearchParams(location.search);
+const initialScene =
+  query.get("scene") === "control"
+    ? "control"
+    : query.get("scene") === "buddha"
+      ? "buddha"
+      : "suzanne";
+const controlScene = initialScene === "control";
+const requestedMaterial = query.get("material");
+const initialMaterial: SphereMaterial =
+  requestedMaterial === "marble" || requestedMaterial === "lava"
+    ? requestedMaterial
+    : controlScene
+      ? "diffuse"
+      : initialScene === "buddha"
+        ? "marble"
+        : "blue-glass";
 document.querySelector<HTMLDivElement>("#app")!.innerHTML =
   renderEditor(controlScene);
 
@@ -31,12 +52,27 @@ const stats = document.querySelector<HTMLElement>("#stats")!;
 const activity = document.querySelector<HTMLElement>("#activity")!;
 const exportStatus = document.querySelector<HTMLElement>("#export-status")!;
 const errorPanel = document.querySelector<HTMLElement>("#error")!;
-const description = cornellScene(controlScene ? "diffuse" : "blue-glass");
+const description = cornellScene(initialMaterial);
+if (initialScene === "buddha") {
+  input("object-y").value = "0.86";
+  description.camera.target = [0, 0.9, 0];
+  description.camera.position = [0, 0.9, 3.7];
+}
 if (!controlScene) {
   input("ior").value = input("ior-value").value = "1.7";
 }
-selectInput("scene").value = controlScene ? "control" : "suzanne";
-selectInput("material").value = controlScene ? "diffuse" : "blue-glass";
+selectInput("scene").value = initialScene;
+selectInput("material").value = initialMaterial;
+if (initialMaterial === "lava") {
+  input("texture-scale").value = "6";
+  input("texture-width").value = "0.04";
+}
+function syncObjectScale(): void {
+  const max = selectInput("scene").value === "buddha" ? 1.15 : 1.4;
+  input("object-scale").max = input("object-scale-value").max = String(max);
+  input("object-scale").value = String(Math.min(max, value("object-scale")));
+}
+syncObjectScale();
 let target: PathSettings = {
   maxDepth: controlScene ? 8 : 32,
   seed: 1,
@@ -97,12 +133,19 @@ function syncSettings(): void {
       input("radius-value").disabled =
         target.integrator !== "sppm";
     const material = selectInput("material").value;
+    const textured = material === "marble" || material === "lava";
+    document.querySelector<HTMLElement>("#texture-group")!.hidden = !textured;
+    document.querySelector<HTMLElement>("#lava-settings")!.hidden =
+      material !== "lava";
+    for (const id of textureControlIds)
+      input(id).disabled = input(`${id}-value`).disabled =
+        !textured || (id.startsWith("lava-") && material !== "lava");
     input("dispersion").disabled = !material.startsWith("nbk7");
     input("dispersion").checked = material === "nbk7";
     input("ior").disabled = input("ior-value").disabled =
-      material === "diffuse" || material === "nbk7";
+      material === "diffuse" || material === "nbk7" || textured;
     input("absorption").disabled = input("absorption-value").disabled =
-      material === "diffuse";
+      material === "diffuse" || textured;
     input("albedo").disabled = input("albedo-value").disabled =
       material !== "diffuse";
     for (const id of ["denoise-passes", "denoise-strength"])
@@ -257,12 +300,20 @@ async function start(): Promise<void> {
     const scene =
       selectInput("scene").value === "suzanne"
         ? await presentationScene(material)
-        : cornellScene(material);
+        : selectInput("scene").value === "buddha"
+          ? await buddhaScene(material)
+          : cornellScene(material);
     if (revision !== sceneRevision) return;
     const controls = Object.fromEntries(
       sceneControlIds.map((id) => [id, value(id)]),
     ) as SceneControls;
     applySceneControls(scene, controls);
+    applyTextureControls(
+      scene,
+      Object.fromEntries(
+        textureControlIds.map((id) => [id, value(id)]),
+      ) as TextureControls,
+    );
     for (const id of ["object-x", "object-y", "object-z"] as const)
       input(id).value = String(controls[id]);
     syncRanges();
@@ -273,7 +324,7 @@ async function start(): Promise<void> {
         scenePending = false;
         errorPanel.hidden = true;
         document.querySelector<HTMLElement>("#scene-name")!.textContent =
-          `${selectInput("scene").value === "suzanne" ? "Suzanne" : "Sphere"} / ${material}`;
+          `${selectInput("scene").value === "suzanne" ? "Suzanne" : selectInput("scene").value === "buddha" ? "Happy Buddha" : "Sphere"} / ${material}`;
       }
     } catch (error) {
       if (revision === sceneRevision) showError(error);
@@ -291,11 +342,30 @@ async function start(): Promise<void> {
   };
   selectInput("scene").addEventListener("change", () => {
     input("object-y").value =
-      selectInput("scene").value === "suzanne" ? "1" : "0.65";
-    syncRanges();
+      selectInput("scene").value === "suzanne"
+        ? "1"
+        : selectInput("scene").value === "buddha"
+          ? "0.86"
+          : "0.65";
+    syncObjectScale();
+    if (
+      selectInput("scene").value === "buddha" &&
+      !["marble", "lava"].includes(selectInput("material").value)
+    ) {
+      selectInput("material").value = "marble";
+      input("texture-scale").value = "9";
+      input("texture-width").value = "0.1";
+    }
+    syncSettings();
     queueScene();
   });
   selectInput("material").addEventListener("change", () => {
+    if (["marble", "lava"].includes(selectInput("material").value)) {
+      input("texture-scale").value =
+        selectInput("material").value === "lava" ? "6" : "9";
+      input("texture-width").value =
+        selectInput("material").value === "lava" ? "0.04" : "0.1";
+    }
     input("ior").value = String(
       selectInput("material").value === "blue-glass"
         ? 1.7
@@ -390,6 +460,7 @@ async function start(): Promise<void> {
     "ior",
     "absorption",
     "albedo",
+    ...textureControlIds,
   ])
     input(id).addEventListener("input", queueScene);
   for (const id of ["fov", "camera-distance"])
@@ -469,7 +540,10 @@ async function start(): Promise<void> {
         sceneName = selectInput("scene").value,
         material = selectInput("material").value,
         sceneControls = Object.fromEntries(
-          sceneControlIds.map((id) => [id, value(id)]),
+          [...sceneControlIds, ...textureControlIds].map((id) => [
+            id,
+            value(id),
+          ]),
         );
       const capture = await renderer.capture();
       if (sourceRevision !== sceneRevision || scenePending)
@@ -565,7 +639,11 @@ async function start(): Promise<void> {
   );
   try {
     await renderer.setScene(
-      controlScene ? description : await presentationScene(),
+      controlScene
+        ? description
+        : initialScene === "buddha"
+          ? await buddhaScene(initialMaterial)
+          : await presentationScene(initialMaterial),
     );
     await renderer.initialize();
     ready = true;
@@ -581,7 +659,7 @@ async function start(): Promise<void> {
       idleTimer = setTimeout(settle, 250);
     }
     document.querySelector<HTMLElement>("#scene-name")!.textContent =
-      controlScene ? "Sphere / diffuse" : "Suzanne / blue-glass";
+      `${initialScene === "control" ? "Sphere" : initialScene === "buddha" ? "Happy Buddha" : "Suzanne"} / ${initialMaterial}`;
   } catch (error) {
     observer.disconnect();
     orbit.dispose();

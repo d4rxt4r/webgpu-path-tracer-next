@@ -1,5 +1,6 @@
 import { mat4 } from "gl-matrix";
 import type { MeshData, SceneDescription, Vec3 } from "./types";
+import { texturedMaterial } from "./textured-materials";
 import {
   d65Spectrum,
   nbk7Absorption,
@@ -55,6 +56,8 @@ export type SphereMaterial =
   | "diffuse"
   | "glass"
   | "blue-glass"
+  | "marble"
+  | "lava"
   | "nbk7"
   | "nbk7-constant";
 export function cornellScene(
@@ -170,5 +173,9 @@ export function cornellScene(
         [830, 7],
       ],
     };
+  if (sphere === "marble" || sphere === "lava") {
+    scene.materials[4] = texturedMaterial(sphere);
+    if (sphere === "lava") scene.lights.push({ object: 6 });
+  }
   return scene;
 }

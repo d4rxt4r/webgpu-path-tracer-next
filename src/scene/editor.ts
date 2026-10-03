@@ -1,5 +1,6 @@
 import { mat4, vec3 } from "gl-matrix";
 import type { SceneDescription } from "./types";
+import { lavaEmission } from "./textured-materials";
 
 export const sceneControlIds = [
   "object-scale",
@@ -19,6 +20,34 @@ export const sceneControlIds = [
   "albedo",
 ] as const;
 export type SceneControls = Record<(typeof sceneControlIds)[number], number>;
+export const textureControlIds = [
+  "texture-scale",
+  "texture-turbulence",
+  "texture-width",
+  "texture-coating",
+  "lava-power",
+  "lava-temperature",
+] as const;
+export type TextureControls = Record<
+  (typeof textureControlIds)[number],
+  number
+>;
+
+export function applyTextureControls(
+  scene: SceneDescription,
+  v: TextureControls,
+): void {
+  const material = scene.materials[4]!;
+  if (material.type !== "marble" && material.type !== "lava") return;
+  material.scale = v["texture-scale"];
+  material.turbulence = v["texture-turbulence"];
+  material.width = v["texture-width"];
+  material.coating = v["texture-coating"];
+  if (material.type === "lava") {
+    material.emissionPower = v["lava-power"];
+    Object.assign(material, lavaEmission(v["lava-temperature"]));
+  }
+}
 
 /** Keep the editable solid inside the room; crossing a wall breaks medium boundaries. */
 export function applySceneControls(

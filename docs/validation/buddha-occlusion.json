@@ -1,0 +1,85 @@
+{
+  "adapter": "intel gen-12lp",
+  "rays": 294,
+  "mismatches": [],
+  "sides": [
+    {
+      "name": "front",
+      "eye": [
+        0,
+        1,
+        3.7
+      ],
+      "surface": 6,
+      "actualSurface": 6,
+      "distance": 3.4750006198883057,
+      "fullVisits": 31,
+      "visibleVisits": 29
+    },
+    {
+      "name": "back",
+      "eye": [
+        0,
+        1,
+        -3.7
+      ],
+      "surface": 2,
+      "actualSurface": 2,
+      "distance": 2.700000047683716,
+      "fullVisits": 8,
+      "visibleVisits": 7
+    },
+    {
+      "name": "left",
+      "eye": [
+        -3.7,
+        1,
+        0
+      ],
+      "surface": 3,
+      "actualSurface": 3,
+      "distance": 2.700000047683716,
+      "fullVisits": 7,
+      "visibleVisits": 7
+    },
+    {
+      "name": "right",
+      "eye": [
+        3.7,
+        1,
+        0
+      ],
+      "surface": 4,
+      "actualSurface": 4,
+      "distance": 2.700000047683716,
+      "fullVisits": 33,
+      "visibleVisits": 7
+    },
+    {
+      "name": "top",
+      "eye": [
+        0,
+        4.7,
+        0
+      ],
+      "surface": 1,
+      "actualSurface": 1,
+      "distance": 2.6999998092651367,
+      "fullVisits": 28,
+      "visibleVisits": 8
+    },
+    {
+      "name": "bottom",
+      "eye": [
+        0,
+        -2.7,
+        0
+      ],
+      "surface": 0,
+      "actualSurface": 0,
+      "distance": 2.700000047683716,
+      "fullVisits": 58,
+      "visibleVisits": 9
+    }
+  ]
+}

@@ -6,11 +6,11 @@ import { bruteForce } from "../accel/intersect";
 import { suzanneScene } from "../scene/suzanne";
 import { checkedShader, createDevice } from "../gpu/device";
 import { intersectionCore } from "../transport/shaders";
-import type { Ray, Vec3 } from "../scene/types";
+import type { Ray, Vec3, SceneDescription } from "../scene/types";
 
 /** Check real Suzanne occlusion, not just the simplified sphere fixture. */
-export async function verifyOcclusion() {
-  const scene = await suzanneScene(),
+export async function verifyOcclusion(description?: SceneDescription) {
+  const scene = description ?? (await suzanneScene()),
     triangles = bakeTriangles(scene);
   const packed = packBvh(buildBvh(triangles));
   const sides: { name: string; eye: Vec3; surface: number }[] = [

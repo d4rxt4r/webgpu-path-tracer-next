@@ -1,0 +1,39 @@
+{
+  "asset": "buddha.bin",
+  "format": "SGMESH01",
+  "byteLength": 2302112,
+  "sha256": "4d3d8ce29fac2689835834630bf30bac5bcdb8c19a7171ccc28f96abe99e5e97",
+  "source": "Stanford University Computer Graphics Laboratory, Happy Buddha",
+  "sourceUrl": "https://graphics.stanford.edu/data/3Dscanrep/",
+  "downloadUrl": "https://graphics.stanford.edu/pub/3Dscanrep/happy/happy_recon.tar.gz",
+  "sourceSha256": "2283371216d748a08376a3c88698e283cc8f18d10ced348d6d133051bcf217ab",
+  "sourceVertices": 543652,
+  "sourceTriangles": 1087716,
+  "generator": "scripts/prepare-buddha.py",
+  "blenderVersion": "4.4.3",
+  "pipeline": [
+    "quadric decimation to 96000 triangles",
+    "outward normals",
+    "center bounds",
+    "normalize height to 1.7m",
+    "voxel reconstruction at 0.003m to resolve sub-resolution scan bridges",
+    "final quadric decimation to 96000 triangles",
+    "remove disconnected scan specks"
+  ],
+  "terms": "Free research use and free redistribution with attribution; commercial use requires Stanford permission. See sourceUrl and BUDDHA-NOTICES.txt.",
+  "bounds": [
+    [-0.34897714853286743, -0.8498266935348511, -0.34943437576293945],
+    [0.3488469123840332, 0.8497529029846191, 0.34935083985328674]
+  ],
+  "finalStatistics": {
+    "vertices": 47952,
+    "faces": 95936,
+    "boundaryEdges": 0,
+    "nonManifoldEdges": 0,
+    "signedVolume": 0.224111677685012,
+    "components": 1
+  },
+  "triangles": 95936,
+  "removedDisconnectedScanSpecks": 7,
+  "minimumTriangleArea": 1.1247297776942079e-7
+}

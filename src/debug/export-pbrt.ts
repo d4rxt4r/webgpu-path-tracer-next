@@ -40,6 +40,10 @@ export function exportPbrt(
       ? material.absorptionSpectrum.some(([, value]) => value > 0)
       : material.absorption.some((value) => value > 0));
   for (const material of scene.materials) {
+    if (material.type === "marble" || material.type === "lava")
+      throw new Error(
+        "PBRT reference export does not support procedural marble/lava materials",
+      );
     const rgb =
       material.type === "diffuse"
         ? material.reflectance
@@ -66,6 +70,10 @@ export function exportPbrt(
   const triangles = bakeTriangles(scene);
   for (const [surface, object] of scene.objects.entries()) {
     const material = scene.materials[object.material]!;
+    if (material.type === "marble" || material.type === "lava")
+      throw new Error(
+        "PBRT reference export does not support procedural marble/lava materials",
+      );
     lines.push("AttributeBegin");
     if (material.type === "diffuse")
       lines.push(

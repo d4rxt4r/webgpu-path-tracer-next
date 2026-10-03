@@ -16,20 +16,24 @@ fn cosineDirection(normal: vec3f, u: vec2f) -> vec3f {
 }
 struct LightSample { position: vec3f, pdfArea: f32, normal: vec3f, padding: f32, emission: vec3f, triangleId: u32 }
 fn sampleLightAtWavelength(choice: f32, u: vec2f, lightCount: u32, wavelength: f32) -> LightSample {
-  var index = lightCount - 1u;
-  for (var i = 0u; i < lightCount; i++) { if (choice < lights[i].cdf) { index = i; break; } }
+  var low=0u; var high=lightCount;
+  while(low<high) {let mid=low+(high-low)/2u;if(choice<lights[mid].cdf) {high=mid;} else {low=mid+1u;}}
+  let index=min(low,lightCount-1u);
   let light = lights[index];
   let root = sqrt(u.x); let a = 1.0 - root; let b = root * (1.0 - u.y); let c = root * u.y;
   let normal = normalize(cross(light.b - light.a, light.c - light.a));
-  return LightSample(a * light.a + b * light.b + c * light.c, light.probability / light.area, normal, 0.0, spectralColor(light.emission, light.spectrumOffset, wavelength), light.triangleId);
+  let position=a * light.a + b * light.b + c * light.c;
+  return LightSample(position, light.probability / light.area, normal, 0.0, surfaceEmission(materials[light.material],position,wavelength), light.triangleId);
 }
 fn lightPdf(previous: vec3f, position: vec3f, triangleId: u32, lightCount: u32) -> f32 {
   // Keep one return after the search; divergent per-emitter early returns failed
   // the numeric PDF acceptance on the target Intel UHD adapter.
   let delta = position - previous; let distanceSquared = dot(delta, delta);
   var pdf = 0.0;
-  for (var i = 0u; i < lightCount; i++) {
-    let light = lights[i];
+  var low=0u;var high=lightCount;
+  while(low<high) {let mid=low+(high-low)/2u;if(lights[mid].triangleId<triangleId) {low=mid+1u;} else {high=mid;}}
+  if(low<lightCount) {
+    let light = lights[low];
     if (light.triangleId == triangleId && distanceSquared > 0.0) {
       let normal = normalize(cross(light.b - light.a, light.c - light.a));
       let cosine = dot(normal, -normalize(delta));

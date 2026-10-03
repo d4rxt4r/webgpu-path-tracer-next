@@ -26,14 +26,21 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
     let triangle=triangles[hit.triangle];
     if(triangle.material>=arrayLength(&materials)) {atomicAdd(&errors,1u);break;}
     let material=materials[triangle.material];
-    let color=spectralColor(material.color,material.spectrumOffset,wavelength);
     let ng=geometricNormal(triangle); let position=ray.origin+hit.t*ray.direction;
+    let color=surfaceColor(material,position,wavelength);
     if(depth==0u&&material.kind==2u&&dot(ng,ray.direction)>0.0) {medium=hit.triangle;}
     if(medium!=NO_HIT) {let inside=materials[triangles[medium].material];beta*=exp(-spectralColor(inside.absorption,inside.absorptionOffset,wavelength)*length(position-previous));}
     let n=select(ng,-ng,dot(ng,-ray.direction)<0.0);
-    if(material.kind==1u) { if(dot(ng,-ray.direction)>0.0) {point.direct=beta*color;} break; }
+    if(material.kind==1u||material.kind==4u) {if(dot(ng,-ray.direction)>0.0) {point.direct+=beta*surfaceEmission(material,position,wavelength);} if(material.kind==1u) {break;}}
     let dimension=3u+depth*7u;
-    if(material.kind==0u) {
+    if(material.kind==0u||material.kind>=3u) {
+      if(sample1D(params.frame,dimension+5u,pixel,params.seed)<coatingProbability(material)) {
+        if(depth==params.maxDepth) {break;}
+        let ns=shadingNormal(triangle,hit);let oriented=select(ns,-ns,dot(ns,n)<0.0);
+        let wi=coatingDirection(ray.direction,n,oriented);previous=position;
+        if(depth>=4u) {beta=rouletteWeight(beta,etaScale,sample1D(params.frame,dimension+6u,pixel,params.seed));if(all(beta==vec3f(0))) {break;}}
+        ray=Ray(offsetOrigin(position,ng,wi),0.0,wi,1e20);continue;
+      }
       point.position=position; point.surface=triangle.surface; point.normal=n;
       point.weight=beta*color/PI; point.valid=u32(any(point.weight>vec3f(0)));
       if(params.lightCount>0u) {
@@ -45,7 +52,7 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
           let segment=end-origin; let distance=length(segment);
           let shadow=anyHit(Ray(origin,0.0,segment/distance,distance*(1.0-1e-6)));
           if(shadow.error!=0u) {atomicAdd(&errors,1u);}
-          if(shadow.id==NO_HIT) {point.direct=point.weight*light.emission*cosine/(light.pdfArea*d2/lightCosine);}
+          if(shadow.id==NO_HIT) {point.direct+=point.weight*light.emission*cosine/(light.pdfArea*d2/lightCosine);}
         }
       }
       break;
@@ -103,12 +110,17 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
     if(!all(beta>=vec3f(0))||!all(beta<vec3f(FAR))) {atomicAdd(&errors,1u);break;}
     if(material.kind==1u) {break;}
     let dimension=5u+depth*7u;var wi:vec3f;
-    if(material.kind==0u) {
+    if(material.kind==0u||material.kind>=3u) {
       // The first direct diffuse hit is estimated by camera NEE, not photons.
       if(depth>0u&&any(beta>vec3f(0))) {photons[first+depth]=Photon(position,triangle.surface,n,1u,beta,0u,vec3i(0),0u);}
       if(depth==params.maxDepth) {break;}
-      beta*=spectralColor(material.color,material.spectrumOffset,wavelength);
-      wi=cosineDirection(n,vec2f(sample1D(index,dimension+3u,stream,seed),sample1D(index,dimension+4u,stream,seed)));
+      if(sample1D(index,dimension+5u,stream,seed)<coatingProbability(material)) {
+        let ns=shadingNormal(triangle,hit);let oriented=select(ns,-ns,dot(ns,n)<0.0);
+        wi=coatingDirection(ray.direction,n,oriented);
+      } else {
+        beta*=surfaceColor(material,position,wavelength);
+        wi=cosineDirection(n,vec2f(sample1D(index,dimension+3u,stream,seed),sample1D(index,dimension+4u,stream,seed)));
+      }
     } else {
       if(depth==params.maxDepth) {break;}
       let entering=dot(ng,ray.direction)<0.0;

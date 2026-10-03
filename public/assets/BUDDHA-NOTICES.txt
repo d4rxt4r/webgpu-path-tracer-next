@@ -1,0 +1,18 @@
+Happy Buddha model
+Source: Stanford University Computer Graphics Laboratory
+Stanford 3D Scanning Repository
+https://graphics.stanford.edu/data/3Dscanrep/
+https://graphics.stanford.edu/pub/3Dscanrep/happy/happy_recon.tar.gz
+
+This project distributes a simplified reconstruction for a free research/demo
+renderer. Stanford allows research use and free mirroring/redistribution with
+source attribution. Commercial use, including inclusion in a product for sale,
+requires permission from Stanford. The full terms are on the repository page
+under "Please acknowledge..." and "Inappropriate uses of these models".
+Credit rendered images to the Stanford Computer Graphics Laboratory.
+
+Prepared using scripts/prepare-buddha.py (Blender 4.4): decimation, normal
+recalculation, centering, uniform scale, 3mm voxel reconstruction to resolve
+degenerate scan bridges, and removal of seven disconnected scan specks.
+Procedural marble/lava appearances are renderer materials, not original scan
+textures. The geometry does not melt, break or change shape.
