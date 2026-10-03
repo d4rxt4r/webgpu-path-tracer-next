@@ -1,21 +1,30 @@
 import type { PackedScene } from '../accel/pack';
+import type { PackedTransport } from '../accel/materials';
 
 export class GpuScene {
   readonly nodes: GPUBuffer;
   readonly triangles: GPUBuffer;
+  readonly materials: GPUBuffer;
+  readonly lights: GPUBuffer;
   readonly bytes: number;
-  constructor(device: GPUDevice, scene: PackedScene) {
-    if ([scene.nodes.byteLength, scene.triangles.byteLength].some(size => size > device.limits.maxStorageBufferBindingSize || size > device.limits.maxBufferSize)) throw new Error('Геометрия превышает лимиты GPU storage buffers.');
+  constructor(device: GPUDevice, scene: PackedScene & PackedTransport) {
+    if ([scene.nodes.byteLength, scene.triangles.byteLength, scene.materials.byteLength, scene.lights.byteLength].some(size => size > device.limits.maxStorageBufferBindingSize || size > device.limits.maxBufferSize)) throw new Error('Сцена превышает лимиты GPU storage buffers.');
     if (scene.maxDepth >= 63) throw new Error('BVH exceeds traversal stack capacity');
     const upload = (data: ArrayBuffer, label: string): GPUBuffer => {
       const buffer = device.createBuffer({ label, size: data.byteLength, usage: GPUBufferUsage.STORAGE, mappedAtCreation: true });
       new Uint8Array(buffer.getMappedRange()).set(new Uint8Array(data)); buffer.unmap(); return buffer;
     };
     this.nodes = upload(scene.nodes, 'World-space SAH BVH');
-    try { this.triangles = upload(scene.triangles, 'World-space triangles'); }
-    catch (error) { this.nodes.destroy(); throw error; }
-    this.bytes = scene.nodes.byteLength + scene.triangles.byteLength;
+    const allocated = [this.nodes];
+    try {
+      this.triangles = upload(scene.triangles, 'World-space triangles'); allocated.push(this.triangles);
+      this.materials = upload(scene.materials, 'RGB materials'); allocated.push(this.materials);
+      this.lights = upload(scene.lights, 'Area light triangles');
+    }
+    catch (error) { allocated.forEach(buffer => buffer.destroy()); throw error; }
+    this.bytes = scene.nodes.byteLength + scene.triangles.byteLength + scene.materials.byteLength + scene.lights.byteLength;
   }
   entries(): GPUBindGroupEntry[] { return [{ binding: 2, resource: { buffer: this.nodes } }, { binding: 3, resource: { buffer: this.triangles } }]; }
-  dispose(): void { this.nodes.destroy(); this.triangles.destroy(); }
+  transportEntries(): GPUBindGroupEntry[] { return [{ binding: 5, resource: { buffer: this.materials } }, { binding: 6, resource: { buffer: this.lights } }]; }
+  dispose(): void { this.nodes.destroy(); this.triangles.destroy(); this.materials.destroy(); this.lights.destroy(); }
 }

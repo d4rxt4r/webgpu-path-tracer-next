@@ -5,6 +5,7 @@ test('compute output, pause, resize and resume without GPU errors', async ({ pag
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
   await expect(page.locator('#status')).toHaveText('WebGPU готов');
+  await page.locator('#view').selectOption('normal');
   const canvas = page.locator('canvas');
   await expect.poll(async () => Number(await canvas.getAttribute('data-frames'))).toBeGreaterThan(2);
   console.log('WebGPU:', await page.locator('#stats').textContent());

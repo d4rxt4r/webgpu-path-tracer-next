@@ -8,7 +8,9 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
-    "test:browser": "playwright test"
+    "test:browser": "playwright test",
+    "assets:sobol": "node scripts/prepare-sobol.mjs",
+    "capture:control": "node scripts/capture-control.mjs"
   },
   "dependencies": {
     "gl-matrix": "^3.4.4",
@@ -16,6 +18,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.55.1",
+    "@types/node": "^24.19.1",
     "@webgpu/types": "^0.1.64",
     "typescript": "^5.9.3",
     "vite": "^7.1.7",

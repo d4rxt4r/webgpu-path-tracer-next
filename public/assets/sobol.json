@@ -1,0 +1,9 @@
+{
+  "source": "https://raw.githubusercontent.com/mmp/pbrt-v4/b4ce9687e6c695f5582997c61b0c66cf064bdb4a/src/pbrt/util/sobolmatrices.cpp",
+  "revision": "b4ce9687e6c695f5582997c61b0c66cf064bdb4a",
+  "dimensions": 512,
+  "bits": 32,
+  "byteOrder": "little-endian",
+  "sha256": "aeb2ebe762bb0876844d555bd7ab770b76ba08f802c24183b338ab1f56e958c7",
+  "attribution": "Joe and Kuo direction numbers, PBRT table by Leonhard Gruenschloss; see sobol-LICENSE.txt"
+}

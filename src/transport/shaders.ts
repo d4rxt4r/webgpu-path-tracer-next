@@ -1,5 +1,13 @@
 import layouts from './layouts.wgsl?raw';
 import intersections from './intersections.wgsl?raw';
 import debug from './debug.wgsl?raw';
+import sampler from './sampler.wgsl?raw';
+import lighting from './lighting.wgsl?raw';
+import tracer from './path-tracer.wgsl?raw';
+import output from './path-output.wgsl?raw';
+import display from '../render/display.wgsl?raw';
 export const intersectionCore = layouts + '\n' + intersections;
 export const debugShader = intersectionCore + '\n' + debug;
+export const pathCore = intersectionCore + '\n' + sampler + '\n' + lighting + '\n' + tracer;
+export const pathShader = pathCore + '\n' + output;
+export const displayShader = layouts + '\n' + display;

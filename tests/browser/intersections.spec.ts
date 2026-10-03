@@ -22,6 +22,7 @@ test('GPU closest/any hits agree with CPU brute force and errors are diagnosed',
 test('debug views and orbit camera redraw while paused', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#status')).toHaveText('WebGPU готов');
+  await page.locator('#view').selectOption('normal');
   await expect.poll(async () => Number(await page.locator('canvas').getAttribute('data-frames'))).toBeGreaterThan(0);
   await page.getByRole('button', { name: 'Пауза', exact: true }).click();
   await page.waitForTimeout(200);

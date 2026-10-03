@@ -47,7 +47,7 @@ export function cornellScene(): SceneDescription {
   return {
     version: 1, meshes,
     objects: meshes.map((_, mesh) => ({ mesh, material: mesh === 3 ? 1 : mesh === 4 ? 2 : mesh === 5 ? 3 : mesh === 6 ? 4 : 0, transform: mesh === 6 ? sphereTransform : identity })),
-    materials: [ { type: 'diffuse', reflectance: [0.73, 0.73, 0.73] }, { type: 'diffuse', reflectance: [0.65, 0.05, 0.05] }, { type: 'diffuse', reflectance: [0.05, 0.65, 0.05] }, { type: 'emissive', emission: [12, 12, 12] }, { type: 'dielectric', ior: 1.5168, absorption: [0.01, 0.01, 0.01] } ],
+    materials: [ { type: 'diffuse', reflectance: [0.73, 0.73, 0.73] }, { type: 'diffuse', reflectance: [0.65, 0.05, 0.05] }, { type: 'diffuse', reflectance: [0.05, 0.65, 0.05] }, { type: 'emissive', emission: [12, 12, 12] }, { type: 'diffuse', reflectance: [0.65, 0.65, 0.65] } ],
     lights: [{ object: 5 }],
     camera: { position: [0, 1, 3.7], target: [0, 1, 0], up: [0, 1, 0], verticalFov: 40 },
   };
