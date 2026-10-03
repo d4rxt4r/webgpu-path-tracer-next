@@ -9,10 +9,11 @@ import { cameraBasis } from '../scene/camera';
 import { makeStructuredView } from 'webgpu-utils';
 import { GpuScene } from '../gpu/scene';
 import { loadSobol } from '../assets/sobol';
+import { xyzToLinearRgb } from '../transport/spectrum';
 
 export type DebugView = 'normal' | 'depth' | 'bvh' | 'beauty';
-export interface PathSettings { maxDepth: number; seed: number; strategy: 'mis' | 'light' | 'bsdf'; maxPixels: number }
-export interface RenderCapture { width: number; height: number; linearRgb: Float32Array; sampleCounts: Float32Array; samples: number; settings: PathSettings; camera: CameraDescription; exposure: number }
+export interface PathSettings { maxDepth: number; seed: number; strategy: 'mis' | 'light' | 'bsdf'; maxPixels: number; mode: 'rgb' | 'spectral' }
+export interface RenderCapture { width: number; height: number; linearRgb: Float32Array; linearXyz?: Float32Array; accumulationSpace: 'linear-srgb' | 'cie-xyz'; sampleCounts: Float32Array; samples: number; settings: PathSettings; camera: CameraDescription; exposure: number }
 
 export interface RenderStats {
   adapter: string; width: number; height: number; frames: number; bytes: number;
@@ -21,7 +22,7 @@ export interface RenderStats {
   samples: number; tile: number; tiles: number;
 }
 
-/** RGB progressive path tracing and shared intersection debug views. */
+/** RGB / spectral progressive path tracing and shared intersection debug views. */
 export class IntersectionRenderer {
   private preparer = new ScenePreparer();
   private packed?: PreparedScene;
@@ -39,7 +40,7 @@ export class IntersectionRenderer {
   private sobol?: GPUBuffer;
   private pathPipeline?: GPUComputePipeline;
   private pathGroup?: GPUBindGroup;
-  private settings: PathSettings = { maxDepth: 8, seed: 1, strategy: 'mis', maxPixels: 640 * 480 };
+  private settings: PathSettings = { maxDepth: 8, seed: 1, strategy: 'mis', maxPixels: 640 * 480, mode: 'rgb' };
   private needsClear = true;
   private tileIndex = 0;
   private samples = 0;
@@ -79,6 +80,7 @@ export class IntersectionRenderer {
       const camera = structuredClone(description.camera);
       const packed = await this.preparer.prepare(description);
       if (sceneRevision !== this.sceneRevision || this.disposed) return;
+      if (this.settings.mode === 'spectral' && !packed.spectralReady) throw new Error('Spectral mode requires spectra for non-neutral RGB materials');
       // Allocate first so failed uploads leave the previous GPU scene usable.
       const scene = this.device ? new GpuScene(this.device, packed) : undefined;
       this.packed = packed;
@@ -95,7 +97,8 @@ export class IntersectionRenderer {
   setDebugView(view: DebugView): void { this.view = { normal: 0, depth: 1, bvh: 2, beauty: 3 }[view]; this.invalidate(); this.schedule(true); }
   setSettings(settings: Partial<PathSettings>): void {
     const next = { ...this.settings, ...settings };
-    if (!Number.isInteger(next.maxDepth) || next.maxDepth < 1 || next.maxDepth > 64 || !Number.isInteger(next.seed) || next.seed < 0 || next.seed > 0xffffffff || !['mis', 'light', 'bsdf'].includes(next.strategy) || !Number.isInteger(next.maxPixels) || next.maxPixels < 1 || next.maxPixels > 640 * 480) throw new Error('Invalid RGB path tracing settings');
+    if (!['rgb', 'spectral'].includes(next.mode) || (next.mode === 'spectral' && this.packed && !this.packed.spectralReady)) throw new Error('Spectral mode requires valid material spectra');
+    if (!Number.isInteger(next.maxDepth) || next.maxDepth < 1 || next.maxDepth > 64 || !Number.isInteger(next.seed) || next.seed < 0 || next.seed > 0xffffffff || !['mis', 'light', 'bsdf'].includes(next.strategy) || !Number.isInteger(next.maxPixels) || next.maxPixels < 1 || next.maxPixels > 640 * 480) throw new Error('Invalid path tracing settings');
     if (Object.keys(next).every(key => next[key as keyof PathSettings] === this.settings[key as keyof PathSettings])) return;
     this.settings = next; this.invalidate(); this.resize(); this.schedule(true);
   }
@@ -107,7 +110,7 @@ export class IntersectionRenderer {
   async capture(): Promise<RenderCapture> {
     await this.activeFrame;
     const { device, accumulation, revision } = this;
-    if (!device || !accumulation || this.disposed || this.view !== 3 || this.needsClear) throw new Error('Linear capture requires a rendered RGB PT image');
+    if (!device || !accumulation || this.disposed || this.view !== 3 || this.needsClear) throw new Error('Linear capture requires a rendered PT image');
     const width = this.stats.width, height = this.stats.height, samples = this.samples;
     const settings = { ...this.settings }, camera = structuredClone(this.camera!), exposure = this.exposure;
     const readback = device.createBuffer({ size: accumulation.size, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
@@ -117,11 +120,16 @@ export class IntersectionRenderer {
       if (this.disposed || revision !== this.revision) throw new DOMException('Capture superseded', 'AbortError');
       const raw = new Float32Array(readback.getMappedRange());
       const linearRgb = new Float32Array(width * height * 3), sampleCounts = new Float32Array(width * height);
+      const linearXyz = settings.mode === 'spectral' ? new Float32Array(width * height * 3) : undefined;
       for (let i=0;i<width*height;i++) {
         const count = raw[i*4+3]!; sampleCounts[i] = count;
         for (let channel=0;channel<3;channel++) linearRgb[i*3+channel] = count ? raw[i*4+channel]!/count : 0;
+        if (linearXyz) {
+          const xyz: [number,number,number] = [linearRgb[i*3]!,linearRgb[i*3+1]!,linearRgb[i*3+2]!];
+          linearXyz.set(xyz,i*3); linearRgb.set(xyzToLinearRgb(xyz),i*3);
+        }
       }
-      readback.unmap(); return { width, height, linearRgb, sampleCounts, samples, settings, camera, exposure };
+      readback.unmap(); return { width, height, linearRgb, linearXyz, accumulationSpace: linearXyz ? 'cie-xyz' : 'linear-srgb', sampleCounts, samples, settings, camera, exposure };
     } finally { readback.destroy(); }
   }
   private invalidate(): void { this.revision++; this.displayOnly = false; this.needsClear = true; this.samples = 0; this.tileIndex = 0; this.stats.samples = 0; this.stats.frames = 0; this.stats.tile = 0; this.report({ ...this.stats }); }
@@ -148,7 +156,7 @@ export class IntersectionRenderer {
     device.pushErrorScope('validation');
     try {
       const [computeModule, pathModule, displayModule, sobolData] = await Promise.all([
-        checkedShader(device, debugShader, 'BVH intersections'), checkedShader(device, pathShader, 'RGB path tracer'), checkedShader(device, displayShader, 'Display'), loadSobol(),
+        checkedShader(device, debugShader, 'BVH intersections'), checkedShader(device, pathShader, 'RGB / spectral path tracer'), checkedShader(device, displayShader, 'Display'), loadSobol(),
       ]);
       const [compute, pathPipeline, display] = await Promise.all([
         device.createComputePipelineAsync({ layout: 'auto', compute: { module: computeModule, entryPoint: 'main' } }),
@@ -192,7 +200,7 @@ export class IntersectionRenderer {
     this.canvas.width = size.width;
     this.canvas.height = size.height;
     this.texture = device.createTexture({ label: 'Linear image', size: [size.width, size.height], format: 'rgba16float', usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT });
-    this.accumulation = device.createBuffer({ label: 'Raw f32 RGB accumulation', size: size.width * size.height * 16, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC });
+    this.accumulation = device.createBuffer({ label: 'Raw f32 linear accumulation', size: size.width * size.height * 16, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC });
     this.stats.width = size.width;
     this.stats.height = size.height;
     this.updateGroups();
@@ -208,7 +216,7 @@ export class IntersectionRenderer {
     const view = texture.createView();
     this.computeGroup = device.createBindGroup({ layout: compute.getBindGroupLayout(0), entries: [{ binding: 0, resource: view }, { binding: 1, resource: { buffer: uniform } }, ...scene.entries(), { binding: 4, resource: { buffer: diagnostic } }] });
     if (this.pathPipeline && this.sobol && this.accumulation) {
-      this.pathGroup = device.createBindGroup({ layout: this.pathPipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: view }, { binding: 1, resource: { buffer: uniform } }, ...scene.entries(), { binding: 4, resource: { buffer: diagnostic } }, ...scene.transportEntries(), { binding: 7, resource: { buffer: this.sobol } }, { binding: 8, resource: { buffer: this.accumulation } }] });
+      this.pathGroup = device.createBindGroup({ layout: this.pathPipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: view }, { binding: 1, resource: { buffer: uniform } }, ...scene.entries(), { binding: 4, resource: { buffer: diagnostic } }, ...scene.transportEntries(), { binding: 7, resource: { buffer: this.sobol } }, { binding: 8, resource: { buffer: this.accumulation } }, scene.spectralEntry()] });
     }
     this.displayGroup = device.createBindGroup({ layout: display.getBindGroupLayout(0), entries: [{ binding: 0, resource: view }, { binding: 1, resource: { buffer: displayUniform } }] });
     this.stats.bytes = this.stats.width * this.stats.height * 24 + this.parameters.arrayBuffer.byteLength + scene.bytes + 8 + (this.sobol?.size ?? 0) + displayUniform.size;
@@ -238,9 +246,9 @@ export class IntersectionRenderer {
       const basis = cameraBasis(camera);
       const columns = Math.ceil(this.stats.width / 64), rows = Math.ceil(this.stats.height / 64);
       const tile = pathMode ? [this.tileIndex % columns * 64, Math.floor(this.tileIndex / columns) * 64, 64, 64] : [0, 0, this.stats.width, this.stats.height];
-      this.parameters.set({ size: [this.stats.width, this.stats.height], frame: this.samples, view: this.view, eye: [...basis.eye, 0], forward: [...basis.forward, 0], right: [...basis.right, 0], up: [...basis.up, 0], tile, maxDepth: this.settings.maxDepth, seed: this.settings.seed, strategy: { mis: 0, light: 1, bsdf: 2 }[this.settings.strategy], lightCount: this.packed!.lightCount });
+      this.parameters.set({ size: [this.stats.width, this.stats.height], frame: this.samples, view: this.view, eye: [...basis.eye, 0], forward: [...basis.forward, 0], right: [...basis.right, 0], up: [...basis.up, 0], tile, maxDepth: this.settings.maxDepth, seed: this.settings.seed, strategy: { mis: 0, light: 1, bsdf: 2 }[this.settings.strategy], lightCount: this.packed!.lightCount, transportMode: Number(this.settings.mode === 'spectral') });
       device.queue.writeBuffer(uniform, 0, this.parameters.arrayBuffer);
-      this.displayParameters.set({ exposure: 2 ** this.exposure, debugView: Number(!pathMode) });
+      this.displayParameters.set({ exposure: 2 ** this.exposure, debugView: Number(!pathMode), colorSpace: Number(pathMode && this.settings.mode === 'spectral') });
       device.queue.writeBuffer(this.displayUniform!,0,this.displayParameters.arrayBuffer);
       const encoder = device.createCommandEncoder();
       encoder.clearBuffer(diagnostic);

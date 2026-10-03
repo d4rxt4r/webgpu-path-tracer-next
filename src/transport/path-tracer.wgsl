@@ -1,7 +1,7 @@
 struct PathResult { radiance: vec3f, error: u32 }
-// Dimensions 0..1 camera, 2 reserved for wavelength, seven fixed slots per bounce:
+// Dimensions 0..1 camera, 2 wavelength, seven fixed slots per bounce:
 // light choice/UV (3), BSDF UV (2), BSDF event (1), roulette (1).
-fn tracePath(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, maxDepth: u32, strategy: u32, lightCount: u32) -> PathResult {
+fn tracePathAtWavelength(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, maxDepth: u32, strategy: u32, lightCount: u32, wavelength: f32) -> PathResult {
   var ray = initial; var beta = vec3f(1.0); var radiance = vec3f(0.0);
   var previousPosition = initial.origin; var previousPdf = 0.0;
   var previousDelta = true; var etaScale = 1.0;
@@ -16,12 +16,14 @@ fn tracePath(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, maxDepth: u3
     let triangle = triangles[hit.triangle];
     if (triangle.material >= arrayLength(&materials)) { return PathResult(vec3f(0), 1u); }
     let material = materials[triangle.material];
+    let color = spectralColor(material.color, material.spectrumOffset, wavelength);
     let ng = geometricNormal(triangle);
     let position = ray.origin + hit.t * ray.direction;
     // A camera inside a solid starts in that medium. Only disjoint solids are supported.
     if (depth == 0u && material.kind == 2u && dot(ng, ray.direction) > 0.0) { medium = hit.triangle; }
     if (medium != NO_HIT) {
-      beta *= exp(-materials[triangles[medium].material].absorption * length(position - previousPosition));
+      let inside = materials[triangles[medium].material];
+      beta *= exp(-spectralColor(inside.absorption, inside.absorptionOffset, wavelength) * length(position - previousPosition));
     }
     if (material.kind == 1u) {
       if (dot(ng, -ray.direction) > 0.0) {
@@ -30,7 +32,7 @@ fn tracePath(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, maxDepth: u3
           if (strategy == 0u) { weight = powerHeuristic(previousPdf, lightPdf(previousPosition, position, triangle.id, lightCount)); }
           else if (strategy == 1u) { weight = 0.0; }
         }
-        radiance += beta * material.color * weight;
+        radiance += beta * color * weight;
       }
       break;
     }
@@ -42,7 +44,8 @@ fn tracePath(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, maxDepth: u3
       if ((entering && medium != NO_HIT) || (!entering && (medium == NO_HIT || triangles[medium].surface != triangle.surface))) {
         return PathResult(vec3f(0), 4u);
       }
-      let eta = select(1.0 / material.ior, material.ior, entering);
+      let ior = materialIor(material, wavelength);
+      let eta = select(1.0 / ior, ior, entering);
       let ns = shadingNormal(triangle, hit);
       let orientedShading = select(-ns, ns, entering);
       let event = sampleDielectricSurface(ray.direction, n, orientedShading, eta, sample1D(sampleIndex, dimension + 5u, pixel, seed), false);
@@ -61,7 +64,7 @@ fn tracePath(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, maxDepth: u3
       continue;
     }
     if (strategy != 2u && lightCount > 0u) {
-      let light = sampleLight(sample1D(sampleIndex, dimension, pixel, seed), vec2f(sample1D(sampleIndex, dimension + 1u, pixel, seed), sample1D(sampleIndex, dimension + 2u, pixel, seed)), lightCount);
+      let light = sampleLightAtWavelength(sample1D(sampleIndex, dimension, pixel, seed), vec2f(sample1D(sampleIndex, dimension + 1u, pixel, seed), sample1D(sampleIndex, dimension + 2u, pixel, seed)), lightCount, wavelength);
       let delta = light.position - position; let distanceSquared = dot(delta, delta);
       let wi = normalize(delta); let cosine = max(0.0, dot(n, wi)); let lightCosine = dot(light.normal, -wi);
       if (cosine > 0.0 && lightCosine > 0.0 && distanceSquared > 0.0) {
@@ -74,14 +77,14 @@ fn tracePath(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, maxDepth: u3
         if (shadow.error != 0u) { return PathResult(vec3f(0), shadow.error); }
         if (shadow.id == NO_HIT) {
           let weight = select(1.0, powerHeuristic(pdf, cosine / PI), strategy == 0u);
-          radiance += beta * material.color / PI * light.emission * cosine * weight / pdf;
+          radiance += beta * color / PI * light.emission * cosine * weight / pdf;
         }
       }
     }
     let wi = cosineDirection(n, vec2f(sample1D(sampleIndex, dimension + 3u, pixel, seed), sample1D(sampleIndex, dimension + 4u, pixel, seed)));
     previousPosition = position; previousPdf = max(0.0, dot(n, wi)) / PI;
     previousDelta = false;
-    beta *= material.color;
+    beta *= color;
     // After the fifth scattering, survival is compensated in throughput.
     if (depth >= 4u) {
       beta = rouletteWeight(beta, etaScale, sample1D(sampleIndex, dimension + 6u, pixel, seed));
@@ -91,4 +94,14 @@ fn tracePath(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, maxDepth: u3
   }
   if (!all(radiance >= vec3f(0.0)) || !all(radiance < vec3f(FAR))) { return PathResult(vec3f(0), 3u); }
   return PathResult(radiance, 0u);
+}
+
+fn tracePath(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, maxDepth: u32, strategy: u32, lightCount: u32) -> PathResult {
+  return tracePathAtWavelength(initial,sampleIndex,pixel,seed,maxDepth,strategy,lightCount,0.0);
+}
+fn traceSpectralPath(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, maxDepth: u32, strategy: u32, lightCount: u32) -> PathResult {
+  let sample = sampleWavelength(sample1D(sampleIndex,2u,pixel,seed));
+  let value = tracePathAtWavelength(initial,sampleIndex,pixel,seed,maxDepth,strategy,lightCount,sample.wavelength);
+  let xyz = cieXyz(sample.wavelength) * value.radiance.x / (sample.pdf * CIE_Y_INTEGRAL);
+  return PathResult(xyz,value.error);
 }

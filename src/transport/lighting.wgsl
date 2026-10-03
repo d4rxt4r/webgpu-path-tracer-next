@@ -15,13 +15,13 @@ fn cosineDirection(normal: vec3f, u: vec2f) -> vec3f {
   return normalize(tangent * r * cos(phi) + bitangent * r * sin(phi) + normal * sqrt(max(0.0, 1.0 - u.x)));
 }
 struct LightSample { position: vec3f, pdfArea: f32, normal: vec3f, padding: f32, emission: vec3f, triangleId: u32 }
-fn sampleLight(choice: f32, u: vec2f, lightCount: u32) -> LightSample {
+fn sampleLightAtWavelength(choice: f32, u: vec2f, lightCount: u32, wavelength: f32) -> LightSample {
   var index = lightCount - 1u;
   for (var i = 0u; i < lightCount; i++) { if (choice < lights[i].cdf) { index = i; break; } }
   let light = lights[index];
   let root = sqrt(u.x); let a = 1.0 - root; let b = root * (1.0 - u.y); let c = root * u.y;
   let normal = normalize(cross(light.b - light.a, light.c - light.a));
-  return LightSample(a * light.a + b * light.b + c * light.c, light.probability / light.area, normal, 0.0, light.emission, light.triangleId);
+  return LightSample(a * light.a + b * light.b + c * light.c, light.probability / light.area, normal, 0.0, spectralColor(light.emission, light.spectrumOffset, wavelength), light.triangleId);
 }
 fn lightPdf(previous: vec3f, position: vec3f, triangleId: u32, lightCount: u32) -> f32 {
   // Keep one return after the search; divergent per-emitter early returns failed

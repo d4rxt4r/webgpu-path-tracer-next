@@ -11,6 +11,6 @@ worker.onmessage = (event: MessageEvent<{ revision: number; scene: SceneDescript
   try {
     const bvh = buildBvh(bakeTriangles(scene));
     const packed = { ...packBvh(bvh), ...packTransport(scene, bvh) };
-    worker.postMessage({ revision, packed }, [packed.nodes, packed.triangles, packed.materials, packed.lights]);
+    worker.postMessage({ revision, packed }, [packed.nodes, packed.triangles, packed.materials, packed.lights, packed.spectra]);
   } catch (error) { worker.postMessage({ revision, error: error instanceof Error ? error.message : String(error) }); }
 };

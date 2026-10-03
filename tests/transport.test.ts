@@ -30,7 +30,7 @@ describe('RGB transport packing', () => {
   it('packs closed glass and rejects invalid absorption, IOR and open volumes', () => {
     const scene = cornellScene('glass');
     const bvh = buildBvh(bakeTriangles(scene));
-    expect(packTransport(scene, bvh).materials.byteLength).toBe(160);
+    expect(packTransport(scene, bvh).materials.byteLength).toBe(240);
     scene.materials[4] = { type: 'dielectric', ior: 0, absorption: [0, 0, 0] };
     expect(() => packTransport(scene, bvh)).toThrow('Invalid dielectric');
     scene.materials[4] = { type: 'dielectric', ior: 1.5, absorption: [-1, 0, 0] };
@@ -54,7 +54,7 @@ describe('RGB transport packing', () => {
     const cdf = definitions.structs.LightTriangle!.fields.cdf!.offset / 4;
     expect(floats[probability]! + floats[stride + probability]!).toBe(1);
     expect(floats[stride + cdf]).toBe(1);
-    expect(packed.materials.byteLength).toBe(scene.materials.length * 32);
+    expect(packed.materials.byteLength).toBe(scene.materials.length * 48);
   });
   it('rejects energy-creating diffuse materials and missing/duplicated emitters', () => {
     const scene = cornellScene(), bvh = buildBvh(bakeTriangles(scene));

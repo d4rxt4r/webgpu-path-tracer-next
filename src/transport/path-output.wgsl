@@ -12,7 +12,10 @@ fn main(@builtin(global_invocation_id) invocation: vec3u) {
   let uv = (vec2f(id) + jitter) / vec2f(params.size);
   let p = vec2f(2.0 * uv.x - 1.0, 1.0 - 2.0 * uv.y);
   let direction = normalize(params.forward.xyz + p.x * f32(params.size.x) / f32(params.size.y) * params.right.xyz + p.y * params.up.xyz);
-  let result = tracePath(Ray(params.eye.xyz, 0.00001, direction, 1e20), params.frame, pixel, params.seed, params.maxDepth, params.strategy, params.lightCount);
+  let ray = Ray(params.eye.xyz, 0.00001, direction, 1e20);
+  var result: PathResult;
+  if (params.transportMode == 0u) { result = tracePath(ray, params.frame, pixel, params.seed, params.maxDepth, params.strategy, params.lightCount); }
+  else { result = traceSpectralPath(ray, params.frame, pixel, params.seed, params.maxDepth, params.strategy, params.lightCount); }
   if (result.error != 0u) { atomicAdd(&traversalErrors, 1u); textureStore(outputImage, vec2i(id), vec4f(1, 0, 1, 1)); return; }
   let sum = accumulation[pixel] + vec4f(result.radiance, 1.0);
   accumulation[pixel] = sum;

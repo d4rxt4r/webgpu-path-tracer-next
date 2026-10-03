@@ -13,7 +13,8 @@ fn srgb(linear: vec3f) -> vec3f {
 @fragment fn fragmentMain(in: VertexOutput) -> @location(0) vec4f {
   let size = textureDimensions(image);
   let pixel = min(vec2u(in.position.xy), size - vec2u(1));
-  let linear = max(textureLoad(image, vec2i(pixel), 0).rgb, vec3f(0));
+  let raw = textureLoad(image, vec2i(pixel), 0).rgb;
+  let linear = max(select(raw, xyzToLinearRgb(raw), displayParams.colorSpace != 0u), vec3f(0));
   if (displayParams.debugView != 0u) { return vec4f(srgb(clamp(linear,vec3f(0),vec3f(1))),1); }
   let exposed = linear * displayParams.exposure;
   return vec4f(srgb(exposed / (1.0 + exposed)), 1.0);

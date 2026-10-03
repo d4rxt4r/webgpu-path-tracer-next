@@ -2,8 +2,9 @@ import { makeStructuredView } from 'webgpu-utils';
 import { definitions } from './pack';
 import type { Bvh } from './bvh';
 import type { SceneDescription } from '../scene/types';
+import { bakeSpectrum, cie, constantSpectrum } from '../transport/spectrum';
 
-export interface PackedTransport { materials: ArrayBuffer; lights: ArrayBuffer; lightCount: number }
+export interface PackedTransport { materials: ArrayBuffer; lights: ArrayBuffer; lightCount: number; spectra: ArrayBuffer; spectralReady: boolean }
 export function packTransport(description: SceneDescription, bvh: Bvh): PackedTransport {
   for (const [surface, object] of description.objects.entries()) {
     if (description.materials[object.material]?.type !== 'dielectric') continue;
@@ -24,15 +25,25 @@ export function packTransport(description: SceneDescription, bvh: Bvh): PackedTr
   }
   const materialDef = definitions.structs.Material!, lightDef = definitions.structs.LightTriangle!;
   const materials = new ArrayBuffer(materialDef.size * description.materials.length);
+  const spectra = new Float32Array((3 + 2 * description.materials.length) * 471);
+  cie.forEach((channel, i) => spectra.set(channel, i * 471));
+  let spectralReady = true;
   description.materials.forEach((material, i) => {
+    const spectrumOffset = (3 + 2 * i) * 471, absorptionOffset = spectrumOffset + 471;
+    const color = material.type === 'dielectric' ? material.absorption : material.type === 'diffuse' ? material.reflectance : material.emission;
+    const table = material.type === 'dielectric' ? material.absorptionSpectrum : material.spectrum;
+    const constant = color.every(v => v === color[0]);
+    if (!table && !constant) spectralReady = false;
+    const dense = bakeSpectrum(table ?? constantSpectrum(constant ? color[0] : 0), material.type === 'diffuse');
+    spectra.set(dense, material.type === 'dielectric' ? absorptionOffset : spectrumOffset);
     if (material.type === 'dielectric') {
       if (!Number.isFinite(Math.fround(material.ior)) || material.ior < 1 || !material.absorption.every(v => Number.isFinite(Math.fround(v)) && v >= 0)) throw new Error('Invalid dielectric material');
-      makeStructuredView(materialDef, materials, i * materialDef.size).set({ color: [1, 1, 1], kind: 2, absorption: material.absorption, ior: material.ior });
+      if (material.iorModel && !['constant', 'nbk7'].includes(material.iorModel)) throw new Error('Invalid IOR model');
+      makeStructuredView(materialDef, materials, i * materialDef.size).set({ color: [1, 1, 1], kind: 2, absorption: material.absorption, ior: material.ior, spectrumOffset, absorptionOffset, iorModel: Number(material.iorModel === 'nbk7') });
       return;
     }
-    const color = material.type === 'diffuse' ? material.reflectance : material.emission;
     if (!color.every(v => Number.isFinite(v) && v >= 0 && (material.type !== 'diffuse' || v <= 1))) throw new Error('Invalid material spectrum');
-    makeStructuredView(materialDef, materials, i * materialDef.size).set({ color, kind: material.type === 'diffuse' ? 0 : 1, absorption: [0, 0, 0], ior: 1 });
+    makeStructuredView(materialDef, materials, i * materialDef.size).set({ color, kind: material.type === 'diffuse' ? 0 : 1, absorption: [0, 0, 0], ior: 1, spectrumOffset, absorptionOffset, iorModel: 0 });
   });
   const objects = new Set(description.lights.map(light => light.object));
   if (objects.size !== description.lights.length) throw new Error('Duplicate area light');
@@ -51,7 +62,7 @@ export function packTransport(description: SceneDescription, bvh: Bvh): PackedTr
     const material = description.materials[triangle.material]!;
     if (material.type !== 'emissive') throw new Error('Invalid emitter');
     const probability = areas[i]! / totalArea; cdf += probability;
-    makeStructuredView(lightDef, lights, i * lightDef.size).set({ ...triangle, area: areas[i], probability, emission: material.emission, triangleId: triangle.id, cdf: i === lightTriangles.length - 1 ? 1 : cdf });
+    makeStructuredView(lightDef, lights, i * lightDef.size).set({ ...triangle, area: areas[i], probability, emission: material.emission, triangleId: triangle.id, cdf: i === lightTriangles.length - 1 ? 1 : cdf, spectrumOffset: (3 + 2 * triangle.material) * 471 });
   });
-  return { materials, lights, lightCount: lightTriangles.length };
+  return { materials, lights, lightCount: lightTriangles.length, spectra: spectra.buffer, spectralReady };
 }
