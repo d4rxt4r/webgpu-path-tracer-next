@@ -37,7 +37,7 @@ for(const mode of ['rgb','spectral'] as const) test(`${mode} photon batches pres
 test('UI switches RGB SPPM and spectral PT without GPU errors',async({page})=>{
   test.setTimeout(60000);const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
   await page.goto('/?scene=control');await expect(page.locator('#status')).toHaveText('WebGPU готов');
-  await page.locator('#resolution').selectOption('19200');await page.locator('#material').selectOption('glass');await page.locator('#integrator').selectOption('sppm');
+  await page.locator('#resolution').selectOption('19200');await page.locator('#material').evaluate(el => { el.closest('details')!.open = true; }); await page.locator('#material').selectOption('glass');await page.locator('#integrator').selectOption('sppm');
   await expect(page.locator('#mode')).toHaveValue('rgb');await expect(page.locator('#strategy')).toBeDisabled();
   await expect.poll(async()=>Number(await page.locator('canvas').getAttribute('data-samples')),{timeout:30000}).toBeGreaterThanOrEqual(2);
   await expect(page.locator('#stats')).toContainText('фотонов');await page.getByRole('button',{name:'Пауза',exact:true}).click();

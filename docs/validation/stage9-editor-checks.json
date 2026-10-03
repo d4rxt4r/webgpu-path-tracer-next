@@ -1,0 +1,18 @@
+{
+  "scene": "Suzanne",
+  "iterations": 64,
+  "emittedPhotons": 1048576,
+  "rawPreserved": true,
+  "pfmSha256": "218696381e8f132d25623de21cd12945b090fa46cfb4a596acd4763d54934f92",
+  "errors": [],
+  "stats": "intel gen-12lp · 338 × 226 · 98748 треугольников · 29.52 MiB · 64 итераций · 1 048 576 фотонов · 0/6 tiles · завершение 8.8 мс · GPU 0.66 мс",
+  "denoiser": {
+    "denoiser": true,
+    "passes": 3,
+    "strength": 2,
+    "filterGlass": false,
+    "toneMapper": "reinhard"
+  },
+  "elapsedMs": 80477,
+  "referenceKind": "Production UI capture; not an independent energy reference"
+}

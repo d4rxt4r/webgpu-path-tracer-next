@@ -28,7 +28,7 @@ try {
     const { IntersectionRenderer } = await import(rendererUrl);
     const { cornellScene } = await import(sceneUrl);
     const width=suzanne?256:128,height=suzanne?192:96;
-    const canvas = document.createElement('canvas'); canvas.id = 'control-canvas'; canvas.style.cssText = `width:${width}px;height:${height}px`; document.body.append(canvas);
+    const canvas = document.createElement('canvas'); canvas.id = 'control-canvas'; canvas.style.cssText = `position:fixed;left:0;top:0;z-index:4;width:${width}px;height:${height}px`; document.body.append(canvas);
     let lastStats, stopped = false, failure;
     const targets=suzanne?[8,16,32,64,128,256]:sppm?(spectral?[8,16,32,64,128]:[8,16,32,64]):[128];let target=targets[0];
     const renderer = new IntersectionRenderer(canvas, stats => {

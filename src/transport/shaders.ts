@@ -12,5 +12,5 @@ import display from '../render/display.wgsl?raw';
 export const intersectionCore = layouts + '\n' + intersections;
 export const debugShader = intersectionCore + '\n' + debug;
 export const pathCore = intersectionCore + '\n' + sampler + '\n' + spectrum + '\n' + lighting + '\n' + dielectric + '\n' + tracer;
-export const pathShader = pathCore + '\n' + output;
+export const pathShader = pathCore + '\n' + color + '\n' + output;
 export const displayShader = layouts + '\n' + color + '\n' + display;

@@ -1,6 +1,6 @@
 import type { CameraDescription, Vec3 } from '../scene/types';
 
-export function attachOrbit(canvas: HTMLCanvasElement, initial: CameraDescription, update: (camera: CameraDescription) => void): { reset(): void; dispose(): void } {
+export function attachOrbit(canvas: HTMLCanvasElement, initial: CameraDescription, update: (camera: CameraDescription) => void): { reset(): void; set(camera: CameraDescription): void; dispose(): void } {
   let camera = structuredClone(initial);
   let pointer: { id: number; x: number; y: number } | undefined;
   const emit = (): void => update(structuredClone(camera));
@@ -14,7 +14,7 @@ export function attachOrbit(canvas: HTMLCanvasElement, initial: CameraDescriptio
   const move = (event: PointerEvent): void => {
     if (!pointer || event.pointerId !== pointer.id) return;
     const [radius, theta, phi] = spherical();
-    camera.position = position(radius, theta - (event.clientX - pointer.x) * 0.005, Math.max(0.05, Math.min(Math.PI - 0.05, phi + (event.clientY - pointer.y) * 0.005)));
+    camera.position = position(radius, theta - (event.clientX - pointer.x) * 0.005, Math.max(0.05, Math.min(Math.PI - 0.05, phi - (event.clientY - pointer.y) * 0.005)));
     pointer.x = event.clientX; pointer.y = event.clientY; emit();
   };
   const up = (event: PointerEvent): void => { if (pointer?.id === event.pointerId) { if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); pointer = undefined; } };
@@ -28,6 +28,7 @@ export function attachOrbit(canvas: HTMLCanvasElement, initial: CameraDescriptio
   canvas.addEventListener('wheel', wheel, { passive: false });
   return {
     reset(): void { camera = structuredClone(initial); emit(); },
+    set(next): void { camera = structuredClone(next); emit(); },
     dispose(): void { canvas.removeEventListener('pointerdown', down); canvas.removeEventListener('pointermove', move); canvas.removeEventListener('pointerup', up); canvas.removeEventListener('pointercancel', up); canvas.removeEventListener('lostpointercapture', up); canvas.removeEventListener('wheel', wheel); },
   };
 }

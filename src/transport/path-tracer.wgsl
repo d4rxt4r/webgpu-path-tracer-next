@@ -1,20 +1,22 @@
-struct PathResult { radiance: vec3f, error: u32 }
+struct PathResult { radiance: vec3f, error: u32, interactions: u32 }
 // Dimensions 0..1 camera, 2 wavelength, seven fixed slots per bounce:
 // light choice/UV (3), BSDF UV (2), BSDF event (1), roulette (1).
 fn tracePathAtWavelength(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, maxDepth: u32, strategy: u32, lightCount: u32, wavelength: f32) -> PathResult {
+  var interactions = 0u;
   var ray = initial; var beta = vec3f(1.0); var radiance = vec3f(0.0);
   var previousPosition = initial.origin; var previousPdf = 0.0;
   var previousDelta = true; var etaScale = 1.0;
   var medium = NO_HIT;
   for (var depth = 0u; depth <= maxDepth; depth++) {
     let hit = closestHit(ray);
-    if (hit.error != 0u) { return PathResult(vec3f(0), hit.error); }
+    if (hit.error != 0u) { return PathResult(vec3f(0), hit.error, interactions); }
     if (hit.id == NO_HIT) {
-      if (medium != NO_HIT) { return PathResult(vec3f(0), 4u); }
+      if (medium != NO_HIT) { return PathResult(vec3f(0), 4u, interactions); }
       break;
     }
+    interactions = depth + 1u;
     let triangle = triangles[hit.triangle];
-    if (triangle.material >= arrayLength(&materials)) { return PathResult(vec3f(0), 1u); }
+    if (triangle.material >= arrayLength(&materials)) { return PathResult(vec3f(0), 1u, interactions); }
     let material = materials[triangle.material];
     let color = spectralColor(material.color, material.spectrumOffset, wavelength);
     let ng = geometricNormal(triangle);
@@ -42,7 +44,7 @@ fn tracePathAtWavelength(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, 
     if (material.kind == 2u) {
       let entering = dot(ng, ray.direction) < 0.0;
       if ((entering && medium != NO_HIT) || (!entering && (medium == NO_HIT || triangles[medium].surface != triangle.surface))) {
-        return PathResult(vec3f(0), 4u);
+        return PathResult(vec3f(0), 4u, interactions);
       }
       let ior = materialIor(material, wavelength);
       let eta = select(1.0 / ior, ior, entering);
@@ -74,7 +76,7 @@ fn tracePathAtWavelength(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, 
         let lightEndpoint = offsetOrigin(light.position, light.normal, -wi);
         let segment = lightEndpoint - origin; let distance = length(segment);
         let shadow = anyHit(Ray(origin, 0.0, segment / distance, distance * (1.0 - 1e-6)));
-        if (shadow.error != 0u) { return PathResult(vec3f(0), shadow.error); }
+        if (shadow.error != 0u) { return PathResult(vec3f(0), shadow.error, interactions); }
         if (shadow.id == NO_HIT) {
           let weight = select(1.0, powerHeuristic(pdf, cosine / PI), strategy == 0u);
           radiance += beta * color / PI * light.emission * cosine * weight / pdf;
@@ -92,8 +94,8 @@ fn tracePathAtWavelength(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, 
     }
     ray = Ray(offsetOrigin(position, ng, wi), 0.0, wi, 1e20);
   }
-  if (!all(radiance >= vec3f(0.0)) || !all(radiance < vec3f(FAR))) { return PathResult(vec3f(0), 3u); }
-  return PathResult(radiance, 0u);
+  if (!all(radiance >= vec3f(0.0)) || !all(radiance < vec3f(FAR))) { return PathResult(vec3f(0), 3u, interactions); }
+  return PathResult(radiance, 0u, interactions);
 }
 
 fn tracePath(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, maxDepth: u32, strategy: u32, lightCount: u32) -> PathResult {
@@ -103,5 +105,5 @@ fn traceSpectralPath(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, maxD
   let sample = sampleWavelength(sample1D(sampleIndex,2u,pixel,seed));
   let value = tracePathAtWavelength(initial,sampleIndex,pixel,seed,maxDepth,strategy,lightCount,sample.wavelength);
   let xyz = cieXyz(sample.wavelength) * value.radiance.x / (sample.pdf * CIE_Y_INTEGRAL);
-  return PathResult(xyz,value.error);
+  return PathResult(xyz,value.error,value.interactions);
 }

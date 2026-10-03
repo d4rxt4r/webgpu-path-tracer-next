@@ -17,9 +17,9 @@ test('final solid loads by default, renders all transport modes and switches sce
   await expect.poll(async () => Number(await page.locator('canvas').getAttribute('data-samples')), { timeout: 30000 }).toBeGreaterThan(0);
   await page.locator('#mode').selectOption('rgb');
   await expect.poll(async () => Number(await page.locator('canvas').getAttribute('data-samples')), { timeout: 30000 }).toBeGreaterThan(0);
-  await page.locator('#scene').selectOption('control');
+  await page.locator('#scene').evaluate(el => { el.closest('details')!.open = true; }); await page.locator('#scene').selectOption('control');
   await expect(page.locator('#stats')).toContainText('972', { timeout: 20000 });
-  await page.locator('#scene').selectOption('suzanne');
+  await page.locator('#scene').evaluate(el => { el.closest('details')!.open = true; }); await page.locator('#scene').selectOption('suzanne');
   await expect(page.locator('#stats')).toContainText('98748', { timeout: 20000 });
   await expect(page.locator('#error')).toBeHidden();
   expect(errors).toEqual([]);

@@ -8,6 +8,12 @@ fn main(@builtin(global_invocation_id) invocation: vec3u) {
   let id = invocation.xy + params.tile.xy;
   if (any(id >= params.size)) { return; }
   let pixel = id.y * params.size.x + id.x;
+  if (params.view == 5u) {
+    let stream=select(pixel,0x7370706du,params.padding0==1u);
+    let wavelength=sampleWavelength(sample1D(params.frame,2u,stream,params.seed)).wavelength;
+    let color=max(xyzToLinearRgb(cieXyz(wavelength)),vec3f(0));
+    textureStore(outputImage,vec2i(id),vec4f(color/max(max(color.x,color.y),max(color.z,0.00001)),1));return;
+  }
   let jitter = vec2f(sample1D(params.frame, 0u, pixel, params.seed), sample1D(params.frame, 1u, pixel, params.seed));
   let uv = (vec2f(id) + jitter) / vec2f(params.size);
   let p = vec2f(2.0 * uv.x - 1.0, 1.0 - 2.0 * uv.y);
@@ -19,5 +25,9 @@ fn main(@builtin(global_invocation_id) invocation: vec3u) {
   if (result.error != 0u) { atomicAdd(&traversalErrors, 1u); textureStore(outputImage, vec2i(id), vec4f(1, 0, 1, 1)); return; }
   let sum = accumulation[pixel] + vec4f(result.radiance, 1.0);
   accumulation[pixel] = sum;
+  if (params.view == 6u) {
+    let t=f32(result.interactions)/f32(params.maxDepth+1u);
+    textureStore(outputImage,vec2i(id),vec4f(t,t*t,1.0-t,1));return;
+  }
   textureStore(outputImage, vec2i(id), vec4f(sum.xyz / sum.w, 1));
 }

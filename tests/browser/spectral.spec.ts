@@ -19,12 +19,12 @@ test('GPU wavelength normalization and prism agree with independent integrals an
 test('spectral N-BK7 renders and switching transport discards previous accumulation', async ({ page }) => {
   await page.goto('/?scene=control'); await expect(page.locator('#status')).toHaveText('WebGPU готов');
   await page.locator('#resolution').selectOption('19200');
-  await page.locator('#material').selectOption('nbk7'); await page.locator('#mode').selectOption('spectral');
+  await page.locator('#material').evaluate(el => { el.closest('details')!.open = true; }); await page.locator('#material').selectOption('nbk7'); await page.locator('#mode').selectOption('spectral');
   await expect.poll(async()=>Number(await page.locator('canvas').getAttribute('data-samples')),{timeout:20000}).toBeGreaterThanOrEqual(16);
   await expect(page.locator('#error')).toBeHidden();
   await page.getByRole('button',{name:'Пауза',exact:true}).click();
   await page.locator('canvas').screenshot({path:'test-results/spectral-cornell.png'});
-  await page.locator('#material').selectOption('nbk7-constant');
+  await page.locator('#material').evaluate(el => { el.closest('details')!.open = true; }); await page.locator('#material').selectOption('nbk7-constant');
   await expect.poll(async()=>Number(await page.locator('canvas').getAttribute('data-samples'))).toBe(1);
   await page.locator('#mode').selectOption('rgb');
   await expect.poll(async()=>Number(await page.locator('canvas').getAttribute('data-samples'))).toBe(1);

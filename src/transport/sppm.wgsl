@@ -161,3 +161,13 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
   points[pixel]=point;accumulation[pixel]=vec4f(radiance*iterations,iterations);
   textureStore(outputImage,vec2i(id.xy),vec4f(radiance,1));
 }
+
+@compute @workgroup_size(8,8)
+fn densityMain(@builtin(global_invocation_id) id:vec3u) {
+  if(any(id.xy>=params.size)){return;}
+  let point=points[id.y*params.size.x+id.x];
+  let denominator=PI*point.radius*point.radius*f32(point.iterations)*f32(sppm.photonsPerIteration);
+  let density=select(0.0,point.N/max(denominator,0.000001),point.valid!=0u);
+  let t=clamp(log2(1.0+density*1000.0)/14.0,0.0,1.0);
+  textureStore(outputImage,vec2i(id.xy),vec4f(t,t*t,select(0.0,1.0-t,t>0.0),1));
+}

@@ -15,7 +15,7 @@ test('closed glass sphere accumulates without invalid medium transitions', async
   await page.goto('/?scene=control');
   await expect(page.locator('#status')).toHaveText('WebGPU готов');
   await page.locator('#resolution').selectOption('19200');
-  await page.locator('#material').selectOption('glass');
+  await page.locator('#material').evaluate(el => { el.closest('details')!.open = true; }); await page.locator('#material').selectOption('glass');
   await expect.poll(async () => Number(await page.locator('canvas').getAttribute('data-samples')), { timeout: 20000 }).toBeGreaterThanOrEqual(16);
   await expect(page.locator('#error')).toBeHidden();
   await page.getByRole('button', { name: 'Пауза', exact: true }).click();

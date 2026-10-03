@@ -14,7 +14,8 @@ fn main(@builtin(global_invocation_id) id: vec3u) {
   else if (hit.id != NO_HIT) {
     if (params.view == 0u) { color = shadingNormal(triangles[hit.triangle], hit) * 0.5 + 0.5; }
     else if (params.view == 1u) { color = vec3f(exp(-0.3 * hit.t)); }
-    else { let t = f32(hit.visits) / 64.0; color = vec3f(t, t * t, 0.08); }
+    else if (params.view == 2u) { let t = f32(hit.visits) / 64.0; color = vec3f(t, t * t, 0.08); }
+    else { let id = f32(triangles[hit.triangle].material+1u); color = fract(sin(vec3f(id,id+2.0,id+7.0))*43758.5453); }
   }
   textureStore(outputImage, vec2i(id.xy), vec4f(color, 1));
 }
