@@ -143,6 +143,7 @@ export class IntersectionRenderer {
   private displayGroup?: GPUBindGroup;
   private generation = 0;
   private raf = 0;
+  private jobTimer = 0;
   private busy = false;
   private redraw = false;
   private paused = false;
@@ -453,15 +454,12 @@ export class IntersectionRenderer {
       if (!this.disposed && generation === this.generation)
         this.fail(new Error(event.error.message));
     });
-    void device.lost.then(async (info) => {
-      if (
-        this.disposed ||
-        generation !== this.generation ||
-        info.reason === "destroyed"
-      )
-        return;
+    void device.lost.then(async () => {
+      if (this.disposed || generation !== this.generation) return;
       this.stats.status = "recovering";
       this.report({ ...this.stats });
+      // Retire in-flight work before destroying resources and requesting a new device.
+      this.generation++;
       this.release();
       try {
         await this.initialize();
@@ -769,8 +767,7 @@ export class IntersectionRenderer {
   pause(): void {
     this.paused = true;
     this.redrawSweep = false;
-    cancelAnimationFrame(this.raf);
-    this.raf = 0;
+    this.cancelScheduled();
     this.stats.status = "paused";
     this.report({ ...this.stats });
   }
@@ -793,6 +790,7 @@ export class IntersectionRenderer {
         : this.tileIndex > 0;
     if (
       this.raf ||
+      this.jobTimer ||
       this.busy ||
       this.loading ||
       this.disposed ||
@@ -802,10 +800,25 @@ export class IntersectionRenderer {
       !this.texture
     )
       return;
-    this.raf = requestAnimationFrame(() => {
+    const run = () => {
       this.raf = 0;
+      this.jobTimer = 0;
       this.activeFrame = this.frame();
-    });
+    };
+    // Accumulation portions need not wait for a screen refresh. Each portion
+    // awaits GPU completion before another is scheduled; the queue stays bounded.
+    if (
+      !this.interacting &&
+      (this.view === 3 || this.view === 5 || this.view === 6)
+    )
+      this.jobTimer = window.setTimeout(run, 0);
+    else this.raf = requestAnimationFrame(run);
+  }
+
+  private cancelScheduled(): void {
+    cancelAnimationFrame(this.raf);
+    clearTimeout(this.jobTimer);
+    this.raf = this.jobTimer = 0;
   }
 
   private async frame(): Promise<void> {
@@ -848,7 +861,7 @@ export class IntersectionRenderer {
       const basis = cameraBasis(camera);
       const tileSize = this.interacting
         ? Math.max(this.stats.width, this.stats.height)
-        : 64;
+        : 48;
       const columns = Math.ceil(this.stats.width / tileSize),
         rows = Math.ceil(this.stats.height / tileSize);
       const tile = sppmMode
@@ -1080,8 +1093,7 @@ export class IntersectionRenderer {
     await this.activeFrame;
     if (!this.device || !this.front || this.presentedRevision !== this.revision)
       throw new Error("Wait for a complete displayed frame before PNG export");
-    cancelAnimationFrame(this.raf);
-    this.raf = 0;
+    this.cancelScheduled();
     this.busy = true;
     const device = this.device,
       revision = this.revision,
@@ -1160,8 +1172,7 @@ export class IntersectionRenderer {
     this.error(error instanceof Error ? error : new Error(String(error)));
   }
   private release(): void {
-    cancelAnimationFrame(this.raf);
-    this.raf = 0;
+    this.cancelScheduled();
     this.sppm?.dispose();
     this.sppm = undefined;
     this.denoiser?.dispose();

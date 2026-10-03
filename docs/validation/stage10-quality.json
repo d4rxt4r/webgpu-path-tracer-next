@@ -1,0 +1,243 @@
+{
+  "width": 32,
+  "height": 24,
+  "iterations": 2048,
+  "photonsPerIteration": 8192,
+  "photonBatchSize": 4096,
+  "seed": 17,
+  "pbrtSamplesPerPixel": 32768,
+  "pbrtSeeds": [
+    17,
+    29
+  ],
+  "pbrtDepth": 64,
+  "pbrtCommit": "b4ce9687e6c695f5582997c61b0c66cf064bdb4a",
+  "referenceSpread": {
+    "floor": 0.006225999501095585,
+    "room": 0.0015525725450606443,
+    "glass": 0.0012263470588825668
+  },
+  "metrics": [
+    {
+      "name": "baseline",
+      "maxDepth": 32,
+      "initialRadius": 0.03,
+      "width": 32,
+      "height": 24,
+      "errors": 0,
+      "emittedPhotons": 16777216,
+      "adapter": "intel gen-12lp",
+      "elapsedMs": 70443.19999998808,
+      "luminanceRmse": 0.012972160883156765,
+      "regions": {
+        "floor": {
+          "roi": [
+            0.35,
+            0.65,
+            0.8,
+            0.95
+          ],
+          "mean": 0.2928124157464358,
+          "referenceMean": 0.3007082610150373,
+          "relativeError": 0.02625749369820818
+        },
+        "room": {
+          "roi": [
+            0.25,
+            0.75,
+            0.2,
+            0.9
+          ],
+          "mean": 0.2133757031677349,
+          "referenceMean": 0.21708066072056856,
+          "relativeError": 0.0170671930909716
+        },
+        "glass": {
+          "roi": [
+            0.3,
+            0.7,
+            0.35,
+            0.7
+          ],
+          "mean": 0.2723518435900823,
+          "referenceMean": 0.27939498738086394,
+          "relativeError": 0.025208554587203835
+        }
+      }
+    },
+    {
+      "name": "depth64",
+      "maxDepth": 64,
+      "initialRadius": 0.03,
+      "width": 32,
+      "height": 24,
+      "errors": 0,
+      "emittedPhotons": 16777216,
+      "adapter": "intel gen-12lp",
+      "elapsedMs": 81039.30000001192,
+      "luminanceRmse": 0.012976567603237312,
+      "regions": {
+        "floor": {
+          "roi": [
+            0.35,
+            0.65,
+            0.8,
+            0.95
+          ],
+          "mean": 0.2928124157464358,
+          "referenceMean": 0.3007082610150373,
+          "relativeError": 0.02625749369820818
+        },
+        "room": {
+          "roi": [
+            0.25,
+            0.75,
+            0.2,
+            0.9
+          ],
+          "mean": 0.21338534778040463,
+          "referenceMean": 0.21708066072056856,
+          "relativeError": 0.017022764385817957
+        },
+        "glass": {
+          "roi": [
+            0.3,
+            0.7,
+            0.35,
+            0.7
+          ],
+          "mean": 0.2723600577114933,
+          "referenceMean": 0.27939498738086394,
+          "relativeError": 0.02517915491368783
+        }
+      }
+    },
+    {
+      "name": "radius006",
+      "maxDepth": 32,
+      "initialRadius": 0.06,
+      "width": 32,
+      "height": 24,
+      "errors": 0,
+      "emittedPhotons": 16777216,
+      "adapter": "intel gen-12lp",
+      "elapsedMs": 65745.60000002384,
+      "luminanceRmse": 0.009906703156811617,
+      "regions": {
+        "floor": {
+          "roi": [
+            0.35,
+            0.65,
+            0.8,
+            0.95
+          ],
+          "mean": 0.29496210393722716,
+          "referenceMean": 0.3007082610150373,
+          "relativeError": 0.019108743665418593
+        },
+        "room": {
+          "roi": [
+            0.25,
+            0.75,
+            0.2,
+            0.9
+          ],
+          "mean": 0.21350610875073192,
+          "referenceMean": 0.21708066072056856,
+          "relativeError": 0.016466468998073913
+        },
+        "glass": {
+          "roi": [
+            0.3,
+            0.7,
+            0.35,
+            0.7
+          ],
+          "mean": 0.2722799375214231,
+          "referenceMean": 0.27939498738086394,
+          "relativeError": 0.025465918075837868
+        }
+      }
+    }
+  ],
+  "depthComparison": {
+    "luminanceRmse": 8.611126870765783e-05,
+    "regions": {
+      "floor": {
+        "roi": [
+          0.35,
+          0.65,
+          0.8,
+          0.95
+        ],
+        "mean": 0.2928124157464358,
+        "referenceMean": 0.2928124157464358,
+        "relativeError": 0
+      },
+      "room": {
+        "roi": [
+          0.25,
+          0.75,
+          0.2,
+          0.9
+        ],
+        "mean": 0.21338534778040463,
+        "referenceMean": 0.2133757031677349,
+        "relativeError": 4.520014475195566e-05
+      },
+      "glass": {
+        "roi": [
+          0.3,
+          0.7,
+          0.35,
+          0.7
+        ],
+        "mean": 0.2723600577114933,
+        "referenceMean": 0.2723518435900823,
+        "relativeError": 3.015996257893505e-05
+      }
+    }
+  },
+  "radiusComparison": {
+    "luminanceRmse": 0.008396391136483251,
+    "regions": {
+      "floor": {
+        "roi": [
+          0.35,
+          0.65,
+          0.8,
+          0.95
+        ],
+        "mean": 0.29496210393722716,
+        "referenceMean": 0.2928124157464358,
+        "relativeError": 0.007341519946520769
+      },
+      "room": {
+        "roi": [
+          0.25,
+          0.75,
+          0.2,
+          0.9
+        ],
+        "mean": 0.21350610875073192,
+        "referenceMean": 0.2133757031677349,
+        "relativeError": 0.0006111547897020841
+      },
+      "glass": {
+        "roi": [
+          0.3,
+          0.7,
+          0.35,
+          0.7
+        ],
+        "mean": 0.2722799375214231,
+        "referenceMean": 0.2723518435900823,
+        "relativeError": 0.0002640190266801623
+      }
+    }
+  },
+  "elapsedMs": 222575,
+  "limits": "Two reference seeds measure empirical stability, not a confidence bound. Low resolution numerical validation is separate from final image inspection.",
+  "passed": true,
+  "sourceSha256": "82ec80adef1bfafbe96793b64fc388f0cc17850d048c0e5ea55925ebdb6f7106"
+}

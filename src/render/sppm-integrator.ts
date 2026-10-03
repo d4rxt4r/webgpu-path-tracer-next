@@ -18,7 +18,8 @@ export interface SppmResources {
   accumulation: GPUBuffer;
   texture: GPUTexture;
 }
-const TILE = 128;
+// Suzanne's glass camera pass exceeded 40 ms at 128² on Intel UHD.
+const TILE = 64;
 export const SPPM_POINT_BYTES = sppmDefinitions.structs.SppmPoint!.size;
 export class SppmIntegrator {
   private uniform: GPUBuffer;

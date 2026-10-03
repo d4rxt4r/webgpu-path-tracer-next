@@ -119,7 +119,7 @@ input[type="checkbox"] {
 .viewport-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 8px;
   padding: 4px 10px;
   background: #24262d;
@@ -202,6 +202,12 @@ canvas:active {
   letter-spacing: 0.13em;
   color: #a9b0c0;
   border-bottom: 1px solid #3b3e48;
+}
+.view-setting {
+  padding: 12px 14px;
+  border-bottom: 1px solid #373a43;
+  display: grid;
+  gap: 8px;
 }
 details {
   border-bottom: 1px solid #373a43;
