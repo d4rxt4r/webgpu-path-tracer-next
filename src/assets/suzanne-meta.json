@@ -1,0 +1,77 @@
+{
+  "asset": "suzanne.bin",
+  "format": "SGMESH01",
+  "byteLength": 2369744,
+  "sha256": "f53ab4a1d74a2213c44078777da28cb67211031a34983b62fa0c2ded04ceeebb",
+  "source": "Blender built-in Suzanne primitive",
+  "sourceUrl": "https://www.blender.org/",
+  "blenderVersion": "4.4.3",
+  "blenderBuildHash": "802179c51ccc",
+  "generator": "scripts/prepare-suzanne.py",
+  "editableSource": "assets/source/suzanne.blend",
+  "generatorLicense": "Blender GPL-2.0-or-later; output artwork is not covered by the application GPL",
+  "licensingPolicy": "https://www.blender.org/about/license/",
+  "pipeline": [
+    "cap 42 boundary edges",
+    "Catmull-Clark 2",
+    "voxel union",
+    "Catmull-Clark 1",
+    "triangulate",
+    "rotate to Y-up",
+    "center bounding box",
+    "normalize width"
+  ],
+  "voxelSizePrimitiveUnits": 0.035,
+  "widthMeters": 1.2,
+  "bounds": [
+    [
+      -0.6000000238418579,
+      -0.4336725175380707,
+      -0.36295461654663086
+    ],
+    [
+      0.6000000238418579,
+      0.4336725175380707,
+      0.36295461654663086
+    ]
+  ],
+  "sourceStatistics": {
+    "vertices": 507,
+    "faces": 500,
+    "components": 3,
+    "boundaryEdges": 42,
+    "nonManifoldEdges": 42,
+    "signedVolume": 2.2533335685729985
+  },
+  "cappedStatistics": {
+    "vertices": 507,
+    "faces": 504,
+    "components": 3,
+    "boundaryEdges": 0,
+    "nonManifoldEdges": 0,
+    "signedVolume": 2.204577763875326
+  },
+  "unionStatistics": {
+    "vertices": 12344,
+    "faces": 12342,
+    "components": 1,
+    "boundaryEdges": 0,
+    "nonManifoldEdges": 0,
+    "signedVolume": 2.0038582089333428
+  },
+  "finalStatistics": {
+    "vertices": 49370,
+    "faces": 98736,
+    "components": 1,
+    "boundaryEdges": 0,
+    "nonManifoldEdges": 0,
+    "signedVolume": 0.18870993470484942
+  },
+  "triangles": 98736,
+  "minimumTriangleArea": 1.7273329754587264e-06,
+  "selfIntersectionPairs": 0,
+  "intersectionMethod": "Blender BVHTree native triangle intersection callback",
+  "intersectionPositiveControl": true,
+  "sharedVertexIntersectionPositiveControl": true,
+  "unionSelfIntersectionPairs": 0
+}

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('GPU dielectric agrees with Fresnel, Snell, TIR and transport-mode equations', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?scene=control');
   const result = await page.evaluate(async () => {
     const url = '/src/debug/verify-dielectric.ts';
     const { verifyDielectric } = await import(/* @vite-ignore */ url);
@@ -12,7 +12,7 @@ test('GPU dielectric agrees with Fresnel, Snell, TIR and transport-mode equation
 });
 
 test('closed glass sphere accumulates without invalid medium transitions', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?scene=control');
   await expect(page.locator('#status')).toHaveText('WebGPU готов');
   await page.locator('#resolution').selectOption('19200');
   await page.locator('#material').selectOption('glass');
@@ -23,7 +23,7 @@ test('closed glass sphere accumulates without invalid medium transitions', async
 });
 
 test('absorbing plate matches the analytic sum of internal reflections', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?scene=control');
   const result = await page.evaluate(async () => {
     const url = '/src/debug/verify-plate.ts';
     const { verifyPlate } = await import(/* @vite-ignore */ url);

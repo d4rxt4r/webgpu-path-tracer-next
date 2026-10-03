@@ -1,7 +1,7 @@
 import { expect,test } from '@playwright/test';
 
 test('GPU photon hash handles collisions and progressive updates match brute force',async({page})=>{
-  await page.goto('/');await expect(page.locator('#status')).toHaveText('WebGPU готов');
+  await page.goto('/?scene=control');await expect(page.locator('#status')).toHaveText('WebGPU готов');
   await page.getByRole('button',{name:'Пауза',exact:true}).click();
   const result=await page.evaluate(async()=>{const url='/src/debug/verify-sppm.ts';const {verifySppm}=await import(/* @vite-ignore */url);return verifySppm();});
   console.log('SPPM hash acceptance:',JSON.stringify(result));
@@ -10,7 +10,7 @@ test('GPU photon hash handles collisions and progressive updates match brute for
 
 for(const mode of ['rgb','spectral'] as const) test(`${mode} photon batches preserve energy and interrupted iterations reset cleanly`,async({page})=>{
   test.setTimeout(60000);
-  await page.goto('/');await expect(page.locator('#status')).toHaveText('WebGPU готов');await page.getByRole('button',{name:'Пауза',exact:true}).click();
+  await page.goto('/?scene=control');await expect(page.locator('#status')).toHaveText('WebGPU готов');await page.getByRole('button',{name:'Пауза',exact:true}).click();
   const result=await page.evaluate(async(mode)=>{
     const rendererUrl='/src/render/intersection-renderer.ts',sceneUrl='/src/scene/cornell.ts';
     const {IntersectionRenderer}=await import(/* @vite-ignore */rendererUrl);const {cornellScene}=await import(/* @vite-ignore */sceneUrl);
@@ -36,7 +36,7 @@ for(const mode of ['rgb','spectral'] as const) test(`${mode} photon batches pres
 
 test('UI switches RGB SPPM and spectral PT without GPU errors',async({page})=>{
   test.setTimeout(60000);const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
-  await page.goto('/');await expect(page.locator('#status')).toHaveText('WebGPU готов');
+  await page.goto('/?scene=control');await expect(page.locator('#status')).toHaveText('WebGPU готов');
   await page.locator('#resolution').selectOption('19200');await page.locator('#material').selectOption('glass');await page.locator('#integrator').selectOption('sppm');
   await expect(page.locator('#mode')).toHaveValue('rgb');await expect(page.locator('#strategy')).toBeDisabled();
   await expect.poll(async()=>Number(await page.locator('canvas').getAttribute('data-samples')),{timeout:30000}).toBeGreaterThanOrEqual(2);
@@ -49,7 +49,7 @@ test('UI switches RGB SPPM and spectral PT without GPU errors',async({page})=>{
 });
 
 test('SPPM direct light matches quadrature without counting first photon hits twice',async({page})=>{
-  test.setTimeout(60000);await page.goto('/');await expect(page.locator('#status')).toHaveText('WebGPU готов');await page.getByRole('button',{name:'Пауза',exact:true}).click();
+  test.setTimeout(60000);await page.goto('/?scene=control');await expect(page.locator('#status')).toHaveText('WebGPU готов');await page.getByRole('button',{name:'Пауза',exact:true}).click();
   const result=await page.evaluate(async()=>{
     const url='/src/render/intersection-renderer.ts';const {IntersectionRenderer}=await import(/* @vite-ignore */url);
     const transform=[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1];

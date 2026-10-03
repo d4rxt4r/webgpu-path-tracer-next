@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('GPU wavelength normalization and prism agree with independent integrals and Snell equations', async ({ page }) => {
-  await page.goto('/'); await expect(page.locator('#status')).toHaveText('WebGPU готов');
+  await page.goto('/?scene=control'); await expect(page.locator('#status')).toHaveText('WebGPU готов');
   await page.getByRole('button',{name:'Пауза',exact:true}).click();
   const result = await page.evaluate(async () => {
     const url = '/src/debug/verify-spectral.ts';
@@ -17,7 +17,7 @@ test('GPU wavelength normalization and prism agree with independent integrals an
 });
 
 test('spectral N-BK7 renders and switching transport discards previous accumulation', async ({ page }) => {
-  await page.goto('/'); await expect(page.locator('#status')).toHaveText('WebGPU готов');
+  await page.goto('/?scene=control'); await expect(page.locator('#status')).toHaveText('WebGPU готов');
   await page.locator('#resolution').selectOption('19200');
   await page.locator('#material').selectOption('nbk7'); await page.locator('#mode').selectOption('spectral');
   await expect.poll(async()=>Number(await page.locator('canvas').getAttribute('data-samples')),{timeout:20000}).toBeGreaterThanOrEqual(16);
@@ -32,7 +32,7 @@ test('spectral N-BK7 renders and switching transport discards previous accumulat
 });
 
 test('capture preserves raw XYZ, negative RGB and exposure-independent history', async ({ page }) => {
-  await page.goto('/'); await expect(page.locator('#status')).toHaveText('WebGPU готов');
+  await page.goto('/?scene=control'); await expect(page.locator('#status')).toHaveText('WebGPU готов');
   await page.getByRole('button',{name:'Пауза',exact:true}).click();
   const result = await page.evaluate(async () => {
     const rendererUrl='/src/render/intersection-renderer.ts', sceneUrl='/src/scene/cornell.ts';

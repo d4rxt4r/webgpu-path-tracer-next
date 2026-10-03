@@ -1,14 +1,14 @@
 import { expect,test } from '@playwright/test';
 
 test('actual photon pass disperses prism footprints and matches independent Snell and absorption',async({page})=>{
-  await page.goto('/');await expect(page.locator('#status')).toHaveText('WebGPU готов',{timeout:20000});await page.getByRole('button',{name:'Пауза',exact:true}).click();
+  await page.goto('/?scene=control');await expect(page.locator('#status')).toHaveText('WebGPU готов',{timeout:20000});await page.getByRole('button',{name:'Пауза',exact:true}).click();
   const result=await page.evaluate(async()=>{const url='/src/debug/verify-sppm-prism.ts';const {verifySppmPrism}=await import(/* @vite-ignore */url);return verifySppmPrism();});
   console.log('SPPM photon prism acceptance:',JSON.stringify(result));expect(result.errors).toBe(0);expect(result.maxPositionError).toBeLessThan(0.0005);expect(result.maxFluxRelativeError).toBeLessThan(0.001);
   expect(result.results[0]!.matchedPaths).toBeGreaterThan(100);expect(result.results[0]!.meanFootprintSpread).toBeGreaterThan(0.005);expect(result.results[1]!.meanFootprintSpread).toBe(0);
 });
 
 test('shared iteration wavelengths integrate direct and indirect spectra with one PDF factor',async({page})=>{
-  test.setTimeout(180000);await page.goto('/');await expect(page.locator('#status')).toHaveText('WebGPU готов',{timeout:20000});await page.getByRole('button',{name:'Пауза',exact:true}).click();
+  test.setTimeout(180000);await page.goto('/?scene=control');await expect(page.locator('#status')).toHaveText('WebGPU готов',{timeout:20000});await page.getByRole('button',{name:'Пауза',exact:true}).click();
   const result=await page.evaluate(async()=>{
     const renderUrl='/src/debug/render-sppm.ts',sceneUrl='/src/scene/sppm-control.ts',spectrumUrl='/src/transport/spectrum.ts',referenceUrl='/src/debug/sppm-reference.ts';
     const {renderSppm}=await import(/* @vite-ignore */renderUrl);const {spectralEmitterScene,indirectSppmScene}=await import(/* @vite-ignore */sceneUrl);
@@ -24,7 +24,7 @@ test('shared iteration wavelengths integrate direct and indirect spectra with on
 });
 
 test('spectral slab caustic agrees with independent angular CPU quadrature',async({page})=>{
-  test.setTimeout(180000);await page.goto('/');await expect(page.locator('#status')).toHaveText('WebGPU готов',{timeout:20000});await page.getByRole('button',{name:'Пауза',exact:true}).click();
+  test.setTimeout(180000);await page.goto('/?scene=control');await expect(page.locator('#status')).toHaveText('WebGPU готов',{timeout:20000});await page.getByRole('button',{name:'Пауза',exact:true}).click();
   const result=await page.evaluate(async()=>{
     const renderUrl='/src/debug/render-sppm.ts',sceneUrl='/src/scene/sppm-control.ts',referenceUrl='/src/debug/sppm-reference.ts';
     const {renderSppm}=await import(/* @vite-ignore */renderUrl);const {slabSppmScene}=await import(/* @vite-ignore */sceneUrl);const {slabSppmReference}=await import(/* @vite-ignore */referenceUrl);

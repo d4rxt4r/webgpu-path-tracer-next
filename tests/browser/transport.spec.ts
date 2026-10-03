@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('GPU light/BSDF/MIS estimates agree with independent area quadrature', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?scene=control');
   await expect(page.locator('#status')).toHaveText('WebGPU готов');
   await page.getByRole('button', { name: 'Пауза', exact: true }).click();
   const result = await page.evaluate(async () => {
@@ -18,7 +18,7 @@ test('GPU light/BSDF/MIS estimates agree with independent area quadrature', asyn
 });
 
 test('raw accumulation is deterministic, exposure preserves it, camera and integrator reset it', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?scene=control');
   await expect(page.locator('#status')).toHaveText('WebGPU готов');
   await page.getByRole('button', { name: 'Пауза', exact: true }).click();
   const result = await page.evaluate(async () => {
@@ -67,7 +67,7 @@ test('raw accumulation is deterministic, exposure preserves it, camera and integ
 });
 
 test('RGB demo accumulates an illuminated Cornell box', async ({ page }) => {
-  await page.goto('/'); await expect(page.locator('#status')).toHaveText('WebGPU готов');
+  await page.goto('/?scene=control'); await expect(page.locator('#status')).toHaveText('WebGPU готов');
   await page.locator('#resolution').selectOption('19200');
   await expect.poll(async()=>Number(await page.locator('canvas').getAttribute('data-samples')),{timeout:15000}).toBeGreaterThanOrEqual(32);
   await page.getByRole('button',{name:'Пауза',exact:true}).click();

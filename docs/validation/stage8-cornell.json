@@ -1,0 +1,43 @@
+{
+  "width": 256,
+  "height": 192,
+  "accumulationSpace": "cie-xyz",
+  "samples": 256,
+  "emittedPhotons": 4194304,
+  "settings": {
+    "maxDepth": 32,
+    "seed": 17,
+    "strategy": "mis",
+    "maxPixels": 49152,
+    "mode": "spectral",
+    "integrator": "sppm",
+    "photonsPerIteration": 16384,
+    "photonBatchSize": 1024,
+    "initialRadius": 0.03
+  },
+  "camera": {
+    "position": [
+      0,
+      1,
+      3.7
+    ],
+    "target": [
+      0,
+      1,
+      0
+    ],
+    "up": [
+      0,
+      1,
+      0
+    ],
+    "verticalFov": 40
+  },
+  "exposure": 0,
+  "scene": "cornell-nbk7-suzanne",
+  "stage": 8,
+  "referenceKind": "GPU regression capture",
+  "adapter": "intel gen-12lp",
+  "managedBytes": 20895316,
+  "elapsedMs": 373937
+}

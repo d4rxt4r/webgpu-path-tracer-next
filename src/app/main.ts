@@ -2,12 +2,16 @@ import './style.css';
 import { createDevice } from '../gpu/device';
 import { cornellScene } from '../scene/cornell';
 import type { SphereMaterial } from '../scene/cornell';
+import { suzanneScene } from '../scene/suzanne';
 import { attachOrbit } from './orbit';
+
+const controlScene = new URLSearchParams(location.search).get('scene') === 'control';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <main>
-    <header><span class="eyebrow">WEBGPU / ЭТАП 07</span><h1>Спектральный рендерер</h1><p>Коробка Корнелла · PT / SPPM</p></header>
+    <header><span class="eyebrow">WEBGPU / ЭТАП 08</span><h1>Спектральный рендерер</h1><p>Коробка Корнелла · PT / SPPM</p></header>
     <div class="controls">
+      <label>Сцена <select id="scene" disabled><option value="suzanne">Suzanne</option><option value="control">Контрольная сфера</option></select></label>
       <label>Вид <select id="view" disabled><option value="beauty">Изображение</option><option value="normal">Нормали</option><option value="depth">Глубина</option><option value="bvh">Обход BVH</option></select></label>
       <label>Перенос <select id="mode" disabled><option value="rgb">RGB</option><option value="spectral">Спектральный</option></select></label>
       <label>Интегратор <select id="integrator" disabled><option value="pt">Path tracing</option><option value="sppm">SPPM</option></select></label>
@@ -19,7 +23,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <label class="exposure">Экспозиция <input id="exposure" type="range" min="-4" max="4" step="0.1" value="0" disabled></label>
     <section class="viewport"><canvas aria-label="Progressive path traced image"></canvas><div id="error" role="alert" hidden></div></section>
     <footer><div><strong id="status">Инициализация…</strong><p id="stats">Запрашиваем GPU-адаптер</p></div><button id="pause" disabled>Пауза</button></footer>
-    <p class="note">Перетаскивание — вращение камеры, колесо — приближение. Изображение постепенно накапливает свет; движение камеры начинает накопление заново. Материал контрольной сферы можно переключить на стекло. Время включает ожидание очереди и не является GPU timestamp.</p>
+    <p class="note">Перетаскивание — вращение камеры, колесо — приближение. Изображение постепенно накапливает свет; движение камеры начинает накопление заново. Suzanne использует сплошное стекло N-BK7; доступны контрольная сфера и смена материала. Время включает ожидание очереди и не является GPU timestamp.</p>
   </main>`;
 
 const canvas = document.querySelector('canvas')!;
@@ -27,7 +31,11 @@ const pause = document.querySelector<HTMLButtonElement>('#pause')!;
 const status = document.querySelector<HTMLElement>('#status')!;
 const stats = document.querySelector<HTMLElement>('#stats')!;
 let userPaused = false;
-const description = cornellScene();
+const description = cornellScene(controlScene ? 'diffuse' : 'nbk7');
+const sceneControl = document.querySelector<HTMLSelectElement>('#scene')!;
+const materialControl = document.querySelector<HTMLSelectElement>('#material')!;
+sceneControl.value = controlScene ? 'control' : 'suzanne';
+materialControl.value = controlScene ? 'diffuse' : 'nbk7';
 async function start(): Promise<void> {
   // Reflection depends on GPUShaderStage, which unsupported browsers do not expose.
   if (!isSecureContext || !navigator.gpu) await createDevice();
@@ -47,16 +55,25 @@ async function start(): Promise<void> {
     panel.hidden = false; panel.textContent = error.message;
   });
   let currentCamera = description.camera;
-  document.querySelector<HTMLSelectElement>('#material')!.addEventListener('change', event => {
-    const scene = cornellScene((event.target as HTMLSelectElement).value as SphereMaterial);
+  let sceneRevision = 0;
+  const updateScene = async (): Promise<void> => {
+    const revision = ++sceneRevision;
+    const material = materialControl.value as SphereMaterial;
+    const scene = sceneControl.value === 'suzanne' ? await suzanneScene(material) : cornellScene(material);
+    if (revision !== sceneRevision) return;
     scene.camera = currentCamera;
     renderer.setSettings({ maxDepth: 32 });
-    void renderer.setScene(scene).catch(error => {
+    await renderer.setScene(scene);
+  };
+  const changeScene = (): void => {
+    void updateScene().catch(error => {
       if (error instanceof DOMException && error.name === 'AbortError') return;
       const panel = document.querySelector<HTMLElement>('#error')!;
       panel.hidden = false; panel.textContent = String(error);
     });
-  });
+  };
+  materialControl.addEventListener('change', changeScene);
+  sceneControl.addEventListener('change', changeScene);
   const orbit = attachOrbit(canvas, description.camera, camera => { currentCamera = camera; renderer.setCamera(camera); });
   document.querySelector<HTMLSelectElement>('#mode')!.addEventListener('change', event => {
     const mode=(event.target as HTMLSelectElement).value as 'rgb'|'spectral';
@@ -74,7 +91,7 @@ async function start(): Promise<void> {
   document.querySelector<HTMLSelectElement>('#strategy')!.addEventListener('change', event => renderer.setSettings({ strategy: (event.target as HTMLSelectElement).value as 'mis' | 'light' | 'bsdf' }));
   document.querySelector<HTMLInputElement>('#exposure')!.addEventListener('input', event => renderer.setExposure(Number((event.target as HTMLInputElement).value)));
   renderer.setDebugView('beauty');
-  renderer.setSettings({ maxPixels: 320 * 240 });
+  renderer.setSettings({ maxPixels: 320 * 240, maxDepth: controlScene ? 8 : 32 });
 
   pause.addEventListener('click', () => { userPaused = !userPaused; pause.textContent = userPaused ? 'Продолжить' : 'Пауза'; if (userPaused) renderer.pause(); else renderer.resume(); });
   const observer = new ResizeObserver(() => renderer.resize()); observer.observe(canvas);
@@ -85,9 +102,9 @@ async function start(): Promise<void> {
   });
   window.addEventListener('pageshow', event => { if (event.persisted && !document.hidden && !userPaused) renderer.resume(); });
   try {
-    await renderer.setScene(description);
+    await renderer.setScene(controlScene ? description : await suzanneScene());
     await renderer.initialize();
-    document.querySelectorAll<HTMLSelectElement | HTMLButtonElement | HTMLInputElement>('#view, #reset, #resolution, #strategy, #exposure, #material, #mode, #integrator').forEach(control => { control.disabled = false; });
+    document.querySelectorAll<HTMLSelectElement | HTMLButtonElement | HTMLInputElement>('#scene, #view, #reset, #resolution, #strategy, #exposure, #material, #mode, #integrator').forEach(control => { control.disabled = false; });
   } catch (error) { observer.disconnect(); orbit.dispose(); renderer.dispose(); throw error; }
 }
 void start().catch(error => {

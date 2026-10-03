@@ -1,0 +1,15 @@
+Suzanne solid mesh
+
+Generated from Blender 4.4.3's built-in Suzanne primitive, not downloaded from
+a third-party model repository. The original editable primitive is stored in
+assets/source/suzanne.blend. Processing is in scripts/prepare-suzanne.py;
+format, SHA-256, generator version, topology and bounds are recorded in
+src/assets/suzanne-meta.json.
+
+Blender is GNU GPL-2.0-or-later software. Blender's licensing policy distinguishes
+the application from artwork and data files generated with it:
+https://www.blender.org/about/license/
+
+No project-wide license is declared by this asset notice. Blender branding and
+logos are not included. Model attribution: Blender Suzanne primitive and Blender
+contributors; this project's closed-volume processing is recorded in its generator.

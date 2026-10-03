@@ -34,7 +34,7 @@ const address=`http://127.0.0.1:${port}`;
 const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1','--port',String(port),'--strictPort'],{stdio:'ignore',windowsHide:true});let browser;
 try {
   const start=Date.now();while(true){if(server.exitCode!==null||Date.now()-start>10000)throw new Error('Reference server failed');try{if((await fetch(address)).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
-  browser=await chromium.launch({channel:'chrome'});const page=await browser.newPage();await page.goto(address);await page.locator('#status').filter({hasText:'WebGPU готов'}).waitFor();await page.getByRole('button',{name:'Пауза',exact:true}).click();
+  browser=await chromium.launch({channel:'chrome'});const page=await browser.newPage();await page.goto(address+'/?scene=control');await page.locator('#status').filter({hasText:'WebGPU готов'}).waitFor();await page.getByRole('button',{name:'Пауза',exact:true}).click();
   for(const name of selected?[selected]:['prism','slab','cornell','constant']) {
     if(name==='prism') {
       const checks=await page.evaluate(async()=>{const {verifySppmPrism}=await import('/src/debug/verify-sppm-prism.ts');return verifySppmPrism();});

@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test('compute output, pause, resize and resume without GPU errors', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/');
+  await page.goto('/?scene=control');
   await expect(page.locator('#status')).toHaveText('WebGPU готов');
   await page.locator('#view').selectOption('normal');
   const canvas = page.locator('canvas');
@@ -30,7 +30,7 @@ test('unsupported WebGPU has an actionable error', async ({ page }) => {
     Object.defineProperty(navigator, 'gpu', { value: undefined });
     Object.defineProperty(globalThis, 'GPUShaderStage', { value: undefined });
   });
-  await page.goto('/');
+  await page.goto('/?scene=control');
   await expect(page.getByRole('alert')).toContainText('Chrome или Edge');
   await expect(page.locator('#pause')).toBeDisabled();
 });

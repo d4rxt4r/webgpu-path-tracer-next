@@ -4,10 +4,11 @@ import { chromium } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
 
 // GPU regression artifact, not an independent transport reference.
-const spectral = process.argv.includes('--spectral');
-const sppm = process.argv.includes('--sppm');
+const suzanne = process.argv.includes('--suzanne');
+const spectral = suzanne || process.argv.includes('--spectral');
+const sppm = suzanne || process.argv.includes('--sppm');
 const glass = sppm || spectral || process.argv.includes('--glass');
-const stage = sppm && spectral ? 7 : sppm ? 6 : spectral ? 5 : glass ? 4 : 3;
+const stage = suzanne ? 8 : sppm && spectral ? 7 : sppm ? 6 : spectral ? 5 : glass ? 4 : 3;
 const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', '5175', '--strictPort'], { stdio: 'ignore', windowsHide: true });
 let browser;
 try {
@@ -19,28 +20,29 @@ try {
   }
   browser = await chromium.launch({ channel: 'chrome' });
   const page = await browser.newPage({ deviceScaleFactor: 1 });
-  await page.goto('http://127.0.0.1:5175');
+  await page.goto('http://127.0.0.1:5175/?scene=control');
   await page.locator('#status').filter({ hasText: 'WebGPU готов' }).waitFor();
   await page.getByRole('button', { name: 'Пауза', exact: true }).click();
-  const result = await page.evaluate(async ({ glass, spectral, sppm, stage }) => {
+  const result = await page.evaluate(async ({ glass, spectral, sppm, stage, suzanne }) => {
     const rendererUrl = '/src/render/intersection-renderer.ts', sceneUrl = '/src/scene/cornell.ts';
     const { IntersectionRenderer } = await import(rendererUrl);
     const { cornellScene } = await import(sceneUrl);
-    const canvas = document.createElement('canvas'); canvas.id = 'control-canvas'; canvas.style.cssText = 'width:128px;height:96px'; document.body.append(canvas);
+    const width=suzanne?256:128,height=suzanne?192:96;
+    const canvas = document.createElement('canvas'); canvas.id = 'control-canvas'; canvas.style.cssText = `width:${width}px;height:${height}px`; document.body.append(canvas);
     let lastStats, stopped = false, failure;
-    const targets=sppm?(spectral?[8,16,32,64,128]:[8,16,32,64]):[128];let target=targets[0];
+    const targets=suzanne?[8,16,32,64,128,256]:sppm?(spectral?[8,16,32,64,128]:[8,16,32,64]):[128];let target=targets[0];
     const renderer = new IntersectionRenderer(canvas, stats => {
       lastStats = stats;
       if (stats.samples === target && !stopped) { stopped = true; renderer.pause(); }
     }, error => { failure = error; });
-    renderer.setDebugView('beauty'); renderer.setSettings({ maxPixels: 128 * 96, seed: 17, maxDepth: glass ? 32 : 8, mode: spectral ? 'spectral' : 'rgb', integrator:sppm?'sppm':'pt' });
-    const scene = cornellScene(spectral ? 'nbk7' : glass ? 'glass' : 'diffuse');
+    renderer.setDebugView('beauty'); renderer.setSettings({ maxPixels: width * height, seed: 17, maxDepth: glass ? 32 : 8, mode: spectral ? 'spectral' : 'rgb', integrator:sppm?'sppm':'pt' });
+    const scene = suzanne ? await (await import('/src/scene/suzanne.ts')).suzanneScene() : cornellScene(spectral ? 'nbk7' : glass ? 'glass' : 'diffuse');
     await renderer.setScene(scene);
     const started = performance.now(); await renderer.initialize();
     let capture;const convergence=[];
     for(let i=0;i<targets.length;i++) {
       target=targets[i];if(i>0) {stopped=false;renderer.resume();}
-      while (!stopped && !failure && performance.now() - started < (sppm?120000:30000)) await new Promise(resolve => setTimeout(resolve, 20));
+      while (!stopped && !failure && performance.now() - started < (suzanne?600000:sppm?120000:30000)) await new Promise(resolve => setTimeout(resolve, 20));
       if (failure || !stopped) { renderer.dispose(); throw failure ?? new Error('Control capture timed out'); }
       capture = await renderer.capture();
       if (!capture.sampleCounts.every(value => value === target)) throw new Error('Incomplete sample sweep');
@@ -53,8 +55,8 @@ try {
       }
     }
     const { linearRgb, linearXyz, sampleCounts, ...metadata } = capture;
-    return { pixels: Array.from(linearRgb), xyzPixels: linearXyz ? Array.from(linearXyz) : undefined, convergence, metadata: { ...metadata, scene: spectral ? 'cornell-nbk7-sphere' : glass ? 'cornell-glass-sphere' : 'cornell-diffuse-sphere', stage, referenceKind: 'GPU regression capture', adapter: lastStats.adapter, managedBytes: lastStats.bytes, elapsedMs: performance.now() - started } };
-  }, { glass, spectral, sppm, stage });
+    return { pixels: Array.from(linearRgb), xyzPixels: linearXyz ? Array.from(linearXyz) : undefined, convergence, metadata: { ...metadata, scene: suzanne ? 'cornell-nbk7-suzanne' : spectral ? 'cornell-nbk7-sphere' : glass ? 'cornell-glass-sphere' : 'cornell-diffuse-sphere', stage, referenceKind: 'GPU regression capture', adapter: lastStats.adapter, managedBytes: lastStats.bytes, elapsedMs: performance.now() - started } };
+  }, { glass, spectral, sppm, stage, suzanne });
   const directory = new URL('../docs/validation/', import.meta.url); await mkdir(directory, { recursive: true });
   await page.locator('#control-canvas').screenshot({ path: fileURLToPath(new URL(`stage${stage}-cornell.png`, directory)) });
   const { width, height } = result.metadata;

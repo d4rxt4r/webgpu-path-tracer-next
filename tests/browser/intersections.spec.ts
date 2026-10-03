@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('GPU closest/any hits agree with CPU brute force and errors are diagnosed', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?scene=control');
   await expect(page.locator('#status')).toHaveText('WebGPU готов');
   // Pause the demo so it does not compete with the acceptance device.
   await page.getByRole('button', { name: 'Пауза', exact: true }).click();
@@ -20,7 +20,7 @@ test('GPU closest/any hits agree with CPU brute force and errors are diagnosed',
 });
 
 test('debug views and orbit camera redraw while paused', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?scene=control');
   await expect(page.locator('#status')).toHaveText('WebGPU готов');
   await page.locator('#view').selectOption('normal');
   await expect.poll(async () => Number(await page.locator('canvas').getAttribute('data-frames'))).toBeGreaterThan(0);
@@ -45,7 +45,7 @@ test('debug views and orbit camera redraw while paused', async ({ page }) => {
 });
 
 test('camera changes during Worker builds and repeated scene replacement remain live', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?scene=control');
   await expect(page.locator('#status')).toHaveText('WebGPU готов');
   await page.getByRole('button', { name: 'Пауза', exact: true }).click();
   const result = await page.evaluate(async () => {
