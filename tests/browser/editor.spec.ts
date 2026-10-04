@@ -169,7 +169,7 @@ test("display filtering preserves raw samples, keeps glass raw and retains the c
         stats = info;
         if (
           !stopped &&
-          ((partial && info.samples === 0 && info.tile === 1) ||
+          ((partial && info.samples === 0 && info.tile > 0) ||
             info.samples === stopAt)
         ) {
           stopped = true;
@@ -178,6 +178,8 @@ test("display filtering preserves raw samples, keeps glass raw and retains the c
       },
       (error) => errors.push(error.message),
     );
+    // Exercise a partial grid regardless of the adapter's calibrated tile size.
+    (renderer as any).pathTileSize = 48;
     const wait = async (condition: () => boolean) => {
       const start = performance.now();
       while (!condition() && performance.now() - start < 15000)
@@ -196,6 +198,9 @@ test("display filtering preserves raw samples, keeps glass raw and retains the c
         .data;
     };
     const snapshot = async () => {
+      // Queue completion precedes canvas presentation. Wait for the compositor
+      // before comparing screenshots of the last complete frame.
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
       const bitmap = await createImageBitmap(canvas);
       const temp = document.createElement("canvas");
       temp.width = bitmap.width;

@@ -4,11 +4,12 @@ struct PathResult { radiance: vec3f, error: u32, interactions: u32 }
 fn tracePathAtWavelength(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, maxDepth: u32, strategy: u32, lightCount: u32, wavelength: f32) -> PathResult {
   var interactions = 0u;
   var ray = initial; var beta = vec3f(1.0); var radiance = vec3f(0.0);
+  var originLow=vec3f(0);
   var previousPosition = initial.origin; var previousPdf = 0.0;
   var previousDelta = true; var etaScale = 1.0;
   var medium = NO_HIT;
   for (var depth = 0u; depth <= maxDepth; depth++) {
-    let hit = closestHit(ray);
+    let hit = closestHitWithOrigin(ray,originLow);
     if (hit.error != 0u) { return PathResult(vec3f(0), hit.error, interactions); }
     if (hit.id == NO_HIT) {
       if (medium != NO_HIT) { return PathResult(vec3f(0), 4u, interactions); }
@@ -18,6 +19,7 @@ fn tracePathAtWavelength(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, 
     let triangle = triangles[hit.triangle];
     if (triangle.material >= arrayLength(&materials)) { return PathResult(vec3f(0), 1u, interactions); }
     let material = materials[triangle.material];
+    if(!PRECISE_TRANSPORT && medium!=NO_HIT && material.kind!=2u) {return PathResult(vec3f(0),5u,interactions);}
     let ng = geometricNormal(triangle);
     let position = surfacePosition(triangle,hit);
     let color = surfaceColor(material, position, wavelength);
@@ -42,6 +44,7 @@ fn tracePathAtWavelength(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, 
     let n = select(ng, -ng, dot(ng, -ray.direction) < 0.0);
     let dimension = 3u + depth * 7u;
     if (material.kind == 2u) {
+      if(!PRECISE_TRANSPORT && needsPreciseOrigin(ray,triangle,hit)) {return PathResult(vec3f(0),5u,interactions);}
       let entering = dot(ng, ray.direction) < 0.0;
       if ((entering && medium != NO_HIT) || (!entering && (medium == NO_HIT || triangles[medium].surface != triangle.surface))) {
         return PathResult(vec3f(0), 4u, interactions);
@@ -62,7 +65,8 @@ fn tracePathAtWavelength(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, 
         beta = rouletteWeight(beta, etaScale, sample1D(sampleIndex, dimension + 6u, pixel, seed));
         if (all(beta == vec3f(0))) { break; }
       }
-      ray = Ray(offsetSurface(triangle,hit,event.direction), 0.0, event.direction, 1e20);
+      let origin=transportOrigin(ray,originLow,triangle,hit,event.direction);
+      ray = Ray(origin.position, 0.0, event.direction, 1e20);originLow=origin.residual;
       continue;
     }
     let coating=coatingProbability(material);
@@ -90,7 +94,7 @@ fn tracePathAtWavelength(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, 
       let wi=coatingDirection(ray.direction,n,oriented);
       previousPosition=position;previousPdf=0.0;previousDelta=true;
       if(depth>=4u) {beta=rouletteWeight(beta,etaScale,sample1D(sampleIndex,dimension+6u,pixel,seed));if(all(beta==vec3f(0))) {break;}}
-      ray=Ray(offsetSurface(triangle,hit,wi),0.0,wi,1e20);
+      ray=Ray(offsetSurface(triangle,hit,wi),0.0,wi,1e20);originLow=vec3f(0);
       continue;
     }
     let wi = cosineDirection(n, vec2f(sample1D(sampleIndex, dimension + 3u, pixel, seed), sample1D(sampleIndex, dimension + 4u, pixel, seed)));
@@ -102,7 +106,7 @@ fn tracePathAtWavelength(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, 
       beta = rouletteWeight(beta, etaScale, sample1D(sampleIndex, dimension + 6u, pixel, seed));
       if (all(beta == vec3f(0))) { break; }
     }
-    ray = Ray(offsetSurface(triangle,hit,wi), 0.0, wi, 1e20);
+    ray = Ray(offsetSurface(triangle,hit,wi), 0.0, wi, 1e20);originLow=vec3f(0);
   }
   if (!all(radiance >= vec3f(0.0)) || !all(radiance < vec3f(FAR))) { return PathResult(vec3f(0), 3u, interactions); }
   return PathResult(radiance, 0u, interactions);

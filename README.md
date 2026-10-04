@@ -21,6 +21,8 @@ npm run build
 npm run test:browser
 ```
 
+Замеры скорости, сравнение raw-качества и проверенные варианты оптимизации: [docs/performance.md](docs/performance.md). Повторный контрольный замер: `npm run benchmark -- --tag current-control --cases suzanne --modes spectral-pt,spectral-sppm --width 640 --height 480 --pt 4 --sppm 1`.
+
 Браузерные тесты используют установленный Google Chrome через Playwright, без специальных WebGPU-флагов. Dev-сервер тестов автоматически запускается и останавливается. Снимки canvas сохраняются в `test-results/`. Фиксированный RGB-кадр на 128 spp хранится в `docs/validation/` (PNG, линейный PFM, JSON с настройками).
 
 ## Текущий результат
@@ -121,3 +123,5 @@ PNG экспортирует отображаемый результат, PFM �
 Редактируемый исходник находится в [assets/source/suzanne.blend](assets/source/suzanne.blend), происхождение и результаты проверок — в [метаданных](src/assets/suzanne-meta.json), сведения об источнике — в [SUZANNE-NOTICES.txt](public/assets/SUZANNE-NOTICES.txt). Команда подготовки: `blender --background --factory-startup --python-exit-code 1 --python scripts/prepare-suzanne.py`.
 
 `npm run capture:control -- --suzanne` сохраняет raw-сцену без denoiser: [PNG](docs/validation/stage8-cornell.png), линейные RGB/XYZ PFM, настройки и сходимость. Параметры: 256×192, 256 спектральных SPPM-итераций, seed17, depth32, radius0.03. Сцена соответствует размерам и размещению из плана; проверка всей Suzanne против PBRT и итоговые кадры приведены в [приёмке этапа 10](docs/acceptance.md).
+
+Проверка исправления транспорта Buddha, качества и текущей скорости: [transport-fix](docs/validation/transport-fix/README.md).

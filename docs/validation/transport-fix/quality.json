@@ -1,0 +1,55 @@
+{
+  "specializeSampler": true,
+  "width": 32,
+  "height": 24,
+  "iterations": 2048,
+  "maxDepth": 32,
+  "initialRadius": 0.03,
+  "seed": 17,
+  "photonsPerIteration": 8192,
+  "photonBatchSize": 4096,
+  "adapter": "intel gen-12lp",
+  "elapsedMs": 94756.30000001192,
+  "errors": 0,
+  "countsComplete": true,
+  "emittedPhotons": 16777216,
+  "regions": {
+    "floor": {
+      "roi": [
+        0.35,
+        0.65,
+        0.8,
+        0.95
+      ],
+      "mean": 0.29071180215334086,
+      "referenceMean": 0.3007082610150373,
+      "relativeError": 0.033243047024892114
+    },
+    "room": {
+      "roi": [
+        0.25,
+        0.75,
+        0.2,
+        0.9
+      ],
+      "mean": 0.2134830416010928,
+      "referenceMean": 0.21708066072056856,
+      "relativeError": 0.016572729728820512
+    },
+    "glass": {
+      "roi": [
+        0.3,
+        0.7,
+        0.35,
+        0.7
+      ],
+      "mean": 0.27217444739542107,
+      "referenceMean": 0.27939498738086394,
+      "relativeError": 0.02584348435571615
+    }
+  },
+  "luminanceRmse": 0.013112973642091191,
+  "referenceReused": true,
+  "reference": "docs/validation/performance-quality/stage10-reference.pfm",
+  "passed": true
+}

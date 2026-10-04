@@ -1,0 +1,90 @@
+{
+  "started": "2026-10-04T07:45:01.482Z",
+  "completed": 6,
+  "rows": [
+    {
+      "width": 1315,
+      "height": 739,
+      "iterations": 128,
+      "emittedPhotons": 2097152,
+      "minCount": 128,
+      "maxCount": 128,
+      "nonFinite": 0,
+      "mean": 0.16503037825400177,
+      "seed": 29,
+      "material": "blue-glass",
+      "memoryBudgetMiB": 192,
+      "elapsedMs": 138586.40000003576
+    },
+    {
+      "width": 1315,
+      "height": 739,
+      "iterations": 128,
+      "emittedPhotons": 2097152,
+      "minCount": 128,
+      "maxCount": 128,
+      "nonFinite": 0,
+      "mean": 0.1650194445363906,
+      "seed": 1,
+      "material": "blue-glass",
+      "memoryBudgetMiB": 192,
+      "elapsedMs": 136803.20000004768
+    },
+    {
+      "width": 1315,
+      "height": 739,
+      "iterations": 128,
+      "emittedPhotons": 2097152,
+      "minCount": 128,
+      "maxCount": 128,
+      "nonFinite": 0,
+      "mean": 0.16499818245176914,
+      "seed": 17,
+      "material": "blue-glass",
+      "memoryBudgetMiB": 192,
+      "elapsedMs": 137029.19999998808
+    },
+    {
+      "width": 1315,
+      "height": 739,
+      "iterations": 128,
+      "emittedPhotons": 2097152,
+      "minCount": 128,
+      "maxCount": 128,
+      "nonFinite": 0,
+      "mean": 0.18473724074806183,
+      "seed": 29,
+      "material": "glass",
+      "memoryBudgetMiB": 192,
+      "elapsedMs": 133189.80000001192
+    },
+    {
+      "width": 1315,
+      "height": 739,
+      "iterations": 128,
+      "emittedPhotons": 2097152,
+      "minCount": 128,
+      "maxCount": 128,
+      "nonFinite": 0,
+      "mean": 0.18462489178602215,
+      "seed": 1,
+      "material": "glass",
+      "memoryBudgetMiB": 192,
+      "elapsedMs": 136184
+    },
+    {
+      "width": 1315,
+      "height": 739,
+      "iterations": 128,
+      "emittedPhotons": 2097152,
+      "minCount": 128,
+      "maxCount": 128,
+      "nonFinite": 0,
+      "mean": 0.1845842280363233,
+      "seed": 17,
+      "material": "glass",
+      "memoryBudgetMiB": 192,
+      "elapsedMs": 132375.80000001192
+    }
+  ]
+}

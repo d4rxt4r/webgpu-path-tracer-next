@@ -1,21 +1,17 @@
+import { TRANSPORT_DIAGNOSTIC_BYTES } from "../render/transport-diagnostics";
 /** Optional queue timestamps for a bounded compute portion, excluding display. */
 export class GpuTimer {
   private queries: GPUQuerySet;
   private resolved: GPUBuffer;
-  private readback: GPUBuffer;
   constructor(device: GPUDevice) {
     this.queries = device.createQuerySet({ type: "timestamp", count: 2 });
     this.resolved = device.createBuffer({
       size: 16,
       usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC,
     });
-    this.readback = device.createBuffer({
-      size: 16,
-      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-    });
   }
   get bytes(): number {
-    return 32;
+    return 16;
   }
   begin(encoder: GPUCommandEncoder): void {
     encoder
@@ -27,25 +23,22 @@ export class GpuTimer {
       })
       .end();
   }
-  end(encoder: GPUCommandEncoder): void {
+  end(encoder: GPUCommandEncoder, readback: GPUBuffer): void {
     encoder
       .beginComputePass({
         timestampWrites: { querySet: this.queries, endOfPassWriteIndex: 1 },
       })
       .end();
     encoder.resolveQuerySet(this.queries, 0, 2, this.resolved, 0);
-    encoder.copyBufferToBuffer(this.resolved, 0, this.readback, 0, 16);
+    encoder.copyBufferToBuffer(this.resolved, 0, readback, TRANSPORT_DIAGNOSTIC_BYTES, 16);
   }
-  async read(): Promise<number> {
-    await this.readback.mapAsync(GPUMapMode.READ);
-    const values = new BigUint64Array(this.readback.getMappedRange());
+  read(mapped: ArrayBuffer): number {
+    const values = new BigUint64Array(mapped, TRANSPORT_DIAGNOSTIC_BYTES, 2);
     const ms = Number(values[1]! - values[0]!) / 1e6;
-    this.readback.unmap();
     return ms;
   }
   dispose(): void {
     this.queries.destroy();
     this.resolved.destroy();
-    this.readback.destroy();
   }
 }

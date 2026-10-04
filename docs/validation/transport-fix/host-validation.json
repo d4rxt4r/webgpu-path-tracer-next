@@ -1,0 +1,103 @@
+{
+  "status": "complete",
+  "date": "2026-10-04T08:59:18.893Z",
+  "results": [
+    {
+      "id": 6,
+      "title": "display filtering preserves raw samples, keeps glass raw and retains the complete frame during tiled reset",
+      "result": {
+        "errors": [],
+        "rawPreserved": true,
+        "glassPreserved": true,
+        "completeHeld": true,
+        "partialRevisionHidden": true,
+        "newFrameUniform": true,
+        "gradientBefore": 37198,
+        "gradientAfter": 8116,
+        "budgetBounded": true
+      },
+      "assertions": "passed"
+    },
+    {
+      "id": 8,
+      "title": "camera changes during Worker builds and repeated scene replacement remain live",
+      "result": {
+        "errors": [],
+        "initialBytes": 1775860,
+        "finalBytes": 1775860,
+        "frames": 1
+      },
+      "assertions": "passed"
+    },
+    {
+      "id": 18,
+      "title": "capture preserves raw XYZ, negative RGB and exposure-independent history",
+      "result": {
+        "errors": [],
+        "space": "cie-xyz",
+        "xyzNonnegative": true,
+        "negativeRgb": true,
+        "xyzPreserved": true,
+        "rgbPreserved": true,
+        "counts": true,
+        "reset": true,
+        "rgbSpace": "linear-srgb",
+        "rgbNoXyz": true,
+        "rgbOne": true
+      },
+      "assertions": "passed"
+    },
+    {
+      "id": 21,
+      "title": "PT and SPPM replay every forced path exactly once across overflow and pause",
+      "result": {
+        "forcedModules": 3,
+        "pt": {
+          "normalizedRmse": 0,
+          "nonFinite": 0,
+          "energy": 236558.4804226675,
+          "countsComplete": true,
+          "partialCounts": true
+        },
+        "sppm": {
+          "normalizedRmse": 5.778812598903126e-10,
+          "nonFinite": 0,
+          "energy": 235485.35414636365,
+          "countsComplete": true,
+          "errors": 0,
+          "emittedPhotons": 512
+        }
+      },
+      "assertions": "passed"
+    },
+    {
+      "id": 23,
+      "title": "raw accumulation is deterministic, exposure preserves it, camera and integrator reset it",
+      "result": {
+        "errors": [],
+        "countUniform": true,
+        "exposurePreserved": true,
+        "cameraReset": true,
+        "integratorReset": true,
+        "deterministic": true,
+        "pausePreserved": true,
+        "changedSamples": 1,
+        "positive": true
+      },
+      "assertions": "passed"
+    }
+  ],
+  "errors": [],
+  "scope": "Host-only Intel tile floor change; transport WGSL unchanged",
+  "progress": {
+    "id": 23,
+    "title": "raw accumulation is deterministic, exposure preserves it, camera and integrator reset it"
+  },
+  "assertionsPassed": true,
+  "unitTests": {
+    "passed": 40,
+    "files": 11
+  },
+  "build": "passed",
+  "diffCheck": "passed"
+}

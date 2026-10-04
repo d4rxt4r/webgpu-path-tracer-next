@@ -9,6 +9,7 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
     "test:browser": "playwright test",
+    "benchmark": "node scripts/performance.mjs",
     "assets:sobol": "node scripts/prepare-sobol.mjs",
     "assets:spectra": "node scripts/prepare-spectra.mjs",
     "capture:control": "node scripts/capture-control.mjs",

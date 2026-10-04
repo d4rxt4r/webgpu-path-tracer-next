@@ -10,9 +10,10 @@ export async function createDevice(): Promise<DeviceInfo> {
     throw new Error(
       "WebGPU недоступен. Откройте приложение в Chrome или Edge с включённым аппаратным ускорением.",
     );
-  const adapter = await navigator.gpu.requestAdapter({
-    powerPreference: "low-power",
-  });
+  const adapter =
+    (await navigator.gpu.requestAdapter({
+      powerPreference: "high-performance",
+    })) ?? (await navigator.gpu.requestAdapter());
   if (!adapter)
     throw new Error(
       "Не найден доступный WebGPU-адаптер. Проверьте драйвер GPU и аппаратное ускорение браузера.",

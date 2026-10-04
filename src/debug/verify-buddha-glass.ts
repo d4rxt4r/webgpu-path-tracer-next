@@ -9,6 +9,8 @@ import { definitions, packBvh } from "../accel/pack";
 import { packTransport } from "../accel/materials";
 import { cameraBasis } from "../scene/camera";
 import { pathCore } from "../transport/shaders";
+import { sppmShader } from "../transport/sppm-shader";
+import type { SphereMaterial } from "../scene/cornell";
 
 /** Exercise every spectral camera path; preserve the failing pixel and sample. */
 export async function verifyBuddhaGlass(
@@ -16,8 +18,10 @@ export async function verifyBuddhaGlass(
   height = 720,
   samples = 16,
   replay?: { sample: number; pixel: number },
+  options: { mode?: "rgb" | "spectral"; integrator?: "pt" | "sppm"; material?: SphereMaterial; seed?: number } = {},
 ) {
-  const scene = await buddhaScene("blue-glass");
+  if (options.integrator === "sppm" && !replay) throw new Error("SPPM camera replay requires a pixel and sample");
+  const scene = await buddhaScene(options.material ?? "blue-glass");
   const bvh = buildBvh(bakeTriangles(scene));
   const packed = { ...packBvh(bvh), ...packTransport(scene, bvh) };
   const { device, name } = await createDevice();
@@ -50,20 +54,24 @@ export async function verifyBuddhaGlass(
       GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     );
     const basis = cameraBasis(scene.camera);
+    const diagnostic = create(64,GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST);
+    const sppmReplay = options.integrator === "sppm";
+    const trace = options.mode === "rgb" ? "tracePath" : "traceSpectralPath";
     const module = await checkedShader(
       device,
-      pathCore +
+      (sppmReplay ? sppmShader : pathCore) +
         `
-@group(0) @binding(0) var<storage,read_write> results: array<vec4u>;
-@group(0) @binding(1) var<uniform> params: CameraParams;
+@group(0) @binding(12) var<storage,read_write> results: array<vec4u>;
+${sppmReplay ? "" : "@group(0) @binding(1) var<uniform> params: CameraParams;"}
 @compute @workgroup_size(64) fn main(@builtin(global_invocation_id) id: vec3u) {
   let pixel=params.tile.x+id.x;if(pixel>=params.size.x*params.size.y||id.x>=params.tile.z) {return;}
   let xy=vec2u(pixel%params.size.x,pixel/params.size.x);
   let jitter=vec2f(sample1D(params.frame,0u,pixel,params.seed),sample1D(params.frame,1u,pixel,params.seed));
   let uv=(vec2f(xy)+jitter)/vec2f(params.size);let p=vec2f(2.0*uv.x-1.0,1.0-2.0*uv.y);
   let direction=normalize(params.forward.xyz+p.x*f32(params.size.x)/f32(params.size.y)*params.right.xyz+p.y*params.up.xyz);
-  let value=traceSpectralPath(Ray(params.eye.xyz,0.00001,direction,1e20),params.frame,pixel,params.seed,params.maxDepth,0u,params.lightCount);
-  results[pixel]=vec4u(value.error,value.interactions,xy);
+  ${sppmReplay ? `let point=cameraPoint(Ray(params.eye.xyz,0.00001,direction,1e20),pixel,0.0);
+  results[pixel]=vec4u(atomicLoad(&transportErrors[0]),point.valid,xy);` : `let value=${trace}(Ray(params.eye.xyz,0.00001,direction,1e20),params.frame,pixel,params.seed,params.maxDepth,0u,params.lightCount);
+  results[pixel]=vec4u(value.error,value.interactions,xy);`}
 }`,
       "Buddha blue glass regression",
     );
@@ -74,8 +82,9 @@ export async function verifyBuddhaGlass(
     const group = device.createBindGroup({
       layout: pipeline.getBindGroupLayout(0),
       entries: [
-        { binding: 0, resource: { buffer: values } },
+        { binding: 12, resource: { buffer: values } },
         { binding: 1, resource: { buffer: uniform } },
+        ...(sppmReplay ? [{binding:4,resource:{buffer:diagnostic}}] : []),
         ...gpu.entries(),
         ...gpu.transportEntries(),
         gpu.spectralEntry(),
@@ -107,7 +116,7 @@ export async function verifyBuddhaGlass(
           right: [...basis.right, 0],
           up: [...basis.up, 0],
           maxDepth: 64,
-          seed: 1,
+          seed: options.seed ?? 1,
           lightCount: packed.lightCount,
           tile: [start, 0, replay ? 1 : 4096, 1],
         });

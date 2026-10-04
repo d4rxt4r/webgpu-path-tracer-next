@@ -1,0 +1,167 @@
+{
+  "tag": "pfm-smoke",
+  "commit": "ed090b332c13025caebedf6ba1dc58673fad221e",
+  "sourceSha256": "1e1adb6df5d35d5ccdda7d4e6f69bee82da03cab772151f8dbbcb46945eeef58",
+  "date": "2026-10-03T23:37:09.247Z",
+  "browser": "154.0.8037.58",
+  "capabilities": {
+    "vendor": "intel",
+    "architecture": "gen-12lp",
+    "description": "",
+    "fallback": false,
+    "features": [
+      "depth32float-stencil8",
+      "rg11b10ufloat-renderable",
+      "bgra8unorm-storage",
+      "texture-formats-tier1",
+      "texture-compression-bc",
+      "dual-source-blending",
+      "core-features-and-limits",
+      "float32-filterable",
+      "indirect-first-instance",
+      "float32-blendable",
+      "subgroup-size-control",
+      "depth-clip-control",
+      "texture-compression-bc-sliced-3d",
+      "texture-formats-tier2",
+      "clip-distances",
+      "timestamp-query",
+      "shader-f16",
+      "primitive-index",
+      "texture-component-swizzle",
+      "subgroups"
+    ]
+  },
+  "source": "/src",
+  "candidate": "none",
+  "workgroup": [
+    8,
+    8
+  ],
+  "leaf": 4,
+  "tileSize": 0,
+  "referenceFile": "",
+  "width": 160,
+  "height": 120,
+  "repeats": 1,
+  "ptSamples": 4,
+  "sppmSamples": 1,
+  "rows": [
+    {
+      "key": "sphere-spectral-pt-17",
+      "scene": "sphere",
+      "mode": "spectral-pt",
+      "seed": 17,
+      "elapsed": {
+        "median": 40.19999998807907,
+        "p95": 40.19999998807907,
+        "min": 40.19999998807907,
+        "max": 40.19999998807907
+      },
+      "preparation": {
+        "median": 76.29999995231628,
+        "p95": 76.29999995231628,
+        "min": 76.29999995231628,
+        "max": 76.29999995231628
+      },
+      "initialization": {
+        "median": 26.80000001192093,
+        "p95": 26.80000001192093,
+        "min": 26.80000001192093,
+        "max": 26.80000001192093
+      },
+      "runs": [
+        {
+          "preparationMs": 76.29999995231628,
+          "initializationMs": 26.80000001192093,
+          "elapsedMs": 40.19999998807907,
+          "gpuMs": 22.216704000000004,
+          "completionMs": 34.800000071525574,
+          "submissions": 4,
+          "portions": [
+            {
+              "completionMs": 11.600000023841858,
+              "gpuMs": 6.160384,
+              "executedPhase": "pt",
+              "steps": 2,
+              "count": 1
+            },
+            {
+              "completionMs": 10.5,
+              "gpuMs": 7.471104,
+              "executedPhase": "pt",
+              "steps": 1,
+              "count": 1
+            },
+            {
+              "completionMs": 6.400000035762787,
+              "gpuMs": 4.325376,
+              "executedPhase": "pt",
+              "steps": 1,
+              "count": 1
+            },
+            {
+              "completionMs": 6.300000011920929,
+              "gpuMs": 4.25984,
+              "executedPhase": "pt",
+              "steps": 1,
+              "count": 1
+            }
+          ],
+          "bytes": 1716208,
+          "samples": 4,
+          "emittedPhotons": 0,
+          "width": 160,
+          "height": 120,
+          "settings": {
+            "maxDepth": 32,
+            "seed": 17,
+            "strategy": "mis",
+            "maxPixels": 19200,
+            "mode": "spectral",
+            "integrator": "pt",
+            "photonsPerIteration": 16384,
+            "photonBatchSize": 1024,
+            "initialRadius": 0.03,
+            "memoryBudgetMiB": 192
+          },
+          "computation": {
+            "sampler": "owen-sobol-24",
+            "kernel": "megakernel",
+            "scheduler": "bounded-packets-v1",
+            "workgroup": [
+              8,
+              8
+            ],
+            "tileSize": 256,
+            "specializedSppmSampler": true
+          },
+          "errors": [],
+          "imageDifference": {
+            "maxAbsolute": 0,
+            "rmse": 0,
+            "normalizedRmse": 0,
+            "meanChange": 0,
+            "roi": {
+              "frame": {
+                "before": 4528.160144282024,
+                "after": 4528.160144282024,
+                "pixels": 19200
+              },
+              "object": {
+                "before": 789.5931283533893,
+                "after": 789.5931283533893,
+                "pixels": 3339
+              },
+              "floor": {
+                "before": 764.3054590892192,
+                "after": 764.3054590892192,
+                "pixels": 3895
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

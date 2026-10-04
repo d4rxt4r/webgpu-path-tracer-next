@@ -94,7 +94,11 @@ export async function verifyIntersections(): Promise<{ rays: number; maxDistance
       deep.nodes[index]!.count = 0; deep.nodes[index]!.first = deep.nodes.length;
       index = deep.nodes.length; deep.nodes.push(leaf(), leaf());
     }
-    const stackError = (await gpuTrace(device, pipeline, packBvh(deep), [ray]))[0]!.error;
+    // Bypass production tree validation only for this deliberately corrupt
+    // fixture: the precise GPU traversal must still diagnose stack exhaustion.
+    const deepNodes = new ArrayBuffer(deep.nodes.length * definitions.structs.BvhNode!.size);
+    deep.nodes.forEach((node,i) => makeStructuredView(definitions.structs.BvhNode!,deepNodes,i*definitions.structs.BvhNode!.size).set(node));
+    const stackError = (await gpuTrace(device, pipeline, {...prepared,nodes:deepNodes,nodeCount:deep.nodes.length,maxDepth:deep.maxDepth}, [ray]))[0]!.error;
     return { rays: rays.length, maxDistanceError, mismatches: errors, rangeError, numericError, stackError, workerCancelled, adapter: name };
   } finally { preparer.dispose(); device.destroy(); }
 }

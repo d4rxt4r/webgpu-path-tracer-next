@@ -1,11 +1,9 @@
 @group(0) @binding(0) var outputImage: texture_storage_2d<rgba16float, write>;
 @group(0) @binding(1) var<uniform> params: CameraParams;
-@group(0) @binding(4) var<storage, read_write> traversalErrors: atomic<u32>;
 @group(0) @binding(8) var<storage, read_write> accumulation: array<vec4f>;
-@compute @workgroup_size(8, 8)
-fn main(@builtin(global_invocation_id) invocation: vec3u) {
-  if (any(invocation.xy >= params.tile.zw)) { return; }
-  let id = invocation.xy + params.tile.xy;
+override PT_WORKGROUP_X: u32 = 8u;
+override PT_WORKGROUP_Y: u32 = 8u;
+fn renderPathPixel(id:vec2u,repair:bool) {
   if (any(id >= params.size)) { return; }
   let pixel = id.y * params.size.x + id.x;
   if (params.view == 5u) {
@@ -22,12 +20,34 @@ fn main(@builtin(global_invocation_id) invocation: vec3u) {
   var result: PathResult;
   if (params.transportMode == 0u) { result = tracePath(ray, params.frame, pixel, params.seed, params.maxDepth, params.strategy, params.lightCount); }
   else { result = traceSpectralPath(ray, params.frame, pixel, params.seed, params.maxDepth, params.strategy, params.lightCount); }
-  if (result.error != 0u) { atomicAdd(&traversalErrors, 1u); textureStore(outputImage, vec2i(id), vec4f(1, 0, 1, 1)); return; }
-  let sum = accumulation[pixel] + vec4f(result.radiance, 1.0);
+  if(!PRECISE_TRANSPORT && (result.error==4u || result.error==5u)) {
+    accumulation[pixel].w=-(accumulation[pixel].w+1.0);
+    enqueueTransportRetry(pixel,params.size.x*params.size.y);
+    return;
+  }
+  if (result.error != 0u) { reportTransportError(select(1u,2u,result.error==4u),5u,pixel,result.interactions,NO_HIT,NO_HIT); textureStore(outputImage, vec2i(id), vec4f(1, 0, 1, 1)); return; }
+  var previous=accumulation[pixel];
+  if(repair) {previous.w=-previous.w-1.0;}
+  let sum = previous + vec4f(result.radiance, 1.0);
   accumulation[pixel] = sum;
   if (params.view == 6u) {
     let t=f32(result.interactions)/f32(params.maxDepth+1u);
     textureStore(outputImage,vec2i(id),vec4f(t,t*t,1.0-t,1));return;
   }
   textureStore(outputImage, vec2i(id), vec4f(sum.xyz / sum.w, 1));
+}
+
+@compute @workgroup_size(PT_WORKGROUP_X,PT_WORKGROUP_Y)
+fn main(@builtin(global_invocation_id) invocation:vec3u) {
+  if(any(invocation.xy>=params.tile.zw)) {return;}
+  renderPathPixel(invocation.xy+params.tile.xy,false);
+}
+@compute @workgroup_size(64)
+fn repairMain(@builtin(global_invocation_id) invocation:vec3u) {
+  let index=transportRetryIndex(invocation.x,params.size.x*params.size.y);
+  if(index==NO_HIT) {return;}
+  let id=vec2u(index%params.size.x,index/params.size.x);
+  if(any(id>=params.size)) {return;}
+  if(accumulation[id.y*params.size.x+id.x].w>=0.0) {return;}
+  renderPathPixel(id,true);
 }

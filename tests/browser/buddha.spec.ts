@@ -2,6 +2,38 @@ import { expect, test } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { writeFile } from "node:fs/promises";
 
+test("RGB SPPM does not re-enter glass at the shared-edge sample 9", async ({page}) => {
+  await page.goto("/?scene=control");
+  await expect(page.locator("#status")).toHaveText("WebGPU готов",{timeout:20000});
+  await page.locator("#pause").click();
+  const results = await page.evaluate(async () => {
+    const url = "/src/debug/verify-buddha-glass.ts";
+    const {verifyBuddhaGlass} = await import(/* @vite-ignore */ url);
+    const values = [];
+    for (const material of ["glass","blue-glass"] as const)
+      for (const replay of [{sample:9,pixel:683613},{sample:29,pixel:545445}])
+        values.push(await verifyBuddhaGlass(1316,740,1,replay,{mode:"rgb",integrator:"sppm",material}));
+    values.push(await verifyBuddhaGlass(1316,740,1,{sample:73,pixel:374399},{mode:"rgb",integrator:"sppm",material:"glass",seed:17}));
+    values.push(await verifyBuddhaGlass(1315,739,1,{sample:86,pixel:301780},{mode:"rgb",integrator:"sppm",material:"blue-glass",seed:29}));
+    return values;
+  });
+  for (const result of results) {expect(result.paths).toBe(1);expect(result.failures).toEqual([]);}
+});
+
+test("live RGB SPPM finishes sixteen high-resolution Buddha iterations", async ({page}) => {
+  test.setTimeout(180000);
+  await page.goto("/?scene=control");
+  await expect(page.locator("#status")).toHaveText("WebGPU готов",{timeout:20000});
+  await page.locator("#pause").click();
+  const result = await page.evaluate(async () => {
+    const url = "/src/debug/verify-buddha-sppm.ts";
+    const {verifyBuddhaSppm} = await import(/* @vite-ignore */ url);
+    return verifyBuddhaSppm({iterations:16});
+  });
+  expect(result.iterations).toBe(16);expect(result.minCount).toBe(16);expect(result.maxCount).toBe(16);
+  expect(result.emittedPhotons).toBe(16*16384);expect(result.nonFinite).toBe(0);
+});
+
 test("blue glass Buddha keeps valid media across narrow folds at high resolution", async ({
   page,
 }) => {

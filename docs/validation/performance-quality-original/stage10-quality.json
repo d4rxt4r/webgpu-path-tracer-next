@@ -1,0 +1,76 @@
+{
+  "width": 32,
+  "height": 24,
+  "iterations": 2048,
+  "photonsPerIteration": 8192,
+  "photonBatchSize": 4096,
+  "seed": 17,
+  "pbrtSamplesPerPixel": 32768,
+  "pbrtSeeds": [
+    17,
+    29
+  ],
+  "pbrtDepth": 64,
+  "pbrtCommit": "b4ce9687e6c695f5582997c61b0c66cf064bdb4a",
+  "referenceReused": true,
+  "sourcePrefix": "/.performance-cache/baseline/src",
+  "sourceSha256": "82ec80adef1bfafbe96793b64fc388f0cc17850d048c0e5ea55925ebdb6f7106",
+  "referenceSpread": {
+    "floor": 0.006225999501095585,
+    "room": 0.0015525725450606443,
+    "glass": 0.0012263470588825668
+  },
+  "metrics": [
+    {
+      "name": "baseline",
+      "maxDepth": 32,
+      "initialRadius": 0.03,
+      "width": 32,
+      "height": 24,
+      "convergence": [],
+      "errors": 0,
+      "emittedPhotons": 16777216,
+      "adapter": "intel gen-12lp",
+      "elapsedMs": 66583.09999996424,
+      "luminanceRmse": 0.013348673528206295,
+      "regions": {
+        "floor": {
+          "roi": [
+            0.35,
+            0.65,
+            0.8,
+            0.95
+          ],
+          "mean": 0.29057090776722044,
+          "referenceMean": 0.3007082610150373,
+          "relativeError": 0.03371158881235359
+        },
+        "room": {
+          "roi": [
+            0.25,
+            0.75,
+            0.2,
+            0.9
+          ],
+          "mean": 0.21353253186995208,
+          "referenceMean": 0.21708066072056856,
+          "relativeError": 0.01634474871616365
+        },
+        "glass": {
+          "roi": [
+            0.3,
+            0.7,
+            0.35,
+            0.7
+          ],
+          "mean": 0.272438963768905,
+          "referenceMean": 0.27939498738086394,
+          "relativeError": 0.024896737329351937
+        }
+      }
+    }
+  ],
+  "elapsedMs": 73716,
+  "limits": "Two reference seeds measure empirical stability, not a confidence bound. Low resolution numerical validation is separate from final image inspection.",
+  "passed": true
+}

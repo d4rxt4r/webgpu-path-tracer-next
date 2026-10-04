@@ -15,8 +15,8 @@ for(const mode of ['rgb','spectral'] as const) test(`${mode} photon batches pres
     const rendererUrl='/src/render/intersection-renderer.ts',sceneUrl='/src/scene/cornell.ts';
     const {IntersectionRenderer}=await import(/* @vite-ignore */rendererUrl);const {cornellScene}=await import(/* @vite-ignore */sceneUrl);
     const canvas=document.createElement('canvas');canvas.style.cssText='width:32px;height:32px';document.body.append(canvas);
-    const errors:string[]=[];let samples=0,phase='',target=4,stopped=false;
-    const renderer=new IntersectionRenderer(canvas,(stats:{samples:number;phase:string})=>{samples=stats.samples;phase=stats.phase;if(samples===target&&!stopped){stopped=true;renderer.pause();}},(error:Error)=>errors.push(error.message));
+    const errors:string[]=[];let samples=0,phase='',target=4,stopped=false,stopDuringGather=false;
+    const renderer=new IntersectionRenderer(canvas,(stats:{samples:number;phase:string})=>{samples=stats.samples;phase=stats.phase;if(!stopped&&(samples===target||(stopDuringGather&&samples===4&&phase==='gather'))){stopped=true;renderer.pause();}},(error:Error)=>errors.push(error.message));
     const wait=async(condition:()=>boolean)=>{const start=performance.now();while(!condition()&&!errors.length&&performance.now()-start<20000)await new Promise(r=>setTimeout(r,10));if(!condition())throw new Error('SPPM stalled '+JSON.stringify({samples,phase,errors}));};
     try {
       const scene=cornellScene('glass');renderer.setDebugView('beauty');renderer.setSettings({integrator:'sppm',mode,maxPixels:1024,maxDepth:8,seed:17,photonsPerIteration:2048,photonBatchSize:256,initialRadius:0.15});
@@ -24,7 +24,7 @@ for(const mode of ['rgb','spectral'] as const) test(`${mode} photon batches pres
       renderer.setExposure(1);await new Promise(r=>setTimeout(r,50));const exposed=await renderer.capture();const exposurePreserved=first.linearRgb.every((v:number,i:number)=>v===exposed.linearRgb[i]);
       renderer.setSettings({photonBatchSize:512});stopped=false;renderer.resume();await wait(()=>stopped);const second=await renderer.capture();
       let difference=0,energy=0;for(let i=0;i<first.linearRgb.length;i++){difference+=Math.abs(first.linearRgb[i]-second.linearRgb[i]);energy+=Math.abs(first.linearRgb[i]);}
-      target=100;stopped=false;renderer.resume();await wait(()=>phase==='gather');renderer.pause();const partial=await renderer.capture();const partialPreserved=partial.samples===4&&partial.linearRgb.every((v:number,i:number)=>v===second.linearRgb[i]);renderer.setCamera(scene.camera);const reset=samples===0;
+      target=100;stopped=false;stopDuringGather=true;renderer.resume();await wait(()=>stopped);stopDuringGather=false;const partial=await renderer.capture();const partialPreserved=partial.samples===4&&partial.linearRgb.every((v:number,i:number)=>v===second.linearRgb[i]);renderer.setCamera(scene.camera);const reset=samples===0;
       target=1;stopped=false;await wait(()=>stopped);const restarted=await renderer.capture();
       return {errors,relativeDifference:difference/energy,energy,accumulationSpace:first.accumulationSpace,hasXyz:!!first.linearXyz,negativeRgb:first.linearRgb.some((v:number)=>v<0),exposurePreserved,partialPreserved,uniformCounts:first.sampleCounts.every((v:number)=>v===4),photons:first.emittedPhotons,reset,restartedSamples:restarted.samples,restartedCounts:restarted.sampleCounts.every((v:number)=>v===1),restartedPhotons:restarted.emittedPhotons};
     } finally {renderer.dispose();canvas.remove();}

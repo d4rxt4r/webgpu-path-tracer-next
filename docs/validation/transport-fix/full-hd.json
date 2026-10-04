@@ -1,0 +1,18 @@
+{
+  "width": 1920,
+  "height": 1080,
+  "mode": "rgb",
+  "iterations": 32,
+  "maxDepth": 32,
+  "seed": 1,
+  "photonsPerIteration": 16384,
+  "photonBatchSize": 1024,
+  "initialRadius": 0.03,
+  "specializeSampler": true,
+  "elapsedMs": 81647.80000001192,
+  "errors": 0,
+  "countsComplete": true,
+  "nonFinite": 0,
+  "emittedPhotons": 524288,
+  "adapter": "intel gen-12lp"
+}

@@ -1,0 +1,11 @@
+{
+  "sourceSha256": "82ec80adef1bfafbe96793b64fc388f0cc17850d048c0e5ea55925ebdb6f7106",
+  "referenceSourceSha256": "82ec80adef1bfafbe96793b64fc388f0cc17850d048c0e5ea55925ebdb6f7106",
+  "matched": true,
+  "pbrtSeeds": [
+    17,
+    29
+  ],
+  "pbrtDepth": 64,
+  "pbrtSamplesPerPixel": 32768
+}

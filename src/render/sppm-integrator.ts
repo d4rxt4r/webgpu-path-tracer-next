@@ -1,7 +1,15 @@
 import { makeStructuredView } from "webgpu-utils";
-import { sppmDefinitions, sppmShader } from "../transport/sppm-shader";
+import {
+  sppmDefinitions,
+  sppmShader,
+  specializedSppmShader,
+} from "../transport/sppm-shader";
+import { fastTransportShader } from "../transport/fast-source";
 import { checkedShader } from "../gpu/device";
 import type { GpuScene } from "../gpu/scene";
+import type { PacketUniforms } from "./compute-packets";
+
+import { clearTransportQueue, encodeTransportRepair } from "./transport-diagnostics";
 
 export interface SppmSettings {
   maxDepth: number;
@@ -23,12 +31,14 @@ const TILE = 64;
 export const SPPM_POINT_BYTES = sppmDefinitions.structs.SppmPoint!.size;
 export class SppmIntegrator {
   private uniform: GPUBuffer;
+  private indirect: GPUBuffer;
+  private errors?: GPUBuffer;
   private parameters = makeStructuredView(sppmDefinitions.structs.SppmParams!);
   private points?: GPUBuffer;
   private photons?: GPUBuffer;
   private heads?: GPUBuffer;
   private groups: Partial<
-    Record<"camera" | "photon" | "hash" | "gather" | "update", GPUBindGroup>
+    Record<"camera" | "photon" | "cameraRepair" | "photonRepair" | "hash" | "gather" | "update", GPUBindGroup>
   > = {};
   private camera?: GPUBuffer;
   private width = 0;
@@ -43,25 +53,33 @@ export class SppmIntegrator {
   private constructor(
     private device: GPUDevice,
     private pipelines: Record<
-      "camera" | "photon" | "hash" | "gather" | "update" | "density",
+      "camera" | "photon" | "cameraRepair" | "photonRepair" | "hash" | "gather" | "update" | "density",
       GPUComputePipeline
     >,
   ) {
+    this.indirect = device.createBuffer({label: "SPPM precision dispatch", size:12, usage:GPUBufferUsage.INDIRECT | GPUBufferUsage.COPY_DST});
     this.uniform = device.createBuffer({
       label: "SPPM parameters",
       size: this.parameters.arrayBuffer.byteLength,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
   }
-  static async create(device: GPUDevice): Promise<SppmIntegrator> {
+  static async create(
+    device: GPUDevice,
+    specializeSampler = false,
+    preciseTransport = false,
+  ): Promise<SppmIntegrator> {
     const module = await checkedShader(
       device,
-      sppmShader,
+      specializeSampler ? specializedSppmShader : sppmShader,
       "RGB / spectral SPPM",
     );
+    const fastModule = preciseTransport ? module : await checkedShader(device,fastTransportShader(specializeSampler ? specializedSppmShader : sppmShader),"SPPM common transport");
     const entries = [
       "camera",
       "photon",
+      "cameraRepair",
+      "photonRepair",
       "hash",
       "gather",
       "update",
@@ -71,7 +89,7 @@ export class SppmIntegrator {
       entries.map((entry) =>
         device.createComputePipelineAsync({
           layout: "auto",
-          compute: { module, entryPoint: entry + "Main" },
+          compute: { module: (entry === "camera" || entry === "photon") ? fastModule : module, entryPoint: entry + "Main" },
         }),
       ),
     );
@@ -84,7 +102,7 @@ export class SppmIntegrator {
   }
   get bytes(): number {
     return (
-      this.uniform.size +
+      this.uniform.size + this.indirect.size +
       (this.points?.size ?? 0) +
       (this.photons?.size ?? 0) +
       (this.heads?.size ?? 0)
@@ -129,6 +147,7 @@ export class SppmIntegrator {
       settings.photonBatchSize,
     ].join(":");
     this.camera = resources.camera;
+    this.errors = resources.errors;
     this.width = width;
     this.height = height;
     this.settings = { ...settings };
@@ -197,7 +216,9 @@ export class SppmIntegrator {
       GPUBindGroupEntry[]
     > = {
       camera: [...transport, points],
+      cameraRepair: [...transport, points],
       photon: [...transport, uniform, photons],
+      photonRepair: [...transport, uniform, photons],
       hash: [camera, uniform, photons, heads],
       gather: [camera, error, uniform, points, photons, heads],
       update: [
@@ -223,7 +244,7 @@ export class SppmIntegrator {
     this.clearPending = true;
   }
   /** Encode one bounded portion. Persistent output changes only in updateMain. */
-  encodeStep(encoder: GPUCommandEncoder): boolean {
+  encodeStep(encoder: GPUCommandEncoder, snapshots?: PacketUniforms): boolean {
     const settings = this.settings;
     if (!settings || !this.points || !this.photons || !this.heads)
       throw new Error("SPPM is not configured");
@@ -247,7 +268,14 @@ export class SppmIntegrator {
       iteration: this.iterations,
       seed: settings.seed,
     });
-    this.device.queue.writeBuffer(this.uniform, 0, this.parameters.arrayBuffer);
+    if (snapshots)
+      snapshots.write(encoder, this.uniform, this.parameters.arrayBuffer);
+    else
+      this.device.queue.writeBuffer(
+        this.uniform,
+        0,
+        this.parameters.arrayBuffer,
+      );
     const dispatch = (
       stage: Exclude<keyof typeof this.pipelines, "density">,
       x: number,
@@ -260,14 +288,18 @@ export class SppmIntegrator {
       pass.end();
     };
     if (this.phase === "camera") {
+      if(this.tileIndex===0) clearTransportQueue(encoder, this.errors!);
       dispatch("camera", TILE / 8, TILE / 8);
       if (++this.tileIndex === this.tiles) {
+        encodeTransportRepair(encoder, this.errors!, this.indirect, this.pipelines.cameraRepair, this.groups.cameraRepair!);
         this.tileIndex = 0;
         this.phase = "photon";
       }
     } else if (this.phase === "photon") {
       encoder.clearBuffer(this.heads);
+      clearTransportQueue(encoder, this.errors!);
       dispatch("photon", Math.ceil(batchCount / 64));
+      encodeTransportRepair(encoder, this.errors!, this.indirect, this.pipelines.photonRepair, this.groups.photonRepair!);
       dispatch("hash", Math.ceil((batchCount * (settings.maxDepth + 1)) / 64));
       this.phase = "gather";
     } else if (this.phase === "gather") {
@@ -323,5 +355,6 @@ export class SppmIntegrator {
   dispose(): void {
     this.releaseBuffers();
     this.uniform.destroy();
+    this.indirect.destroy();
   }
 }

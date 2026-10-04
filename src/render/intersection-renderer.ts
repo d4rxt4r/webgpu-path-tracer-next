@@ -1,3 +1,4 @@
+import { fastTransportShader } from "../transport/fast-source";
 import { debugShader, pathShader, displayShader } from "../transport/shaders";
 import { checkedShader, createDevice } from "../gpu/device";
 import { GpuTimer } from "../gpu/timer";
@@ -14,6 +15,9 @@ import { xyzToLinearRgb } from "../transport/spectrum";
 import { Denoiser } from "./denoiser";
 import type { DenoiseSettings } from "./denoiser";
 import { SppmIntegrator, SPPM_POINT_BYTES } from "./sppm-integrator";
+import { PacketBudget, PacketUniforms, TileBudget } from "./compute-packets";
+import type { ComputePhase } from "./compute-packets";
+import { TRANSPORT_DIAGNOSTIC_BYTES, TRANSPORT_QUEUE_BYTES, clearTransportQueue, encodeTransportRepair, COMPUTE_READBACK_BYTES, transportDiagnostic, transportFailure } from "./transport-diagnostics";
 
 export type DebugView =
   | "normal"
@@ -48,6 +52,14 @@ export interface RenderCapture {
   settings: PathSettings;
   camera: CameraDescription;
   exposure: number;
+  computation: {
+    sampler: "owen-sobol-24";
+    kernel: "megakernel";
+    scheduler: "bounded-packets-v1";
+    workgroup: [number, number];
+    tileSize: number;
+    specializedSppmSampler: boolean;
+  };
 }
 
 export interface RenderStats {
@@ -70,6 +82,9 @@ export interface RenderStats {
   phase: string;
   emittedPhotons: number;
   batch: number;
+  executedPhase?: ComputePhase | "display";
+  packetSteps?: number;
+  packetCount?: number;
 }
 
 /** RGB / spectral PT and SPPM with shared intersection debug views. */
@@ -85,10 +100,23 @@ export class IntersectionRenderer {
   private loading = false;
   private diagnostic?: GPUBuffer;
   private readback?: GPUBuffer;
+  private nextReadback?: GPUBuffer;
+  private packetUniforms?: PacketUniforms;
+  private packetBudget = new PacketBudget();
   private parameters = makeStructuredView(definitions.structs.CameraParams!);
   private accumulation?: GPUBuffer;
   private sobol?: GPUBuffer;
   private pathPipeline?: GPUComputePipeline;
+  private pathRepairPipeline?: GPUComputePipeline;
+  private pathRepairGroup?: GPUBindGroup;
+  private precisionIndirect?: GPUBuffer;
+  private pathWorkgroup: [number, number] = [8, 8];
+  private pathTileSize = 0;
+  private tileBudget = new TileBudget();
+  private sweepTileSize = 0;
+  private sweepGpuMs = 0;
+  private sweepTiles = 0;
+  private specializedSppmSampler = false;
   private pathGroup?: GPUBindGroup;
   private sppm?: SppmIntegrator;
   private settings: PathSettings = {
@@ -130,6 +158,8 @@ export class IntersectionRenderer {
     filterGlass: false,
   };
   private guidesDirty = true;
+  private filterDirty = true;
+  private filtered?: GPUTexture;
   private presentedRevision = -1;
   private presentedColorSpace = 0;
   private presentedDebug = 0;
@@ -144,6 +174,7 @@ export class IntersectionRenderer {
   private generation = 0;
   private raf = 0;
   private jobTimer = 0;
+  private workChannel = new MessageChannel();
   private busy = false;
   private redraw = false;
   private paused = false;
@@ -332,6 +363,13 @@ export class IntersectionRenderer {
         throw new Error("Invalid tone mapper");
       this.toneMapper = { reinhard: 0, aces: 1, linear: 2 }[toneMapper];
     }
+    if (
+      next.enabled !== this.denoise.enabled ||
+      next.passes !== this.denoise.passes ||
+      next.strength !== this.denoise.strength ||
+      next.filterGlass !== this.denoise.filterGlass
+    )
+      this.filterDirty = true;
     this.denoise = next;
     this.displayOnly = !this.needsClear;
     this.schedule(true);
@@ -381,7 +419,8 @@ export class IntersectionRenderer {
           ? new Float32Array(width * height * 3)
           : undefined;
       for (let i = 0; i < width * height; i++) {
-        const count = raw[i * 4 + 3]!;
+        const storedCount = raw[i * 4 + 3]!;
+        const count = storedCount < 0 ? -storedCount - 1 : storedCount;
         sampleCounts[i] = count;
         for (let channel = 0; channel < 3; channel++)
           linearRgb[i * 3 + channel] = count
@@ -413,6 +452,14 @@ export class IntersectionRenderer {
         settings,
         camera,
         exposure,
+        computation: {
+          sampler: "owen-sobol-24",
+          kernel: "megakernel",
+          scheduler: "bounded-packets-v1",
+          workgroup: [...this.pathWorkgroup],
+          tileSize: this.pathTileSize || this.tileBudget.size,
+          specializedSppmSampler: this.specializedSppmSampler,
+        },
       };
     } finally {
       readback.destroy();
@@ -420,6 +467,11 @@ export class IntersectionRenderer {
   }
   private invalidate(): void {
     this.revision++;
+    this.packetBudget = new PacketBudget();
+    this.sweepTileSize = this.sweepGpuMs = this.sweepTiles = 0;
+    this.stats.completionMs = 0;
+    this.stats.gpuMs = undefined;
+    this.stats.packetSteps = 0;
     this.stats.revision = this.revision;
     this.guidesDirty = true;
     this.displayOnly = false;
@@ -441,7 +493,17 @@ export class IntersectionRenderer {
     if (!this.packed || !this.camera)
       throw new Error("Set a scene before initialization");
     const generation = ++this.generation;
-    const { device, name } = await createDevice();
+    const { device, name, adapter } = await createDevice();
+    // These two choices have measured wins on gen-12lp. Other adapters use the
+    // generic sampler and a conservative initial grid with feedback adaptation.
+    const calibratedIntel =
+      adapter.info.vendor === "intel" &&
+      adapter.info.architecture === "gen-12lp";
+    this.specializedSppmSampler = calibratedIntel;
+    // On gen-12lp the robust PT kernel loses throughput below 128 pixels:
+    // shrinking to 16 made the same four samples take 16.4s instead of 5.9s.
+    // PacketBudget still bounds submissions and reacts to expensive tiles.
+    this.tileBudget = new TileBudget(calibratedIntel ? 128 : 64, calibratedIntel ? 128 : 16);
     if (this.disposed || generation !== this.generation) {
       device.destroy();
       return;
@@ -474,14 +536,15 @@ export class IntersectionRenderer {
     context.configure({ device, format, alphaMode: "opaque" });
     device.pushErrorScope("validation");
     try {
-      const [computeModule, pathModule, displayModule, sobolData] =
+      const [computeModule, pathModule, displayModule, sobolData, fastPathModule] =
         await Promise.all([
           checkedShader(device, debugShader, "BVH intersections"),
           checkedShader(device, pathShader, "RGB / spectral path tracer"),
           checkedShader(device, displayShader, "Display"),
           loadSobol(),
+          checkedShader(device, fastTransportShader(pathShader, calibratedIntel), "PT common transport"),
         ]);
-      const [compute, pathPipeline, display, sppm, denoiser, pngPipeline] =
+      const [compute, pathPipeline, display, sppm, denoiser, pngPipeline, pathRepairPipeline] =
         await Promise.all([
           device.createComputePipelineAsync({
             layout: "auto",
@@ -489,7 +552,7 @@ export class IntersectionRenderer {
           }),
           device.createComputePipelineAsync({
             layout: "auto",
-            compute: { module: pathModule, entryPoint: "main" },
+            compute: { module: fastPathModule, entryPoint: "main" },
           }),
           device.createRenderPipelineAsync({
             layout: "auto",
@@ -501,7 +564,7 @@ export class IntersectionRenderer {
             },
             primitive: { topology: "triangle-list" },
           }),
-          SppmIntegrator.create(device),
+          SppmIntegrator.create(device, this.specializedSppmSampler),
           Denoiser.create(device),
           device.createRenderPipelineAsync({
             layout: "auto",
@@ -513,6 +576,7 @@ export class IntersectionRenderer {
             },
             primitive: { topology: "triangle-list" },
           }),
+          device.createComputePipelineAsync({ layout: "auto", compute: { module: pathModule, entryPoint: "repairMain" } }),
         ]);
       if (this.disposed || generation !== this.generation) {
         sppm.dispose();
@@ -521,6 +585,8 @@ export class IntersectionRenderer {
       }
       this.compute = compute;
       this.pathPipeline = pathPipeline;
+      this.pathRepairPipeline = pathRepairPipeline;
+      this.precisionIndirect = device.createBuffer({label: "PT precision dispatch", size:12, usage:GPUBufferUsage.INDIRECT | GPUBufferUsage.COPY_DST});
       this.display = display;
       this.sppm = sppm;
       this.denoiser = denoiser;
@@ -530,6 +596,7 @@ export class IntersectionRenderer {
         size: this.parameters.arrayBuffer.byteLength,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
+      this.packetUniforms = new PacketUniforms(device);
       this.displayUniform = device.createBuffer({
         label: "Display parameters",
         size: this.displayParameters.arrayBuffer.byteLength,
@@ -548,7 +615,7 @@ export class IntersectionRenderer {
       this.sobol.unmap();
       this.diagnostic = device.createBuffer({
         label: "Traversal errors",
-        size: 4,
+        size: TRANSPORT_QUEUE_BYTES,
         usage:
           GPUBufferUsage.STORAGE |
           GPUBufferUsage.COPY_SRC |
@@ -556,7 +623,12 @@ export class IntersectionRenderer {
       });
       this.readback = device.createBuffer({
         label: "Traversal error readback",
-        size: 4,
+        size: COMPUTE_READBACK_BYTES,
+        usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+      });
+      this.nextReadback = device.createBuffer({
+        label: "Second compute packet readback",
+        size: COMPUTE_READBACK_BYTES,
         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
       });
     } finally {
@@ -591,7 +663,8 @@ export class IntersectionRenderer {
       (this.scene?.bytes ?? 0) +
       (this.sobol?.size ?? 0) +
       (this.front ? this.front.width * this.front.height * 8 : 0) +
-      1024 +
+      1024 + TRANSPORT_QUEUE_BYTES + 12 +
+      (this.packetUniforms?.bytes ?? 0) +
       (this.settings.integrator === "sppm"
         ? slots * 64 + 2 ** Math.ceil(Math.log2(slots * 2)) * 4
         : 0);
@@ -721,6 +794,19 @@ export class IntersectionRenderer {
           scene.spectralEntry(),
         ],
       });
+      this.pathRepairGroup = device.createBindGroup({
+        layout: this.pathRepairPipeline!.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: view },
+          { binding: 1, resource: { buffer: uniform } },
+          ...scene.entries(),
+          { binding: 4, resource: { buffer: diagnostic } },
+          ...scene.transportEntries(),
+          { binding: 7, resource: { buffer: this.sobol } },
+          { binding: 8, resource: { buffer: this.accumulation } },
+          scene.spectralEntry(),
+        ],
+      });
     }
     if (this.front)
       this.displayGroup = device.createBindGroup({
@@ -731,6 +817,8 @@ export class IntersectionRenderer {
         ],
       });
     this.denoiser?.configure(this.complete!, scene, uniform, diagnostic);
+    this.filtered = undefined;
+    this.filterDirty = true;
     if (this.sppm && this.sobol && this.accumulation) {
       if (this.settings.integrator === "sppm")
         this.sppm.configure(
@@ -752,7 +840,6 @@ export class IntersectionRenderer {
       this.stats.width * this.stats.height * 32 +
       this.parameters.arrayBuffer.byteLength +
       scene.bytes +
-      8 +
       (this.sobol?.size ?? 0) +
       displayUniform.size +
       (this.sppm?.bytes ?? 0) +
@@ -761,6 +848,8 @@ export class IntersectionRenderer {
         ? this.densityTexture.width * this.densityTexture.height * 8
         : 0) +
       (this.timer?.bytes ?? 0) +
+      (this.packetUniforms?.bytes ?? 0) +
+      TRANSPORT_QUEUE_BYTES + 12 + 2 * COMPUTE_READBACK_BYTES +
       (this.front ? this.front.width * this.front.height * 8 : 0);
   }
 
@@ -810,14 +899,19 @@ export class IntersectionRenderer {
     if (
       !this.interacting &&
       (this.view === 3 || this.view === 5 || this.view === 6)
-    )
-      this.jobTimer = window.setTimeout(run, 0);
-    else this.raf = requestAnimationFrame(run);
+    ) {
+      // Posted tasks avoid the 4 ms clamping of nested setTimeout calls.
+      this.jobTimer = 1;
+      this.workChannel.port1.onmessage = () => {
+        if (this.jobTimer) run();
+      };
+      this.workChannel.port2.postMessage(null);
+    } else this.raf = requestAnimationFrame(run);
   }
 
   private cancelScheduled(): void {
     cancelAnimationFrame(this.raf);
-    clearTimeout(this.jobTimer);
+    this.workChannel.port1.onmessage = null;
     this.raf = this.jobTimer = 0;
   }
 
@@ -859,82 +953,155 @@ export class IntersectionRenderer {
     this.redraw = false;
     try {
       const basis = cameraBasis(camera);
-      const tileSize = this.interacting
-        ? Math.max(this.stats.width, this.stats.height)
-        : 48;
+      if (!this.sweepTileSize)
+        this.sweepTileSize = Math.min(
+          this.interacting
+            ? Math.max(this.stats.width, this.stats.height)
+            : this.pathTileSize || this.tileBudget.size,
+          Math.max(this.stats.width, this.stats.height),
+        );
+      const tileSize = this.sweepTileSize;
       const columns = Math.ceil(this.stats.width / tileSize),
         rows = Math.ceil(this.stats.height / tileSize);
-      const tile = sppmMode
-        ? this.sppm!.tileRect()
+      const phase: ComputePhase = sppmMode
+        ? this.sppm!.phase
         : pathMode
-          ? [
-              (this.tileIndex % columns) * tileSize,
-              Math.floor(this.tileIndex / columns) * tileSize,
-              tileSize,
-              tileSize,
-            ]
-          : [0, 0, this.stats.width, this.stats.height];
-      this.parameters.set({
-        size: [this.stats.width, this.stats.height],
-        frame: this.samples,
-        view: this.view,
-        eye: [...basis.eye, 0],
-        forward: [...basis.forward, 0],
-        right: [...basis.right, 0],
-        up: [...basis.up, 0],
-        tile,
-        maxDepth: this.settings.maxDepth,
-        seed: this.settings.seed,
-        strategy: { mis: 0, light: 1, bsdf: 2 }[this.settings.strategy],
-        lightCount: this.packed!.lightCount,
-        transportMode: Number(this.settings.mode === "spectral"),
-        padding0: Number(this.settings.integrator === "sppm"),
-      });
-      device.queue.writeBuffer(uniform, 0, this.parameters.arrayBuffer);
-      const encoder = device.createCommandEncoder();
-      timer?.begin(encoder);
-      encoder.clearBuffer(diagnostic);
-      if (this.needsClear) {
-        if (this.accumulation) encoder.clearBuffer(this.accumulation);
-        const clear = encoder.beginRenderPass({
-          colorAttachments: [
-            {
-              view: this.texture!.createView(),
-              loadOp: "clear",
-              storeOp: "store",
-              clearValue: { r: 0, g: 0, b: 0, a: 1 },
-            },
-          ],
-        });
-        clear.end();
-        this.needsClear = false;
-      }
+          ? "pt"
+          : "debug";
+      const maximumSteps = displayOnly
+        ? 0
+        : this.packetBudget.steps(phase, this.interacting);
+      const snapshots = this.packetUniforms!;
+      const availableReadbacks = [readback, this.nextReadback!];
+      const submitted: GPUBuffer[] = [];
       let iterationComplete = false;
-      if (sppmMode && !displayOnly) {
-        iterationComplete = this.sppm!.encodeStep(encoder);
-      } else if (!displayOnly) {
-        const computePass = encoder.beginComputePass();
-        computePass.setPipeline(pathMode ? this.pathPipeline! : compute);
-        computePass.setBindGroup(0, pathMode ? this.pathGroup! : computeGroup);
-        computePass.dispatchWorkgroups(
-          Math.ceil(tile[2]! / 8),
-          Math.ceil(tile[3]! / 8),
-        );
-        computePass.end();
+      let packetSteps = 0;
+      let nextTile = this.tileIndex;
+      // Two bounded packets may be in flight, both within the same sample and
+      // phase. Drain both before publishing progress or admitting another sample.
+      for (let packet = 0; packet < (this.interacting ? 1 : 2); packet++) {
+        const encoder = device.createCommandEncoder();
+        const packetReadback = availableReadbacks[packet]!;
+        snapshots.begin();
+        timer?.begin(encoder);
+        encoder.clearBuffer(diagnostic,0,48);
+        if (this.needsClear) {
+          if (this.accumulation) encoder.clearBuffer(this.accumulation);
+          const clear = encoder.beginRenderPass({
+            colorAttachments: [
+              {
+                view: this.texture!.createView(),
+                loadOp: "clear",
+                storeOp: "store",
+                clearValue: { r: 0, g: 0, b: 0, a: 1 },
+              },
+            ],
+          });
+          clear.end();
+          this.needsClear = false;
+        }
+
+        if (!displayOnly) {
+          for (let step = 0; step < maximumSteps; step++) {
+            const tile = sppmMode
+              ? this.sppm!.tileRect()
+              : pathMode
+                ? [
+                    (nextTile % columns) * tileSize,
+                    Math.floor(nextTile / columns) * tileSize,
+                    tileSize,
+                    tileSize,
+                  ]
+                : [0, 0, this.stats.width, this.stats.height];
+            this.parameters.set({
+              size: [this.stats.width, this.stats.height],
+              frame: this.samples,
+              view: this.view,
+              eye: [...basis.eye, 0],
+              forward: [...basis.forward, 0],
+              right: [...basis.right, 0],
+              up: [...basis.up, 0],
+              tile,
+              maxDepth: this.settings.maxDepth,
+              seed: this.settings.seed,
+              strategy: { mis: 0, light: 1, bsdf: 2 }[this.settings.strategy],
+              lightCount: this.packed!.lightCount,
+              transportMode: Number(this.settings.mode === "spectral"),
+              padding0: Number(this.settings.integrator === "sppm"),
+            });
+            snapshots.write(encoder, uniform, this.parameters.arrayBuffer);
+            if (sppmMode)
+              iterationComplete = this.sppm!.encodeStep(encoder, snapshots);
+            else {
+              if(pathMode && nextTile===0) clearTransportQueue(encoder, diagnostic);
+              const pass = encoder.beginComputePass();
+              pass.setPipeline(pathMode ? this.pathPipeline! : compute);
+              pass.setBindGroup(0, pathMode ? this.pathGroup! : computeGroup);
+              const group = pathMode ? this.pathWorkgroup : [8, 8];
+              pass.dispatchWorkgroups(
+                Math.ceil(tile[2]! / group[0]!),
+                Math.ceil(tile[3]! / group[1]!),
+              );
+              pass.end();
+              if (pathMode) {
+                nextTile++;
+                if(nextTile===columns*rows) encodeTransportRepair(encoder, diagnostic, this.precisionIndirect!, this.pathRepairPipeline!, this.pathRepairGroup!);
+              }
+            }
+            packetSteps++;
+            // Never queue beyond a completed sample/iteration. Pause/capture callbacks
+            // observe exactly that boundary, and no future writes can alter it.
+            if (
+              !pathMode ||
+              iterationComplete ||
+              (sppmMode
+                ? this.sppm!.phase !== phase
+                : nextTile === columns * rows)
+            )
+              break;
+          }
+        }
+        timer?.end(encoder, packetReadback);
+        const complete =
+          displayOnly ||
+          !pathMode ||
+          (sppmMode ? iterationComplete : nextTile === columns * rows);
+        if (complete) this.encodePresent(encoder, !displayOnly);
+        encoder.copyBufferToBuffer(diagnostic, 0, packetReadback, 0, TRANSPORT_DIAGNOSTIC_BYTES);
+        device.queue.submit([encoder.finish()]);
+        submitted.push(packetReadback);
+        if (complete || (sppmMode && this.sppm!.phase !== phase)) break;
       }
-      timer?.end(encoder);
-      encoder.copyBufferToBuffer(diagnostic, 0, readback, 0, 4);
-      device.queue.submit([encoder.finish()]);
-      await readback.mapAsync(GPUMapMode.READ);
-      const errors = new Uint32Array(readback.getMappedRange())[0]!;
-      readback.unmap();
-      const gpuMs = await timer?.read();
+      const results = await Promise.all(
+        submitted.map(async (buffer) => {
+          await buffer.mapAsync(GPUMapMode.READ);
+          const mapped = buffer.getMappedRange();
+          const result = {
+            errors: new Uint32Array(mapped, 0, 1)[0]!,
+            diagnostic: transportDiagnostic(mapped),
+            gpuMs: timer?.read(mapped),
+          };
+          buffer.unmap();
+          return result;
+        }),
+      );
+      const errors = results.reduce((sum, result) => sum + result.errors, 0);
+      const gpuMs = timer
+        ? results.reduce((sum, result) => sum + result.gpuMs!, 0)
+        : undefined;
       if (generation !== this.generation || this.disposed) return;
       if (errors)
         throw new Error(
-          `GPU transport failed for ${errors} operations (intersection, medium, hash or non-finite values).`,
+          transportFailure(results.find(result => result.errors)!.diagnostic, errors),
         );
       if (revision !== this.revision) return;
+      if (packetSteps)
+        this.packetBudget.observe(
+          phase,
+          packetSteps,
+          gpuMs,
+          performance.now() - started,
+        );
       if (sppmMode && !displayOnly) {
         if (iterationComplete) {
           this.samples++;
@@ -948,22 +1115,25 @@ export class IntersectionRenderer {
         this.stats.batch = this.sppm!.batch;
         this.stats.emittedPhotons = this.sppm!.emittedPhotons;
       } else if (pathMode && !displayOnly) {
-        this.tileIndex++;
+        this.sweepGpuMs += gpuMs ?? performance.now() - started;
+        this.sweepTiles += packetSteps;
+        this.tileIndex = nextTile;
         if (this.tileIndex === columns * rows) {
           this.tileIndex = 0;
           this.samples++;
           this.stats.frames++;
           this.redrawSweep = false;
+          if (!this.interacting && !this.pathTileSize)
+            this.tileBudget.observe(this.sweepGpuMs, this.sweepTiles);
+          this.sweepTileSize = this.sweepGpuMs = this.sweepTiles = 0;
         }
         this.stats.samples = this.samples;
         this.stats.tile = this.tileIndex;
         this.stats.tiles = columns * rows;
       } else if (!displayOnly) this.stats.frames++;
-      const complete =
-        displayOnly ||
-        !pathMode ||
-        (sppmMode ? iterationComplete : this.tileIndex === 0);
-      if (complete) await this.present(!displayOnly);
+      this.stats.executedPhase = displayOnly ? "display" : phase;
+      this.stats.packetSteps = packetSteps;
+      this.stats.packetCount = submitted.length;
       this.stats.completionMs = performance.now() - started;
       this.stats.gpuMs = gpuMs;
       this.report({ ...this.stats });
@@ -975,9 +1145,8 @@ export class IntersectionRenderer {
     }
   }
 
-  private async present(commit: boolean): Promise<void> {
+  private encodePresent(encoder: GPUCommandEncoder, commit: boolean): void {
     const device = this.device!;
-    const encoder = device.createCommandEncoder();
     if (
       commit ||
       (this.presentedRevision === this.revision && this.samples > 0)
@@ -988,16 +1157,20 @@ export class IntersectionRenderer {
           { texture: this.complete! },
           [this.stats.width, this.stats.height],
         );
-      let source =
-        this.view === 3 && this.denoise.enabled
-          ? this.denoiser!.encode(
-              encoder,
-              this.denoise,
-              this.settings.mode === "spectral",
-              this.guidesDirty,
-            )
-          : this.complete!;
-      if (this.view === 3 && this.denoise.enabled) this.guidesDirty = false;
+      let source = this.complete!;
+      if (this.view === 3 && this.denoise.enabled) {
+        if (commit || this.filterDirty || this.guidesDirty || !this.filtered) {
+          this.filtered = this.denoiser!.encode(
+            encoder,
+            this.denoise,
+            this.settings.mode === "spectral",
+            this.guidesDirty,
+          );
+          this.guidesDirty = false;
+          this.filterDirty = false;
+        }
+        source = this.filtered;
+      }
       if (this.photonDensity && this.settings.integrator === "sppm") {
         if (!this.densityTexture)
           this.densityTexture = device.createTexture({
@@ -1046,7 +1219,6 @@ export class IntersectionRenderer {
         this.stats.width * this.stats.height * 32 +
         this.parameters.arrayBuffer.byteLength +
         this.scene!.bytes +
-        8 +
         (this.sobol?.size ?? 0) +
         this.displayUniform!.size +
         (this.sppm?.bytes ?? 0) +
@@ -1055,6 +1227,8 @@ export class IntersectionRenderer {
           ? this.densityTexture.width * this.densityTexture.height * 8
           : 0) +
         (this.timer?.bytes ?? 0) +
+        (this.packetUniforms?.bytes ?? 0) +
+        TRANSPORT_QUEUE_BYTES + 12 + 2 * COMPUTE_READBACK_BYTES +
         source.width * source.height * 8;
     }
     if (!this.displayGroup) return;
@@ -1082,6 +1256,11 @@ export class IntersectionRenderer {
     pass.setBindGroup(0, this.displayGroup);
     pass.draw(3);
     pass.end();
+  }
+  private async present(commit: boolean): Promise<void> {
+    const device = this.device!;
+    const encoder = device.createCommandEncoder();
+    this.encodePresent(encoder, commit);
     encoder.copyBufferToBuffer(this.diagnostic!, 0, this.readback!, 0, 4);
     device.queue.submit([encoder.finish()]);
     await this.readback!.mapAsync(GPUMapMode.READ);
@@ -1177,12 +1356,17 @@ export class IntersectionRenderer {
     this.sppm = undefined;
     this.denoiser?.dispose();
     this.denoiser = undefined;
+    this.filtered = undefined;
+    this.filterDirty = true;
     this.front?.destroy();
     this.front = undefined;
     this.pngPipeline = undefined;
     this.presentedRevision = -1;
     this.timer?.dispose();
     this.timer = undefined;
+    this.packetUniforms?.dispose();
+    this.packetUniforms = undefined;
+    this.packetBudget = new PacketBudget();
     this.densityTexture?.destroy();
     this.densityTexture = undefined;
     this.complete?.destroy();
@@ -1191,7 +1375,13 @@ export class IntersectionRenderer {
     this.uniform?.destroy();
     this.scene?.dispose();
     this.diagnostic?.destroy();
+    this.precisionIndirect?.destroy();
+    this.precisionIndirect = undefined;
+    this.pathRepairPipeline = undefined;
+    this.pathRepairGroup = undefined;
     this.readback?.destroy();
+    this.nextReadback?.destroy();
+    this.nextReadback = undefined;
     this.context?.unconfigure();
     this.device?.destroy();
     this.scene = undefined;
@@ -1218,5 +1408,7 @@ export class IntersectionRenderer {
     this.generation++;
     this.preparer.dispose();
     this.release();
+    this.workChannel.port1.close();
+    this.workChannel.port2.close();
   }
 }

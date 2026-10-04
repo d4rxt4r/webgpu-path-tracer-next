@@ -1,0 +1,224 @@
+{
+  "date": "2026-10-04T08:49:48.913Z",
+  "comparison": "original",
+  "repeats": 5,
+  "warmups": 1,
+  "alternating": true,
+  "seed": 17,
+  "ptSamples": 4,
+  "sppmSamples": 1,
+  "rows": [
+    {
+      "scene": "suzanne",
+      "mode": "spectral-pt",
+      "width": 640,
+      "height": 480,
+      "beforeMedianMs": 8288.100000023842,
+      "afterMedianMs": 5565.400000035763,
+      "ratio": 0.6714928632641682,
+      "speedup": 1.4892191037428726,
+      "runs": {
+        "before": [
+          {
+            "elapsedMs": 8433.199999988079,
+            "gpuMs": 6527.844352000003,
+            "initializationMs": 13433.100000023842,
+            "preparationMs": 3771.599999964237,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 8288.100000023842,
+            "gpuMs": 6404.308992000007,
+            "initializationMs": 185.5,
+            "preparationMs": 3652.899999976158,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 8186.600000023842,
+            "gpuMs": 6172.966912000011,
+            "initializationMs": 15153,
+            "preparationMs": 4514.799999952316,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 8179.5,
+            "gpuMs": 6190.66163200001,
+            "initializationMs": 575,
+            "preparationMs": 3830.399999976158,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 8426.200000047684,
+            "gpuMs": 6568.148992,
+            "initializationMs": 13103.5,
+            "preparationMs": 4081.899999976158,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          }
+        ],
+        "after": [
+          {
+            "elapsedMs": 5580.800000011921,
+            "gpuMs": 5444.599807999999,
+            "initializationMs": 15560.699999988079,
+            "preparationMs": 1304.1000000238419,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 5565.400000035763,
+            "gpuMs": 5444.07552,
+            "initializationMs": 1820.3999999761581,
+            "preparationMs": 1213.3999999761581,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 6268.399999976158,
+            "gpuMs": 6097.731583999999,
+            "initializationMs": 15589.300000011921,
+            "preparationMs": 1310.1000000238419,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 5537.5,
+            "gpuMs": 5397.348352,
+            "initializationMs": 3052.199999988079,
+            "preparationMs": 1380.3999999761581,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 5218.800000011921,
+            "gpuMs": 5100.077055999999,
+            "initializationMs": 16415.100000023842,
+            "preparationMs": 1431.699999988079,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "scene": "suzanne",
+      "mode": "spectral-sppm",
+      "width": 640,
+      "height": 480,
+      "beforeMedianMs": 9773,
+      "afterMedianMs": 953.9000000357628,
+      "ratio": 0.09760564821812778,
+      "speedup": 10.245308732187441,
+      "runs": {
+        "before": [
+          {
+            "elapsedMs": 9859.099999964237,
+            "gpuMs": 418.64396800000884,
+            "initializationMs": 191.5999999642372,
+            "preparationMs": 4632.400000035763,
+            "samples": 1,
+            "photons": 16384,
+            "errors": []
+          },
+          {
+            "elapsedMs": 6007.899999976158,
+            "gpuMs": 409.010176000009,
+            "initializationMs": 172.60000002384186,
+            "preparationMs": 3635.7999999523163,
+            "samples": 1,
+            "photons": 16384,
+            "errors": []
+          },
+          {
+            "elapsedMs": 9773,
+            "gpuMs": 414.4496640000089,
+            "initializationMs": 198.80000001192093,
+            "preparationMs": 4436.5,
+            "samples": 1,
+            "photons": 16384,
+            "errors": []
+          },
+          {
+            "elapsedMs": 6006.299999952316,
+            "gpuMs": 404.16051200000834,
+            "initializationMs": 172.4000000357628,
+            "preparationMs": 3645.399999976158,
+            "samples": 1,
+            "photons": 16384,
+            "errors": []
+          },
+          {
+            "elapsedMs": 11130.600000023842,
+            "gpuMs": 417.72646400000855,
+            "initializationMs": 192.0999999642372,
+            "preparationMs": 4532.700000047684,
+            "samples": 1,
+            "photons": 16384,
+            "errors": []
+          }
+        ],
+        "after": [
+          {
+            "elapsedMs": 978.6000000238419,
+            "gpuMs": 774.7010559999999,
+            "initializationMs": 9407.300000011921,
+            "preparationMs": 1313.300000011921,
+            "samples": 1,
+            "photons": 16384,
+            "errors": []
+          },
+          {
+            "elapsedMs": 953.9000000357628,
+            "gpuMs": 752.746496,
+            "initializationMs": 182.5999999642372,
+            "preparationMs": 1174.5,
+            "samples": 1,
+            "photons": 16384,
+            "errors": []
+          },
+          {
+            "elapsedMs": 952.3999999761581,
+            "gpuMs": 759.6933119999999,
+            "initializationMs": 9610.199999988079,
+            "preparationMs": 1236.300000011921,
+            "samples": 1,
+            "photons": 16384,
+            "errors": []
+          },
+          {
+            "elapsedMs": 949.4000000357628,
+            "gpuMs": 752.6154240000001,
+            "initializationMs": 190.0999999642372,
+            "preparationMs": 1261.6000000238419,
+            "samples": 1,
+            "photons": 16384,
+            "errors": []
+          },
+          {
+            "elapsedMs": 958.9000000357628,
+            "gpuMs": 766.11584,
+            "initializationMs": 9366.799999952316,
+            "preparationMs": 1239.800000011921,
+            "samples": 1,
+            "photons": 16384,
+            "errors": []
+          }
+        ]
+      }
+    }
+  ]
+}

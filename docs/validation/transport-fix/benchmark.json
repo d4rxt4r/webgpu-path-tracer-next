@@ -1,0 +1,713 @@
+{
+  "date": "2026-10-04T08:27:40.083Z",
+  "repeats": 5,
+  "warmups": 1,
+  "seed": 17,
+  "ptSamples": 4,
+  "sppmSamples": 1,
+  "comparison": "Same optimized scheduler, sampler, diagnostics and photon gather; pre-fix versus corrected transport math. Alternating order.",
+  "rows": [
+    {
+      "scene": "suzanne",
+      "mode": "spectral-pt",
+      "width": 640,
+      "height": 480,
+      "beforeMedianMs": 4958.899999976158,
+      "afterMedianMs": 16179.400000035763,
+      "ratio": 3.262699389000293,
+      "beforeGpuMedianMs": 4570.1529599999985,
+      "afterGpuMedianMs": 14775.091200000008,
+      "runs": {
+        "before": [
+          {
+            "elapsedMs": 4953.099999964237,
+            "gpuMs": 4570.1529599999985,
+            "completionMs": 4931.2000005841255,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 640,
+            "height": 480,
+            "errors": []
+          },
+          {
+            "elapsedMs": 4958.899999976158,
+            "gpuMs": 4561.2400640000005,
+            "completionMs": 4939.1000000834465,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 640,
+            "height": 480,
+            "errors": []
+          },
+          {
+            "elapsedMs": 4958.899999976158,
+            "gpuMs": 4590.206976000002,
+            "completionMs": 4940.800000011921,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 640,
+            "height": 480,
+            "errors": []
+          },
+          {
+            "elapsedMs": 10125.5,
+            "gpuMs": 4662.689792000004,
+            "completionMs": 10107.800000190735,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 640,
+            "height": 480,
+            "errors": []
+          },
+          {
+            "elapsedMs": 4970.099999964237,
+            "gpuMs": 4566.024191999998,
+            "completionMs": 4946.300000071526,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 640,
+            "height": 480,
+            "errors": []
+          }
+        ],
+        "after": [
+          {
+            "elapsedMs": 16446,
+            "gpuMs": 14996.66841600001,
+            "completionMs": 16386.400000572205,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 640,
+            "height": 480,
+            "errors": []
+          },
+          {
+            "elapsedMs": 16017,
+            "gpuMs": 14628.945920000007,
+            "completionMs": 15959.79999935627,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 640,
+            "height": 480,
+            "errors": []
+          },
+          {
+            "elapsedMs": 16179.400000035763,
+            "gpuMs": 14775.091200000008,
+            "completionMs": 16119.799998879433,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 640,
+            "height": 480,
+            "errors": []
+          },
+          {
+            "elapsedMs": 16641.200000047684,
+            "gpuMs": 15186.788352000012,
+            "completionMs": 16587.000000059605,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 640,
+            "height": 480,
+            "errors": []
+          },
+          {
+            "elapsedMs": 16062.199999988079,
+            "gpuMs": 14651.686912000006,
+            "completionMs": 16015.500000298023,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 640,
+            "height": 480,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "scene": "suzanne",
+      "mode": "spectral-sppm",
+      "width": 640,
+      "height": 480,
+      "beforeMedianMs": 513.8000000119209,
+      "afterMedianMs": 937.3999999761581,
+      "ratio": 1.8244453093702007,
+      "beforeGpuMedianMs": 325.38624,
+      "afterGpuMedianMs": 748.683264,
+      "runs": {
+        "before": [
+          {
+            "elapsedMs": 513.8000000119209,
+            "gpuMs": 324.6653440000001,
+            "completionMs": 504.2000000476837,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 640,
+            "height": 480,
+            "errors": []
+          },
+          {
+            "elapsedMs": 535.8000000119209,
+            "gpuMs": 330.104832,
+            "completionMs": 521.8000001907349,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 640,
+            "height": 480,
+            "errors": []
+          },
+          {
+            "elapsedMs": 509.5999999642372,
+            "gpuMs": 324.009984,
+            "completionMs": 499,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 640,
+            "height": 480,
+            "errors": []
+          },
+          {
+            "elapsedMs": 531.9000000357628,
+            "gpuMs": 330.76019200000013,
+            "completionMs": 521.2999998927116,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 640,
+            "height": 480,
+            "errors": []
+          },
+          {
+            "elapsedMs": 497.9000000357628,
+            "gpuMs": 325.38624,
+            "completionMs": 488.8999997973442,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 640,
+            "height": 480,
+            "errors": []
+          }
+        ],
+        "after": [
+          {
+            "elapsedMs": 925,
+            "gpuMs": 730.5953280000001,
+            "completionMs": 912.6999999880791,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 640,
+            "height": 480,
+            "errors": []
+          },
+          {
+            "elapsedMs": 955.2999999523163,
+            "gpuMs": 761.069568,
+            "completionMs": 948.6999999284744,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 640,
+            "height": 480,
+            "errors": []
+          },
+          {
+            "elapsedMs": 937.3999999761581,
+            "gpuMs": 748.683264,
+            "completionMs": 927.7999998927116,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 640,
+            "height": 480,
+            "errors": []
+          },
+          {
+            "elapsedMs": 938,
+            "gpuMs": 760.8074240000004,
+            "completionMs": 928.0000001192093,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 640,
+            "height": 480,
+            "errors": []
+          },
+          {
+            "elapsedMs": 934.6999999880791,
+            "gpuMs": 744.751104,
+            "completionMs": 923.0999999642372,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 640,
+            "height": 480,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "scene": "buddha-glass",
+      "mode": "rgb-pt",
+      "width": 160,
+      "height": 120,
+      "beforeMedianMs": 2908.800000011921,
+      "afterMedianMs": 1808.699999988079,
+      "ratio": 0.6218028052738815,
+      "beforeGpuMedianMs": 2751.987711999999,
+      "afterGpuMedianMs": 1646.5264640000003,
+      "runs": {
+        "before": [
+          {
+            "elapsedMs": 2931.600000023842,
+            "gpuMs": 2751.594496,
+            "completionMs": 2919.1000000834465,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 2907.800000011921,
+            "gpuMs": 2747.531264,
+            "completionMs": 2897.4000000953674,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 2900.7999999523163,
+            "gpuMs": 2755.6577279999997,
+            "completionMs": 2891.600000321865,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 2908.800000011921,
+            "gpuMs": 2751.987711999999,
+            "completionMs": 2897.7999999523163,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 2911,
+            "gpuMs": 2757.820416,
+            "completionMs": 2899.100000023842,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          }
+        ],
+        "after": [
+          {
+            "elapsedMs": 1798.699999988079,
+            "gpuMs": 1628.4385280000006,
+            "completionMs": 1789.6999998688698,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 1808.699999988079,
+            "gpuMs": 1646.5264640000003,
+            "completionMs": 1796.3000003099442,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 1786.699999988079,
+            "gpuMs": 1638.8587519999996,
+            "completionMs": 1778.2000002264977,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 1828.300000011921,
+            "gpuMs": 1658.0608,
+            "completionMs": 1818.9999999403954,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 1823.800000011921,
+            "gpuMs": 1663.8279679999998,
+            "completionMs": 1813.6999999284744,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "scene": "buddha-glass",
+      "mode": "spectral-pt",
+      "width": 160,
+      "height": 120,
+      "beforeMedianMs": 1580.199999988079,
+      "afterMedianMs": 3304.5,
+      "ratio": 2.0911909884982465,
+      "beforeGpuMedianMs": 1425.1458560000003,
+      "afterGpuMedianMs": 3142.0579840000005,
+      "runs": {
+        "before": [
+          {
+            "elapsedMs": 1580.199999988079,
+            "gpuMs": 1425.1458560000003,
+            "completionMs": 1569.1999997496605,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 1570.7999999523163,
+            "gpuMs": 1409.8759679999994,
+            "completionMs": 1561.1000000834465,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 1585.3999999761581,
+            "gpuMs": 1423.8351359999995,
+            "completionMs": 1573.400000154972,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 1600.8999999761581,
+            "gpuMs": 1431.8960639999998,
+            "completionMs": 1587.5000002980232,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 1577.800000011921,
+            "gpuMs": 1429.9955200000002,
+            "completionMs": 1566.9000000953674,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          }
+        ],
+        "after": [
+          {
+            "elapsedMs": 3304.5,
+            "gpuMs": 3139.5676160000007,
+            "completionMs": 3290.1999999284744,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 3295.699999988079,
+            "gpuMs": 3132.358655999999,
+            "completionMs": 3286.6999999284744,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 3325.099999964237,
+            "gpuMs": 3150.3810560000006,
+            "completionMs": 3314.9999998807907,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 3319.899999976158,
+            "gpuMs": 3150.381056000001,
+            "completionMs": 3310.199999988079,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 3292.699999988079,
+            "gpuMs": 3142.0579840000005,
+            "completionMs": 3281.999999821186,
+            "samples": 4,
+            "emittedPhotons": 0,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "scene": "buddha-glass",
+      "mode": "rgb-sppm",
+      "width": 160,
+      "height": 120,
+      "beforeMedianMs": 298.89999997615814,
+      "afterMedianMs": 893,
+      "ratio": 2.987621278257713,
+      "beforeGpuMedianMs": 171.180032,
+      "afterGpuMedianMs": 771.555328,
+      "runs": {
+        "before": [
+          {
+            "elapsedMs": 314.80000001192093,
+            "gpuMs": 171.180032,
+            "completionMs": 305.2000000476837,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 289.5,
+            "gpuMs": 170.131456,
+            "completionMs": 283.39999973773956,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 298.89999997615814,
+            "gpuMs": 173.93254400000004,
+            "completionMs": 290.1999998688698,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 289.10000002384186,
+            "gpuMs": 171.442176,
+            "completionMs": 282.29999989271164,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 301.69999998807907,
+            "gpuMs": 170.000384,
+            "completionMs": 293.50000005960464,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          }
+        ],
+        "after": [
+          {
+            "elapsedMs": 893,
+            "gpuMs": 772.99712,
+            "completionMs": 888.9999996423721,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 903.5,
+            "gpuMs": 776.8637439999997,
+            "completionMs": 897.7999999523163,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 892.7999999523163,
+            "gpuMs": 766.050304,
+            "completionMs": 882.5999999046326,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 890,
+            "gpuMs": 770.113536,
+            "completionMs": 884.3999999165535,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 895.3999999761581,
+            "gpuMs": 771.555328,
+            "completionMs": 889.1999999284744,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "scene": "buddha-glass",
+      "mode": "spectral-sppm",
+      "width": 160,
+      "height": 120,
+      "beforeMedianMs": 287.39999997615814,
+      "afterMedianMs": 821,
+      "ratio": 2.8566457900769233,
+      "beforeGpuMedianMs": 159.31801599999997,
+      "afterGpuMedianMs": 689.8319359999999,
+      "runs": {
+        "before": [
+          {
+            "elapsedMs": 292.2000000476837,
+            "gpuMs": 160.10444799999996,
+            "completionMs": 283.6000000834465,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 283.30000001192093,
+            "gpuMs": 158.07283199999998,
+            "completionMs": 273.30000001192093,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 278,
+            "gpuMs": 160.69427199999998,
+            "completionMs": 270.0999999642372,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 287.39999997615814,
+            "gpuMs": 158.728192,
+            "completionMs": 277.50000005960464,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 294.80000001192093,
+            "gpuMs": 159.31801599999997,
+            "completionMs": 288.19999998807907,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          }
+        ],
+        "after": [
+          {
+            "elapsedMs": 817,
+            "gpuMs": 682.950656,
+            "completionMs": 808.6999999284744,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 815.3000000119209,
+            "gpuMs": 689.8319359999999,
+            "completionMs": 808.3000001311302,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 824.3000000119209,
+            "gpuMs": 699.0725120000002,
+            "completionMs": 819.2000000476837,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 822.2999999523163,
+            "gpuMs": 695.4024960000003,
+            "completionMs": 813.299999833107,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          },
+          {
+            "elapsedMs": 821,
+            "gpuMs": 687.9313920000001,
+            "completionMs": 814.2000002264977,
+            "samples": 1,
+            "emittedPhotons": 16384,
+            "width": 160,
+            "height": 120,
+            "errors": []
+          }
+        ]
+      }
+    }
+  ]
+}

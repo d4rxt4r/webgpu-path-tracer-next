@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { createServer } from "node:net";
 import { gzipSync } from "node:zlib";
 import { createHash } from "node:crypto";
+import { resolve } from "node:path";
 import { chromium } from "@playwright/test";
 
 const argument = (name) => {
@@ -11,14 +12,26 @@ const argument = (name) => {
   return i < 0 ? undefined : process.argv[i + 1];
 };
 const pbrt = argument("--pbrt");
-if (!pbrt) throw new Error("Provide --pbrt <PBRT v4 executable>");
+const reuseReference = process.argv.includes("--reuse-reference");
+if (!pbrt && !reuseReference)
+  throw new Error("Provide --pbrt <PBRT v4 executable> or --reuse-reference");
 const iterations = Number(argument("--iterations") ?? 2048);
+const sourcePrefix = argument("--source") ?? "/src";
+const baselineOnly = process.argv.includes("--baseline-only");
 const spp = Number(argument("--reference-spp") ?? 32768);
 if (![iterations, spp].every((n) => Number.isInteger(n) && n > 0))
   throw new Error("Invalid sample count");
-const directory = fileURLToPath(
-  new URL("../docs/validation/", import.meta.url),
+const referenceDirectory = resolve(
+  fileURLToPath(new URL("../docs/validation/", import.meta.url)),
 );
+const directory = argument("--output")
+  ? resolve(argument("--output"))
+  : referenceDirectory;
+if (
+  reuseReference &&
+  directory.toLowerCase() === referenceDirectory.toLowerCase()
+)
+  throw new Error("Use --output to preserve the existing acceptance artifacts");
 await mkdir(directory, { recursive: true });
 const run = (executable, args) =>
   new Promise((resolve, reject) => {
@@ -166,9 +179,11 @@ try {
     height = 24,
     seeds = [17, 29];
   const source = await page.evaluate(
-    async ({ width, height, spp }) => {
-      const { suzanneScene } = await import("/src/scene/suzanne.ts");
-      const { exportPbrt } = await import("/src/debug/export-pbrt.ts");
+    async ({ width, height, spp, sourcePrefix }) => {
+      const { suzanneScene } = await import(`${sourcePrefix}/scene/suzanne.ts`);
+      const { exportPbrt } = await import(
+        `${sourcePrefix}/debug/export-pbrt.ts`
+      );
       return exportPbrt(
         await suzanneScene(),
         width,
@@ -178,12 +193,30 @@ try {
         64,
       );
     },
-    { width, height, spp },
+    { width, height, spp, sourcePrefix },
   );
-  await writeFile(`${directory}/stage10-suzanne.pbrt`, source);
-  await writeFile(`${directory}/stage10-suzanne.pbrt.gz`, gzipSync(source));
+  if (!reuseReference) {
+    await writeFile(`${directory}/stage10-suzanne.pbrt`, source);
+    await writeFile(`${directory}/stage10-suzanne.pbrt.gz`, gzipSync(source));
+  }
   const referencesPromise = Promise.all(
     seeds.map(async (seed) => {
+      if (reuseReference) {
+        const previous = JSON.parse(
+          await readFile(`${referenceDirectory}/stage10-quality.json`, "utf8"),
+        );
+        if (
+          previous.sourceSha256 !==
+            createHash("sha256").update(source).digest("hex") ||
+          previous.pbrtSamplesPerPixel !== spp
+        )
+          throw new Error(
+            "Stored PBRT reference does not match the exported scene/sample count",
+          );
+        return parse(
+          await readFile(`${referenceDirectory}/stage10-pbrt-${seed}.pfm`),
+        );
+      }
       console.log(`PBRT Suzanne: ${spp} spp, seed ${seed}`);
       await run(pbrt, [
         "--quiet",
@@ -206,14 +239,21 @@ try {
     ["depth64", 64, 0.03],
     ["radius006", 32, 0.06],
   ]) {
+    if (baselineOnly && name !== "baseline") continue;
     console.log(`GPU Suzanne ${name}: ${iterations} iterations`);
     const result = await page.evaluate(
       async (options) => {
-        const { renderSppm } = await import("/src/debug/render-sppm.ts");
-        const { suzanneScene } = await import("/src/scene/suzanne.ts");
+        const { renderSppm } = await import(
+          `${options.sourcePrefix}/debug/render-sppm.ts`
+        );
+        const { suzanneScene } = await import(
+          `${options.sourcePrefix}/scene/suzanne.ts`
+        );
         const started = performance.now();
         const image = await renderSppm(await suzanneScene(), options);
-        const { xyzToLinearRgb } = await import("/src/transport/spectrum.ts");
+        const { xyzToLinearRgb } = await import(
+          `${options.sourcePrefix}/transport/spectrum.ts`
+        );
         const rgb = [];
         for (let i = 0; i < image.pixels.length; i += 3)
           rgb.push(...xyzToLinearRgb(image.pixels.slice(i, i + 3)));
@@ -232,6 +272,7 @@ try {
         seed: 17,
         photonsPerIteration: 8192,
         photonBatchSize: 4096,
+        sourcePrefix,
       },
     );
     await writePfm(result, `stage10-${name}.pfm`);
@@ -271,11 +312,15 @@ try {
     pbrtSeeds: seeds,
     pbrtDepth: 64,
     pbrtCommit: "b4ce9687e6c695f5582997c61b0c66cf064bdb4a",
+    referenceReused: reuseReference,
+    sourcePrefix,
     sourceSha256: createHash("sha256").update(source).digest("hex"),
     referenceSpread,
     metrics,
-    depthComparison: compare(results[1], results[0]),
-    radiusComparison: compare(results[2], results[0]),
+    depthComparison: baselineOnly ? undefined : compare(results[1], results[0]),
+    radiusComparison: baselineOnly
+      ? undefined
+      : compare(results[2], results[0]),
     elapsedMs: Date.now() - start,
     limits:
       "Two reference seeds measure empirical stability, not a confidence bound. Low resolution numerical validation is separate from final image inspection.",

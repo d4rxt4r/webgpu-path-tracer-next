@@ -29,6 +29,22 @@ function independentDistance(ray: Ray, triangle: Triangle): number | null {
 }
 
 describe('world-space SAH BVH', () => {
+  it("ignores unused zero normals and keeps baked triangle vertices independent", () => {
+    const description = cornellScene();
+    const mesh = description.meshes[0]!;
+    const positions = new Float32Array(mesh.positions.length + 3);
+    positions.set(mesh.positions);
+    const normals = new Float32Array(positions.length);
+    for (let i = 0; i < mesh.positions.length; i += 3) normals[i + 1] = 1;
+    mesh.positions = positions;
+    mesh.normals = normals;
+    const baked = bakeTriangles(description);
+    const other = baked[1]!.a.slice();
+    baked[0]!.a[0] += 10;
+    expect(baked[1]!.a).toEqual(other);
+    mesh.indices[0] = positions.length / 3 - 1;
+    expect(() => bakeTriangles(description)).toThrow();
+  });
   it('matches brute force closest/any hit for fixed random and boundary rays', () => {
     for (const ray of fixedRays()) {
       const expected = bruteForce(ray, triangles), actual = traverseBvh(ray, bvh);

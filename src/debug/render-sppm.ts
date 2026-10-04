@@ -8,6 +8,7 @@ import { packTransport } from "../accel/materials";
 import { loadSobol } from "../assets/sobol";
 import { cameraBasis } from "../scene/camera";
 import type { SceneDescription } from "../scene/types";
+import { TRANSPORT_QUEUE_BYTES } from "../render/transport-diagnostics";
 import { SppmIntegrator } from "../render/sppm-integrator";
 import { Denoiser, type DenoiseSettings } from "../render/denoiser";
 
@@ -26,9 +27,12 @@ export async function renderSppm(
     seed?: number;
     denoise?: DenoiseSettings;
     checkpoints?: number[];
+    specializeSampler?: boolean;
+    preciseTransport?: boolean;
   },
 ) {
   const { device, name } = await createDevice();
+  device.pushErrorScope("validation");
   const buffers: GPUBuffer[] = [];
   let gpu: GpuScene | undefined,
     integrator: SppmIntegrator | undefined,
@@ -67,7 +71,7 @@ export async function renderSppm(
       GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     );
     const errors = create(
-      4,
+      TRANSPORT_QUEUE_BYTES,
       GPUBufferUsage.STORAGE |
         GPUBufferUsage.COPY_SRC |
         GPUBufferUsage.COPY_DST,
@@ -85,7 +89,7 @@ export async function renderSppm(
       format: "rgba16float",
       usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
     });
-    integrator = await SppmIntegrator.create(device);
+    integrator = await SppmIntegrator.create(device,options.specializeSampler ?? false,options.preciseTransport ?? false);
     integrator.configure(width, height, settings, {
       scene: gpu,
       camera,
@@ -240,6 +244,8 @@ export async function renderSppm(
       if (filterErrors || filtered.some((v) => !Number.isFinite(v)))
         throw new Error("Denoiser acceptance failed");
     }
+    const validation = await device.popErrorScope();
+    if (validation) throw new Error(validation.message);
     return {
       width,
       height,

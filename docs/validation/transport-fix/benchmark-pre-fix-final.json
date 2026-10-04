@@ -1,0 +1,330 @@
+{
+  "date": "2026-10-04T08:59:18.810Z",
+  "comparison": "pre-fix",
+  "repeats": 5,
+  "warmups": 1,
+  "alternating": true,
+  "seed": 17,
+  "ptSamples": 4,
+  "sppmSamples": 1,
+  "rows": [
+    {
+      "scene": "suzanne",
+      "mode": "spectral-pt",
+      "width": 640,
+      "height": 480,
+      "beforeMedianMs": 5003.699999988079,
+      "afterMedianMs": 5517.600000023842,
+      "ratio": 1.1027039990481018,
+      "speedup": 0.9068616789847864,
+      "runs": {
+        "before": [
+          {
+            "elapsedMs": 4972,
+            "gpuMs": 4605.935615999999,
+            "initializationMs": 14942.200000047684,
+            "preparationMs": 1298.699999988079,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 4996.100000023842,
+            "gpuMs": 4609.015807999999,
+            "initializationMs": 6514.599999964237,
+            "preparationMs": 1323.9000000357628,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 5003.699999988079,
+            "gpuMs": 4633.788416000003,
+            "initializationMs": 14688.300000011921,
+            "preparationMs": 1316.199999988079,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 11601.199999988079,
+            "gpuMs": 4619.501568000004,
+            "initializationMs": 172.5,
+            "preparationMs": 1195.9000000357628,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 5103,
+            "gpuMs": 4712.497152000002,
+            "initializationMs": 161.4000000357628,
+            "preparationMs": 1193.800000011921,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          }
+        ],
+        "after": [
+          {
+            "elapsedMs": 5450.699999988079,
+            "gpuMs": 5316.804608,
+            "initializationMs": 15435.600000023842,
+            "preparationMs": 1245,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 5545.100000023842,
+            "gpuMs": 5410.717696000001,
+            "initializationMs": 6439.699999988079,
+            "preparationMs": 1269.699999988079,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 5598.199999988079,
+            "gpuMs": 5472.4526080000005,
+            "initializationMs": 14942.300000011921,
+            "preparationMs": 1180.8999999761581,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 5479.699999988079,
+            "gpuMs": 5345.640447999999,
+            "initializationMs": 6529.300000011921,
+            "preparationMs": 1291.9000000357628,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 5517.600000023842,
+            "gpuMs": 5383.847936,
+            "initializationMs": 14933,
+            "preparationMs": 1310.7999999523163,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "scene": "buddha-glass",
+      "mode": "rgb-pt",
+      "width": 160,
+      "height": 120,
+      "beforeMedianMs": 2932.2999999523163,
+      "afterMedianMs": 503.30000001192093,
+      "ratio": 0.17164000955567485,
+      "speedup": 5.8261474267491815,
+      "runs": {
+        "before": [
+          {
+            "elapsedMs": 2932.2999999523163,
+            "gpuMs": 2776.3671039999995,
+            "initializationMs": 17094.200000047684,
+            "preparationMs": 1327.8999999761581,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 2927.199999988079,
+            "gpuMs": 2760.769536000002,
+            "initializationMs": 7166.800000011921,
+            "preparationMs": 1258.8999999761581,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 2936.800000011921,
+            "gpuMs": 2768.56832,
+            "initializationMs": 17853,
+            "preparationMs": 1288,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 2913.100000023842,
+            "gpuMs": 2765.4225919999994,
+            "initializationMs": 7209,
+            "preparationMs": 1284,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 2950.100000023842,
+            "gpuMs": 2766.0779519999996,
+            "initializationMs": 17587.599999964237,
+            "preparationMs": 1179.9000000357628,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          }
+        ],
+        "after": [
+          {
+            "elapsedMs": 509.5,
+            "gpuMs": 473.038848,
+            "initializationMs": 17350.5,
+            "preparationMs": 1291.800000011921,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 482.9000000357628,
+            "gpuMs": 443.41657599999996,
+            "initializationMs": 7336.699999988079,
+            "preparationMs": 1240.3999999761581,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 477.30000001192093,
+            "gpuMs": 456.392704,
+            "initializationMs": 17319.900000035763,
+            "preparationMs": 1261.8999999761581,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 520.3000000119209,
+            "gpuMs": 476.577792,
+            "initializationMs": 7889.5,
+            "preparationMs": 1422.5,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 503.30000001192093,
+            "gpuMs": 462.48755199999994,
+            "initializationMs": 19025,
+            "preparationMs": 1142.5999999642372,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "scene": "buddha-glass",
+      "mode": "spectral-pt",
+      "width": 160,
+      "height": 120,
+      "beforeMedianMs": 1623.300000011921,
+      "afterMedianMs": 697.3999999761581,
+      "ratio": 0.4296186779837594,
+      "speedup": 2.3276455406759626,
+      "runs": {
+        "before": [
+          {
+            "elapsedMs": 1602,
+            "gpuMs": 1427.963904,
+            "initializationMs": 17662.200000047684,
+            "preparationMs": 1213.8999999761581,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 1580,
+            "gpuMs": 1408.6963200000002,
+            "initializationMs": 8316.699999988079,
+            "preparationMs": 1299.2000000476837,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 1632.3999999761581,
+            "gpuMs": 1452.3432959999996,
+            "initializationMs": 12508.600000023842,
+            "preparationMs": 1223.0999999642372,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 1636.199999988079,
+            "gpuMs": 1452.6054399999998,
+            "initializationMs": 9143.900000035763,
+            "preparationMs": 1233.699999988079,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 1623.300000011921,
+            "gpuMs": 1455.9477759999997,
+            "initializationMs": 18084.600000023842,
+            "preparationMs": 1323.699999988079,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          }
+        ],
+        "after": [
+          {
+            "elapsedMs": 720.6999999880791,
+            "gpuMs": 687.3415679999999,
+            "initializationMs": 19253.30000001192,
+            "preparationMs": 1428.800000011921,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 695.6999999880791,
+            "gpuMs": 664.141824,
+            "initializationMs": 8838.600000023842,
+            "preparationMs": 1179.3999999761581,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 683.6000000238419,
+            "gpuMs": 659.226624,
+            "initializationMs": 14473.199999988079,
+            "preparationMs": 1136.6000000238419,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 697.3999999761581,
+            "gpuMs": 672.858112,
+            "initializationMs": 9144.900000035763,
+            "preparationMs": 1264.2999999523163,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          },
+          {
+            "elapsedMs": 758.6000000238419,
+            "gpuMs": 716.2429440000001,
+            "initializationMs": 17842,
+            "preparationMs": 1197.3999999761581,
+            "samples": 4,
+            "photons": 0,
+            "errors": []
+          }
+        ]
+      }
+    }
+  ]
+}

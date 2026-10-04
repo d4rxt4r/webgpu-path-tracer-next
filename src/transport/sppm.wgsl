@@ -1,6 +1,5 @@
 @group(0) @binding(0) var outputImage: texture_storage_2d<rgba16float,write>;
 @group(0) @binding(1) var<uniform> params: CameraParams;
-@group(0) @binding(4) var<storage,read_write> errors: atomic<u32>;
 @group(0) @binding(8) var<storage,read_write> accumulation: array<vec4f>;
 @group(0) @binding(10) var<storage,read_write> points: array<SppmPoint>;
 @group(0) @binding(11) var<uniform> sppm: SppmParams;
@@ -17,15 +16,17 @@ fn iterationWavelength() -> WavelengthSample {
   return sampleWavelength(sample1D(params.frame,2u,0x7370706du,params.seed));
 }
 fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
-  var point: SppmPoint; var ray=initial; var beta=vec3f(1); var etaScale=1.0;
+  var point: SppmPoint; var ray=initial; var originLow=vec3f(0);var beta=vec3f(1); var etaScale=1.0;
   var medium=NO_HIT; var previous=initial.origin;
   for(var depth=0u;depth<=params.maxDepth;depth++) {
-    let hit=closestHit(ray);
-    if(hit.error!=0u) { atomicAdd(&errors,1u);break; }
-    if(hit.id==NO_HIT) { if(medium!=NO_HIT) {atomicAdd(&errors,1u);} break; }
+    let hit=closestHitWithOrigin(ray,originLow);
+    if(hit.error==5u && !PRECISE_TRANSPORT) {point.valid=2u;break;}
+    if(hit.error!=0u) { reportTransportError(1u,1u,pixel,depth,hit.triangle,medium);break; }
+    if(hit.id==NO_HIT) { if(medium!=NO_HIT) {if(!PRECISE_TRANSPORT) {point.valid=2u;break;} reportTransportError(2u,1u,pixel,depth,NO_HIT,medium);} break; }
     let triangle=triangles[hit.triangle];
-    if(triangle.material>=arrayLength(&materials)) {atomicAdd(&errors,1u);break;}
+    if(triangle.material>=arrayLength(&materials)) {reportTransportError(3u,1u,pixel,depth,hit.triangle,medium);break;}
     let material=materials[triangle.material];
+    if(!PRECISE_TRANSPORT && medium!=NO_HIT && material.kind!=2u) {point.valid=2u;break;}
     let ng=geometricNormal(triangle); let position=surfacePosition(triangle,hit);
     let color=surfaceColor(material,position,wavelength);
     if(depth==0u&&material.kind==2u&&dot(ng,ray.direction)>0.0) {medium=hit.triangle;}
@@ -39,7 +40,7 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
         let ns=shadingNormal(triangle,hit);let oriented=select(ns,-ns,dot(ns,n)<0.0);
         let wi=coatingDirection(ray.direction,n,oriented);previous=position;
         if(depth>=4u) {beta=rouletteWeight(beta,etaScale,sample1D(params.frame,dimension+6u,pixel,params.seed));if(all(beta==vec3f(0))) {break;}}
-        ray=Ray(offsetSurface(triangle,hit,wi),0.0,wi,1e20);continue;
+        ray=Ray(offsetSurface(triangle,hit,wi),0.0,wi,1e20);originLow=vec3f(0);continue;
       }
       point.position=position; point.surface=triangle.surface; point.normal=n;
       point.weight=beta*color/PI; point.valid=u32(any(point.weight>vec3f(0)));
@@ -51,15 +52,17 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
           let origin=offsetSurface(triangle,hit,wi); let end=offsetOrigin(light.position,light.normal,-wi);
           let segment=end-origin; let distance=length(segment);
           let shadow=anyHit(Ray(origin,0.0,segment/distance,distance*(1.0-1e-6)));
-          if(shadow.error!=0u) {atomicAdd(&errors,1u);}
+          if(shadow.error==5u && !PRECISE_TRANSPORT) {point.valid=2u;break;}
+          if(shadow.error!=0u) {reportTransportError(1u,1u,pixel,depth,shadow.triangle,medium);}
           if(shadow.id==NO_HIT) {point.direct+=point.weight*light.emission*cosine/(light.pdfArea*d2/lightCosine);}
         }
       }
       break;
     }
     if(depth==params.maxDepth) {break;}
+    if(!PRECISE_TRANSPORT && needsPreciseOrigin(ray,triangle,hit)) {point.valid=2u;break;}
     let entering=dot(ng,ray.direction)<0.0;
-    if((entering&&medium!=NO_HIT)||(!entering&&(medium==NO_HIT||triangles[medium].surface!=triangle.surface))) {atomicAdd(&errors,1u);break;}
+    if((entering&&medium!=NO_HIT)||(!entering&&(medium==NO_HIT||triangles[medium].surface!=triangle.surface))) {if(!PRECISE_TRANSPORT) {point.valid=2u;break;} reportTransportError(2u,1u,pixel,depth,hit.triangle,medium);break;}
     let ior=materialIor(material,wavelength);let eta=select(1.0/ior,ior,entering);
     let ns=shadingNormal(triangle,hit);
     let event=sampleDielectricSurface(ray.direction,n,select(-ns,ns,entering),eta,sample1D(params.frame,dimension+5u,pixel,params.seed),false);
@@ -67,18 +70,23 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
     if(event.transmitted!=0u) {medium=select(NO_HIT,hit.triangle,entering);etaScale*=eta*eta;}
     previous=position;
     if(depth>=4u) {beta=rouletteWeight(beta,etaScale,sample1D(params.frame,dimension+6u,pixel,params.seed));if(all(beta==vec3f(0))) {break;}}
-    ray=Ray(offsetSurface(triangle,hit,event.direction),0.0,event.direction,1e20);
+    let origin=transportOrigin(ray,originLow,triangle,hit,event.direction);
+    ray=Ray(origin.position,0.0,event.direction,1e20);originLow=origin.residual;
   }
   return point;
 }
-@compute @workgroup_size(8,8) fn cameraMain(@builtin(global_invocation_id) invocation: vec3u) {
-  if(any(invocation.xy>=params.tile.zw)) {return;} let id=invocation.xy+params.tile.xy;
+fn renderCameraPoint(id:vec2u) {
   if(any(id>=params.size)) {return;} let pixel=id.y*params.size.x+id.x;
   let jitter=vec2f(sample1D(params.frame,0u,pixel,params.seed),sample1D(params.frame,1u,pixel,params.seed));
   let uv=(vec2f(id)+jitter)/vec2f(params.size); let p=vec2f(2.0*uv.x-1.0,1.0-2.0*uv.y);
   let direction=normalize(params.forward.xyz+p.x*f32(params.size.x)/f32(params.size.y)*params.right.xyz+p.y*params.up.xyz);
   let wavelength=iterationWavelength();
   var point=cameraPoint(Ray(params.eye.xyz,0.00001,direction,1e20),pixel,wavelength.wavelength);
+  if(!PRECISE_TRANSPORT && point.valid==2u) {
+    points[pixel].padding0=1u;
+    enqueueTransportRetry(pixel,params.size.x*params.size.y);return;
+  }
+  points[pixel].padding0=0u;
   if(wavelength.wavelength!=0.0) {
     let xyzWeight=cieXyz(wavelength.wavelength)/(wavelength.pdf*CIE_Y_INTEGRAL);
     point.weight=point.weight.x*xyzWeight;point.direct=point.direct.x*xyzWeight;
@@ -86,10 +94,11 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
   points[pixel].position=point.position; points[pixel].surface=point.surface; points[pixel].normal=point.normal; points[pixel].valid=point.valid;
   points[pixel].weight=point.weight;points[pixel].direct=point.direct;points[pixel].phi=vec3f(0);points[pixel].M=0u;
 }
-@compute @workgroup_size(64) fn photonMain(@builtin(global_invocation_id) id: vec3u) {
+fn tracePhoton(id:vec3u) {
   if(id.x>=sppm.batchCount) {return;}
   let stride=params.maxDepth+1u; let first=id.x*stride;
   for(var i=0u;i<stride;i++) {photons[first+i].valid=0u;}
+  photons[first].padding=0u;
   if(params.lightCount==0u) {return;}
   // Global index within the iteration; batch partition never changes samples.
   let index=sppm.batchStart+id.x; let seed=params.seed^hash32(sppm.iteration+0x51eedu); let stream=0x70686f74u;
@@ -98,16 +107,21 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
   let direction=cosineDirection(light.normal,vec2f(sample1D(index,3u,stream,seed),sample1D(index,4u,stream,seed)));
   var beta=light.emission*PI/light.pdfArea;
   var ray=Ray(offsetOrigin(light.position,light.normal,direction),0.0,direction,1e20);
+  var originLow=vec3f(0);
   var medium=NO_HIT;var previous=light.position;
   for(var depth=0u;depth<=params.maxDepth;depth++) {
-    let hit=closestHit(ray); if(hit.error!=0u) {atomicAdd(&errors,1u);break;}
-    if(hit.id==NO_HIT) {if(medium!=NO_HIT) {atomicAdd(&errors,1u);} break;}
+    let hit=closestHitWithOrigin(ray,originLow);
+    if(!PRECISE_TRANSPORT && hit.error==5u) {photons[first].padding=1u;break;}
+    if(hit.error!=0u) {reportTransportError(1u,2u,index,depth,hit.triangle,medium);break;}
+    if(hit.id==NO_HIT) {if(medium!=NO_HIT) {if(!PRECISE_TRANSPORT) {photons[first].padding=1u;break;} reportTransportError(2u,2u,index,depth,NO_HIT,medium);} break;}
     let triangle=triangles[hit.triangle];
-    if(triangle.material>=arrayLength(&materials)) {atomicAdd(&errors,1u);break;}
-    let material=materials[triangle.material];let ng=geometricNormal(triangle);
+    if(triangle.material>=arrayLength(&materials)) {reportTransportError(3u,2u,index,depth,hit.triangle,medium);break;}
+    let material=materials[triangle.material];
+    if(!PRECISE_TRANSPORT && medium!=NO_HIT && material.kind!=2u) {photons[first].padding=1u;break;}
+    let ng=geometricNormal(triangle);
     let position=surfacePosition(triangle,hit);let n=select(ng,-ng,dot(ng,-ray.direction)<0.0);
     if(medium!=NO_HIT) {let inside=materials[triangles[medium].material];beta*=exp(-spectralColor(inside.absorption,inside.absorptionOffset,wavelength)*length(position-previous));}
-    if(!all(beta>=vec3f(0))||!all(beta<vec3f(FAR))) {atomicAdd(&errors,1u);break;}
+    if(!all(beta>=vec3f(0))||!all(beta<vec3f(FAR))) {reportTransportError(5u,2u,index,depth,hit.triangle,medium);break;}
     if(material.kind==1u) {break;}
     let dimension=5u+depth*7u;var wi:vec3f;
     if(material.kind==0u||material.kind>=3u) {
@@ -123,8 +137,9 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
       }
     } else {
       if(depth==params.maxDepth) {break;}
+      if(!PRECISE_TRANSPORT && needsPreciseOrigin(ray,triangle,hit)) {photons[first].padding=1u;break;}
       let entering=dot(ng,ray.direction)<0.0;
-      if((entering&&medium!=NO_HIT)||(!entering&&(medium==NO_HIT||triangles[medium].surface!=triangle.surface))) {atomicAdd(&errors,1u);break;}
+      if((entering&&medium!=NO_HIT)||(!entering&&(medium==NO_HIT||triangles[medium].surface!=triangle.surface))) {if(!PRECISE_TRANSPORT) {photons[first].padding=1u;break;} reportTransportError(2u,2u,index,depth,hit.triangle,medium);break;}
       let ior=materialIor(material,wavelength);let eta=select(1.0/ior,ior,entering);let ns=shadingNormal(triangle,hit);
       let event=sampleDielectricSurface(ray.direction,n,select(-ns,ns,entering),eta,sample1D(index,dimension+5u,stream,seed),true);
       if(event.weight==0.0) {break;}beta*=event.weight;wi=event.direction;
@@ -132,7 +147,9 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
     }
     // Importance transport has no radiance eta compression to compensate.
     if(depth>=4u) {beta=rouletteWeight(beta,1.0,sample1D(index,dimension+6u,stream,seed));if(all(beta==vec3f(0))) {break;}}
-    previous=position;ray=Ray(offsetSurface(triangle,hit,wi),0.0,wi,1e20);
+    previous=position;
+    if(material.kind==2u) {let origin=transportOrigin(ray,originLow,triangle,hit,wi);ray=Ray(origin.position,0.0,wi,1e20);originLow=origin.residual;}
+    else {ray=Ray(offsetSurface(triangle,hit,wi),0.0,wi,1e20);originLow=vec3f(0);}
   }
 }
 @compute @workgroup_size(64) fn hashMain(@builtin(global_invocation_id) id:vec3u) {
@@ -147,11 +164,15 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
   if(point.valid==0u) {return;}
   let radius=pointRadius(point);let cell=vec3i(floor(point.position/sppm.initialRadius));
   var phi=vec3f(0);var count=0u;
-  for(var z=-1;z<=1;z++) {for(var y=-1;y<=1;y++) {for(var x=-1;x<=1;x++) {
-    let targetCell=cell+vec3i(x,y,z);var link=atomicLoad(&heads[cellHash(targetCell)]);var visited=0u;
+  // The radius shrinks; skip cells outside its AABB, conservatively rounded.
+  let error=8e-7*max(1.0,max(abs(point.position.x),max(abs(point.position.y),abs(point.position.z))));
+  let lower=max(cell-vec3i(1),vec3i(floor((point.position-vec3f(radius+error))/sppm.initialRadius)));
+  let upper=min(cell+vec3i(1),vec3i(floor((point.position+vec3f(radius+error))/sppm.initialRadius)));
+  for(var z=lower.z;z<=upper.z;z++) {for(var y=lower.y;y<=upper.y;y++) {for(var x=lower.x;x<=upper.x;x++) {
+    let targetCell=vec3i(x,y,z);var link=atomicLoad(&heads[cellHash(targetCell)]);var visited=0u;
     while(link!=0u) {
       let index=link-1u;
-      if(index>=sppm.batchCount*(params.maxDepth+1u)||visited>=arrayLength(&photons)) {atomicAdd(&errors,1u);return;}
+      if(index>=sppm.batchCount*(params.maxDepth+1u)||visited>=arrayLength(&photons)) {reportTransportError(4u,3u,pixel,0u,index,NO_HIT);return;}
       let photon=photons[index];let delta=photon.position-point.position;
       if(all(photon.cell==targetCell)&&photon.surface==point.surface&&dot(photon.normal,point.normal)>0.95&&dot(delta,delta)<=radius*radius&&abs(dot(delta,point.normal))<=0.1*radius) {phi+=point.weight*photon.flux;count++;}
       link=photon.next;visited++;
@@ -169,7 +190,7 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
   point.radius=radius;point.directSum+=point.direct;point.iterations++;
   let iterations=f32(point.iterations);let emitted=iterations*f32(sppm.photonsPerIteration);
   let radiance=point.directSum/iterations+point.tau/(PI*radius*radius*emitted);
-  if(!all(radiance>=vec3f(0))||!all(radiance<vec3f(FAR))) {atomicAdd(&errors,1u);return;}
+  if(!all(radiance>=vec3f(0))||!all(radiance<vec3f(FAR))) {reportTransportError(5u,4u,pixel,0u,NO_HIT,NO_HIT);return;}
   points[pixel]=point;accumulation[pixel]=vec4f(radiance*iterations,iterations);
   textureStore(outputImage,vec2i(id.xy),vec4f(radiance,1));
 }
@@ -182,4 +203,25 @@ fn densityMain(@builtin(global_invocation_id) id:vec3u) {
   let density=select(0.0,point.N/max(denominator,0.000001),point.valid!=0u);
   let t=clamp(log2(1.0+density*1000.0)/14.0,0.0,1.0);
   textureStore(outputImage,vec2i(id.xy),vec4f(t,t*t,select(0.0,1.0-t,t>0.0),1));
+}
+
+@compute @workgroup_size(8,8) fn cameraMain(@builtin(global_invocation_id) invocation:vec3u) {
+  if(any(invocation.xy>=params.tile.zw)) {return;}
+  renderCameraPoint(invocation.xy+params.tile.xy);
+}
+@compute @workgroup_size(64) fn cameraRepairMain(@builtin(global_invocation_id) invocation:vec3u) {
+  let index=transportRetryIndex(invocation.x,params.size.x*params.size.y);if(index==NO_HIT) {return;}
+  let id=vec2u(index%params.size.x,index/params.size.x);
+  if(any(id>=params.size)) {return;}
+  if(points[id.y*params.size.x+id.x].padding0==0u) {return;}
+  renderCameraPoint(id);
+}
+@compute @workgroup_size(64) fn photonMain(@builtin(global_invocation_id) id:vec3u) {
+  tracePhoton(id);
+  if(id.x<sppm.batchCount && !PRECISE_TRANSPORT && photons[id.x*(params.maxDepth+1u)].padding!=0u) {enqueueTransportRetry(id.x,sppm.batchCount);}
+}
+@compute @workgroup_size(64) fn photonRepairMain(@builtin(global_invocation_id) invocation:vec3u) {
+  let index=transportRetryIndex(invocation.x,sppm.batchCount);if(index==NO_HIT) {return;}
+  if(photons[index*(params.maxDepth+1u)].padding==0u) {return;}
+  tracePhoton(vec3u(index,0,0));
 }
