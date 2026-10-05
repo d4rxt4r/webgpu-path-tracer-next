@@ -5,6 +5,7 @@ import { ObjImporter } from "../assets/obj-import";
 import type { ImportedObj } from "../assets/obj";
 import { attachSettingsHelp } from "./settings-help";
 import { attachMiddleReset } from "./settings-reset";
+import { createSettingsLink, restoreSettingsLink } from "./settings-link";
 import "./style.css";
 import { renderEditor } from "./editor-ui";
 import { createDevice } from "../gpu/device";
@@ -26,6 +27,11 @@ import {
 import type { SceneControls, TextureControls } from "../scene/editor";
 
 const query = new URLSearchParams(location.search);
+const pathControls: Record<string, keyof PathSettings> = {
+  mode: "mode", integrator: "integrator", resolution: "maxPixels", strategy: "strategy",
+  "max-depth": "maxDepth", seed: "seed", photons: "photonsPerIteration", batch: "photonBatchSize",
+  radius: "initialRadius", "memory-budget": "memoryBudgetMiB",
+};
 const initialScene =
   query.get("scene") === "control"
     ? "control"
@@ -186,6 +192,21 @@ function syncSettings(): void {
   syncRanges();
 }
 syncSettings();
+const linkedCamera = restoreSettingsLink(document, query, description.camera);
+const hasSharedSettings = linkedCamera !== undefined;
+if (linkedCamera) {
+  description.camera = linkedCamera;
+  input("camera-distance").value = String(Math.hypot(...linkedCamera.position.map((v, i) => v - linkedCamera.target[i]!)));
+  for (const [id, key] of Object.entries(pathControls)) {
+    const raw = document.querySelector<HTMLInputElement | HTMLSelectElement>(`#${id}`)!.value;
+    target = { ...target, [key]: key === "mode" || key === "integrator" || key === "strategy" ? raw : Number(raw) };
+  }
+  profile = selectInput("profile").value as Profile;
+  if (target.integrator !== "sppm" && selectInput("view").value === "photon-density") selectInput("view").value = "beauty";
+  syncObjectScale();
+  syncMaterialEditor(true, false);
+  syncSettings();
+}
 
 async function start(): Promise<void> {
   if (!isSecureContext || !navigator.gpu) await createDevice();
@@ -480,18 +501,6 @@ async function start(): Promise<void> {
       selectInput("profile").dispatchEvent(new Event("change"));
     }),
   );
-  const pathControls: Record<string, keyof PathSettings> = {
-    mode: "mode",
-    integrator: "integrator",
-    resolution: "maxPixels",
-    strategy: "strategy",
-    "max-depth": "maxDepth",
-    seed: "seed",
-    photons: "photonsPerIteration",
-    batch: "photonBatchSize",
-    radius: "initialRadius",
-    "memory-budget": "memoryBudgetMiB",
-  };
   for (const [id, key] of Object.entries(pathControls))
     document
       .querySelector(`#${id}`)!
@@ -703,6 +712,18 @@ async function start(): Promise<void> {
   };
   button("export-png").addEventListener("click", () => void exportImage("png"));
   button("export-pfm").addEventListener("click", () => void exportImage("pfm"));
+  button("copy-link").addEventListener("click", async () => {
+    const message = document.getElementById("share-status")!;
+    message.hidden = false;
+    try {
+      if (scenePending) throw new Error("Дождитесь применения настроек.");
+      const link = createSettingsLink(document, location.href, currentCamera);
+      await navigator.clipboard.writeText(link);
+      message.textContent = "Ссылка скопирована.";
+    } catch (error) {
+      message.textContent = error instanceof Error ? error.message : "Не удалось скопировать ссылку.";
+    }
+  });
   const observer = new ResizeObserver(() => renderer.resize());
   observer.observe(canvas);
   document.addEventListener("visibilitychange", () => {
@@ -724,33 +745,45 @@ async function start(): Promise<void> {
   window.addEventListener("pageshow", (event) => {
     if (event.persisted && !document.hidden && !userPaused) renderer.resume();
   });
-  renderer.setDebugView("beauty");
-  if (!controlScene) {
+  if (!controlScene && !hasSharedSettings) {
     interacting = true;
     renderer.setInteracting(true);
   }
   renderer.setSettings(
-    controlScene ? target : { ...target, ...profiles.preview },
+    controlScene || hasSharedSettings ? target : { ...target, ...profiles.preview },
   );
+  renderer.setDebugView(selectInput("view").value as DebugView);
   try {
     if (isBuiltinModel(initialScene)) currentBuiltinModel = await loadBuiltinObj(initialScene, input("repair-obj").checked);
-    const initialDescription = controlScene ? description : initialScene === "buddha" ? await buddhaScene(initialMaterial, currentBuiltinModel) : await presentationScene(initialMaterial, currentBuiltinModel);
+    const material = hasSharedSettings ? baseMaterial() : initialMaterial;
+    const initialDescription = controlScene ? hasSharedSettings ? cornellScene(material) : description : initialScene === "buddha" ? await buddhaScene(material, currentBuiltinModel) : await presentationScene(material, currentBuiltinModel);
+    if (hasSharedSettings) {
+      const controls = Object.fromEntries(sceneControlIds.map(id => [id, id === "absorption" ? 1 : value(id)])) as SceneControls;
+      applySceneControls(initialDescription, controls);
+      applyTextureControls(initialDescription, Object.fromEntries(textureControlIds.map(id => [id, value(id)])) as TextureControls);
+      initialDescription.camera = currentCamera;
+      for (const id of ["object-x", "object-y", "object-z"] as const) input(id).value = String(controls[id]);
+    }
     applyMaterialEditor(initialDescription, currentBuiltinModel?.solid ?? true);
     await renderer.setScene(initialDescription);
     await renderer.initialize();
     ready = true;
     committedUi = captureSceneUi();
-    if (currentBuiltinModel) objStatus.textContent = describeModel(currentBuiltinModel, initialScene === "buddha" ? "Happy Buddha" : initialScene === "rastagotchi" ? "Rastagotchi" : initialScene === "suzanne-high-poly" ? "Suzanne high poly" : "Suzanne", ["glass", "blue-glass", "nbk7", "nbk7-constant"].includes(initialMaterial));
+    if (currentBuiltinModel) objStatus.textContent = describeModel(currentBuiltinModel, initialScene === "buddha" ? "Happy Buddha" : initialScene === "rastagotchi" ? "Rastagotchi" : initialScene === "suzanne-high-poly" ? "Suzanne high poly" : "Suzanne", initialDescription.materials[4]!.type === "dielectric", initialDescription.materials[4]!.type === "dielectric" && !!initialDescription.materials[4]!.thin);
     document
       .querySelectorAll<
         HTMLSelectElement | HTMLInputElement | HTMLButtonElement
       >("select,input,button")
       .forEach((control) => (control.disabled = false));
     syncSettings();
-    if (!controlScene) {
-      input("denoiser").checked = true;
+    if (hasSharedSettings) {
+      renderer.setExposure(value("exposure"));
       applyDisplay();
-      idleTimer = setTimeout(settle, 250);
+    }
+    if (!controlScene) {
+      if (!hasSharedSettings) input("denoiser").checked = true;
+      applyDisplay();
+      if (!hasSharedSettings) idleTimer = setTimeout(settle, 250);
     }
     document.querySelector<HTMLElement>("#scene-name")!.textContent =
       `${initialScene === "control" ? "Sphere" : initialScene === "buddha" ? "Happy Buddha" : initialScene === "rastagotchi" ? "Rastagotchi" : initialScene === "suzanne-high-poly" ? "Suzanne high poly" : "Suzanne"} / ${selectInput("material").selectedOptions[0]!.textContent}`;

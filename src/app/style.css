@@ -207,6 +207,10 @@ canvas:active {
   scrollbar-color: #444955 #23252c;
 }
 .inspector-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   position: sticky;
   top: 0;
   z-index: 1;
@@ -217,6 +221,18 @@ canvas:active {
   letter-spacing: 0.13em;
   color: #a9b0c0;
   border-bottom: 1px solid #3b3e48;
+}
+.inspector-title button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+}
+.share-status {
+  margin: 0;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: #a9b0c0;
 }
 .view-setting {
   padding: 12px 14px;
