@@ -209,7 +209,7 @@ export class SppmIntegrator {
       camera,
       ...resources.scene.entries(),
       error,
-      ...resources.scene.transportEntries(),
+      ...resources.scene.transportEntries(true),
       binding(7, resources.sobol),
       resources.scene.spectralEntry(),
     ];

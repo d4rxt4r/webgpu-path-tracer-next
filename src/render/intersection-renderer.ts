@@ -1,3 +1,6 @@
+import { GpuEnvironment } from '../gpu/environment';
+import { defaultEnvironment, type EnvironmentSettings } from '../scene/environment';
+import type { HdrImage } from '../assets/hdr';
 import { cameraShells } from "../accel/camera-media";
 import { settingsLimits, photonAllocation, checkPhotonLimits } from "./settings-limits";
 import { fastTransportShader } from "../transport/fast-source";
@@ -91,6 +94,9 @@ export interface RenderStats {
 
 /** RGB / spectral PT and SPPM with shared intersection debug views. */
 export class IntersectionRenderer {
+  private environment?: GpuEnvironment;
+  private environmentSettings = structuredClone(defaultEnvironment);
+  private environmentImage?: HdrImage;
   private preparer = new ScenePreparer();
   private packed?: PreparedScene;
   private scene?: GpuScene;
@@ -215,6 +221,32 @@ export class IntersectionRenderer {
     this.loading = false;
     this.schedule(true);
   }
+  async setEnvironment(settings: EnvironmentSettings, image = this.environmentImage): Promise<void> {
+    const bytes = GpuEnvironment.byteSize(image);
+    const minimum = this.fixedMemoryBytes(this.settings) - (this.environment?.bytes ?? GpuEnvironment.byteSize(this.environmentImage)) + bytes + 88 + (this.settings.integrator === "sppm" ? SPPM_POINT_BYTES : 0);
+    if (minimum > this.settings.memoryBudgetMiB * 1048576) throw new Error("HDR не помещается в бюджет GPU. Выберите 1K/2K или увеличьте бюджет памяти.");
+    const device = this.device;
+    if (!device) { this.environmentSettings = structuredClone(settings); this.environmentImage = image; return; }
+    await this.activeFrame;
+    let next = this.environment;
+    const replace = image !== this.environmentImage || !next;
+    if (replace) {
+      next = undefined;
+      device.pushErrorScope('out-of-memory'); device.pushErrorScope('validation');
+      let allocationError: unknown;
+      try { next = new GpuEnvironment(device, image); } catch (error) { allocationError = error; }
+      const validation = await device.popErrorScope(), memory = await device.popErrorScope();
+      if (allocationError || validation || memory) { next?.dispose(); throw allocationError ?? new Error((validation ?? memory)!.message); }
+    }
+    try { if (this.packed) next!.setScene(this.packed); next!.update(settings); }
+    catch (error) { if (replace) next?.dispose(); throw error; }
+    const old = this.environment;
+    this.environment = next; this.environmentImage = image; this.environmentSettings = structuredClone(settings);
+    if (this.scene && next) this.scene.environment = next;
+    this.invalidate(); this.resize(); this.updateGroups(); this.schedule(true);
+    if (replace) old?.dispose();
+  }
+
   async setScene(description: SceneDescription): Promise<void> {
     if (this.disposed) throw new Error("Renderer is disposed");
     const sceneRevision = ++this.sceneRevision;
@@ -241,7 +273,7 @@ export class IntersectionRenderer {
         const device = this.device;
         device.pushErrorScope("out-of-memory"); device.pushErrorScope("validation");
         let allocationError: unknown;
-        try { scene = new GpuScene(device, packed); } catch (error) { allocationError = error; }
+        try { scene = new GpuScene(device, packed, this.environment); } catch (error) { allocationError = error; }
         const [validation, memory] = await Promise.all([device.popErrorScope(), device.popErrorScope()]);
         if (allocationError || validation || memory) {
           scene?.dispose();
@@ -252,6 +284,8 @@ export class IntersectionRenderer {
       const previous = { scene: this.scene, packed: this.packed, camera: this.camera, triangles: this.stats.triangles, nodes: this.stats.nodes };
       try {
         this.packed = packed;
+        this.environment?.setScene(packed);
+        this.environment?.update(this.environmentSettings);
         if (cameraRevision === this.cameraRevision) this.camera = camera;
         this.scene = scene;
         this.stats.triangles = packed.triangleCount;
@@ -261,6 +295,8 @@ export class IntersectionRenderer {
         this.updateGroups();
       } catch (error) {
         this.scene = previous.scene; this.packed = previous.packed; this.camera = previous.camera;
+        if (previous.packed) this.environment?.setScene(previous.packed);
+        this.environment?.update(this.environmentSettings);
         this.stats.triangles = previous.triangles; this.stats.nodes = previous.nodes;
         scene?.dispose(); this.invalidate(); this.resize(); this.updateGroups();
         throw error;
@@ -642,7 +678,10 @@ export class IntersectionRenderer {
         size: this.displayParameters.arrayBuffer.byteLength,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
-      this.scene = new GpuScene(device, this.packed);
+      this.environment = new GpuEnvironment(device, this.environmentImage);
+      this.environment.setScene(this.packed);
+      this.environment.update(this.environmentSettings);
+      this.scene = new GpuScene(device, this.packed, this.environment);
       this.sobol = device.createBuffer({
         label: "Sobol directions",
         size: sobolData.byteLength,
@@ -687,7 +726,7 @@ export class IntersectionRenderer {
 
   private fixedMemoryBytes(settings: PathSettings, sceneBytes = this.scene?.bytes ?? 0): number {
     const allocation = photonAllocation(settings.photonBatchSize, settings.maxDepth);
-    return sceneBytes +
+    return sceneBytes + (this.environment?.bytes ?? GpuEnvironment.byteSize(this.environmentImage)) +
       (this.sobol?.size ?? 0) +
       (this.front ? this.front.width * this.front.height * 8 : 0) +
       1024 + TRANSPORT_QUEUE_BYTES + 12 + 2 * COMPUTE_READBACK_BYTES +
@@ -830,7 +869,7 @@ export class IntersectionRenderer {
           { binding: 1, resource: { buffer: uniform } },
           ...scene.entries(),
           { binding: 4, resource: { buffer: diagnostic } },
-          ...scene.transportEntries(),
+          ...scene.transportEntries(true),
           { binding: 7, resource: { buffer: this.sobol } },
           { binding: 8, resource: { buffer: this.accumulation } },
           scene.spectralEntry(),
@@ -843,7 +882,7 @@ export class IntersectionRenderer {
           { binding: 1, resource: { buffer: uniform } },
           ...scene.entries(),
           { binding: 4, resource: { buffer: diagnostic } },
-          ...scene.transportEntries(),
+          ...scene.transportEntries(true),
           { binding: 7, resource: { buffer: this.sobol } },
           { binding: 8, resource: { buffer: this.accumulation } },
           scene.spectralEntry(),
@@ -881,7 +920,7 @@ export class IntersectionRenderer {
     this.stats.bytes =
       this.stats.width * this.stats.height * 32 +
       this.parameters.arrayBuffer.byteLength +
-      scene.bytes +
+      scene.bytes + (this.environment?.bytes ?? 0) +
       (this.sobol?.size ?? 0) +
       displayUniform.size +
       (this.sppm?.bytes ?? 0) +
@@ -1266,7 +1305,7 @@ export class IntersectionRenderer {
       this.stats.bytes =
         this.stats.width * this.stats.height * 32 +
         this.parameters.arrayBuffer.byteLength +
-        this.scene!.bytes +
+        this.scene!.bytes + (this.environment?.bytes ?? 0) +
         (this.sobol?.size ?? 0) +
         this.displayUniform!.size +
         (this.sppm?.bytes ?? 0) +
@@ -1422,6 +1461,7 @@ export class IntersectionRenderer {
     this.texture?.destroy();
     this.uniform?.destroy();
     this.scene?.dispose();
+    this.environment?.dispose(); this.environment = undefined;
     this.diagnostic?.destroy();
     this.precisionIndirect?.destroy();
     this.precisionIndirect = undefined;

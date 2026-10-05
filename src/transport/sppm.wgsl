@@ -26,7 +26,7 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
     let hit=closestHitWithOrigin(ray,originLow);
     if(hit.error==5u && !PRECISE_TRANSPORT) {point.valid=2u;break;}
     if(hit.error!=0u) { reportTransportError(1u,1u,pixel,depth,hit.triangle,medium);break; }
-    if(hit.id==NO_HIT) { if(medium!=NO_HIT) {if(!PRECISE_TRANSPORT) {point.valid=2u;break;} reportTransportError(2u,1u,pixel,depth,NO_HIT,medium);} break; }
+    if(hit.id==NO_HIT) { if(medium!=NO_HIT) {if(!PRECISE_TRANSPORT) {point.valid=2u;break;} reportTransportError(2u,1u,pixel,depth,NO_HIT,medium);} else {point.direct+=beta*environmentRadiance(ray.direction,wavelength,depth==0u);} break; }
     // A straight ray cannot hit its own planar triangle again. Advance past
     // a residual self-hit without counting a second scattering interaction.
     if(hit.triangle==spawnedTriangle) {
@@ -53,17 +53,22 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
       }
       point.position=position; point.surface=triangle.surface; point.normal=n;
       point.weight=beta*surfaceColor(material,position,wavelength)/PI; point.valid=u32(any(point.weight>vec3f(0)));
-      if(params.lightCount>0u) {
-        let light=sampleLightAtWavelength(sample1D(params.frame,dimension,pixel,params.seed),vec2f(sample1D(params.frame,dimension+1u,pixel,params.seed),sample1D(params.frame,dimension+2u,pixel,params.seed)),params.lightCount,wavelength);
-        let delta=light.position-position; let d2=dot(delta,delta); let wi=normalize(delta);
-        let cosine=max(0.0,dot(n,wi)); let lightCosine=dot(light.normal,-wi);
-        if(d2>0.0&&cosine>0.0&&lightCosine>0.0) {
-          let origin=offsetSurface(triangle,hit,wi); let end=offsetOrigin(light.position,light.normal,-wi);
-          let segment=end-origin; let distance=length(segment);
-          let shadow=anyHit(Ray(origin,0.0,segment/distance,distance*(1.0-1e-6)));
+      if(params.lightCount>0u || environment.sampling.y>0.0) {
+        let light=sampleSceneLight(sample1D(params.frame,dimension,pixel,params.seed),vec2f(sample1D(params.frame,dimension+1u,pixel,params.seed),sample1D(params.frame,dimension+2u,pixel,params.seed)),params.lightCount,wavelength);
+        var wi:vec3f;var pdf:f32;var visible=true;var endpoint:vec3f;
+        if(light.padding==1.0) {wi=light.position;pdf=light.pdfArea;}
+        else {
+          let delta=light.position-position;let d2=dot(delta,delta);wi=normalize(delta);let lc=dot(light.normal,-wi);
+          visible=lc>0.0 && d2>0.0;pdf=light.pdfArea*d2/max(lc,1e-20);endpoint=offsetOrigin(light.position,light.normal,-wi);
+        }
+        let cosine=max(0.0,dot(n,wi));
+        if(visible && cosine>0.0 && pdf>0.0) {
+          let origin=offsetSurface(triangle,hit,wi);var shadowRay=Ray(origin,0.0,wi,1e20);
+          if(light.padding==0.0) {let segment=endpoint-origin;let distance=length(segment);shadowRay=Ray(origin,0.0,segment/distance,distance*(1.0-1e-6));}
+          let shadow=anyHit(shadowRay);
           if(shadow.error==5u && !PRECISE_TRANSPORT) {point.valid=2u;break;}
           if(shadow.error!=0u) {reportTransportError(1u,1u,pixel,depth,shadow.triangle,medium);}
-          if(shadow.id==NO_HIT) {point.direct+=point.weight*light.emission*cosine/(light.pdfArea*d2/lightCosine);}
+          if(shadow.id==NO_HIT) {point.direct+=point.weight*light.emission*cosine/pdf;}
         }
       }
       break;
@@ -132,16 +137,28 @@ fn tracePhoton(id:vec3u) {
   let stride=params.maxDepth+1u; let first=id.x*stride;
   for(var i=0u;i<stride;i++) {photons[first+i].valid=0u;}
   photons[first].padding=0u;
-  if(params.lightCount==0u) {return;}
+  if(params.lightCount==0u && environment.sampling.y==0.0) {return;}
   // Global index within the iteration; batch partition never changes samples.
   let index=sppm.batchStart+id.x; let seed=params.seed^hash32(sppm.iteration+0x51eedu); let stream=0x70686f74u;
   let wavelength=iterationWavelength().wavelength;
-  let light=sampleLightAtWavelength(sample1D(index,0u,stream,seed),vec2f(sample1D(index,1u,stream,seed),sample1D(index,2u,stream,seed)),params.lightCount,wavelength);
-  let direction=cosineDirection(light.normal,vec2f(sample1D(index,3u,stream,seed),sample1D(index,4u,stream,seed)));
-  var beta=light.emission*PI/light.pdfArea;
-  var ray=Ray(offsetOrigin(light.position,light.normal,direction),0.0,direction,1e20);
+  var ray:Ray; var beta:vec3f;
+  let p=environment.sampling.y;
+  if(p>0.0 && sample1D(index,0u,stream^0x656e766du,seed)<p) {
+    let light=sampleEnvironment(environmentRandom(index,0u,stream^0x12345678u,seed),wavelength);
+    let radius=environment.bounds.w;
+    let diskRadius=radius*sqrt(sample1D(index,3u,stream,seed));let angle=2.0*PI*sample1D(index,4u,stream,seed);
+    let helper=select(vec3f(0,1,0),vec3f(1,0,0),abs(light.direction.y)>0.9);
+    let tangent=normalize(cross(helper,light.direction));let bitangent=cross(light.direction,tangent);
+    let origin=environment.bounds.xyz+radius*light.direction+diskRadius*(cos(angle)*tangent+sin(angle)*bitangent);
+    ray=Ray(origin,0.0,-light.direction,1e20);beta=light.radiance*PI*radius*radius/(p*light.pdf);
+  } else {
+    let light=sampleLightAtWavelength(sample1D(index,0u,stream,seed),vec2f(sample1D(index,1u,stream,seed),sample1D(index,2u,stream,seed)),params.lightCount,wavelength);
+    let direction=cosineDirection(light.normal,vec2f(sample1D(index,3u,stream,seed),sample1D(index,4u,stream,seed)));
+    beta=light.emission*PI/(light.pdfArea*(1.0-p));
+    ray=Ray(offsetOrigin(light.position,light.normal,direction),0.0,direction,1e20);
+  }
   var originLow=vec3f(0);
-  var media:MediumSet;var medium=NO_HIT;var previous=light.position;
+  var media:MediumSet;var medium=NO_HIT;var previous=ray.origin;
   var crossings=0u;var spawnedTriangle=NO_HIT;
   for(var depth=0u;depth<=params.maxDepth;) {
     crossings++;

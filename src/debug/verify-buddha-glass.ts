@@ -86,7 +86,7 @@ ${sppmReplay ? "" : "@group(0) @binding(1) var<uniform> params: CameraParams;"}
         { binding: 1, resource: { buffer: uniform } },
         ...(sppmReplay ? [{binding:4,resource:{buffer:diagnostic}}] : []),
         ...gpu.entries(),
-        ...gpu.transportEntries(),
+        ...gpu.transportEntries(true),
         gpu.spectralEntry(),
         { binding: 7, resource: { buffer: sobol } },
       ],

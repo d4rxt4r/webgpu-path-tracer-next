@@ -92,15 +92,19 @@ fn sampleEditedDielectric(material: Material, direction: vec3f, ng: vec3f, ns: v
 }
 struct RoughLight { radiance: vec3f, error: u32 }
 fn roughDirect(material: Material, position: vec3f, triangle: Triangle, hit: Hit, wo: vec3f, ng: vec3f, ns: vec3f, eta: f32, wavelength: f32, light: LightSample, strategy: u32) -> RoughLight {
-  let delta=light.position-position;let d2=dot(delta,delta);if(d2<=0.0) {return RoughLight(vec3f(0),0u);}
-  let wi=normalize(delta);let lc=dot(light.normal,-wi);if(lc<=0.0) {return RoughLight(vec3f(0),0u);}
+  var wi:vec3f;var pdf:f32;var endpoint:vec3f;
+  if(light.padding==1.0) {wi=light.position;pdf=light.pdfArea;}
+  else {
+    let delta=light.position-position;let d2=dot(delta,delta);if(d2<=0.0) {return RoughLight(vec3f(0),0u);}
+    wi=normalize(delta);let lc=dot(light.normal,-wi);if(lc<=0.0) {return RoughLight(vec3f(0),0u);}
+    pdf=light.pdfArea*d2/lc;endpoint=offsetOrigin(light.position,light.normal,-wi);
+  }
   let evaluated=roughDielectricEval(material,wo,wi,ng,ns,eta,wavelength,false);
-  if(evaluated.pdf<=0.0) {return RoughLight(vec3f(0),0u);}
-  let origin=offsetSurface(triangle,hit,wi);let end=offsetOrigin(light.position,light.normal,-wi);
-  let segment=end-origin;let distance=length(segment);
-  let shadow=anyHit(Ray(origin,0.0,segment/distance,distance*(1.0-1e-6)));
+  if(evaluated.pdf<=0.0 || pdf<=0.0) {return RoughLight(vec3f(0),0u);}
+  let origin=offsetSurface(triangle,hit,wi);var shadowRay=Ray(origin,0.0,wi,1e20);
+  if(light.padding==0.0) {let segment=endpoint-origin;let distance=length(segment);shadowRay=Ray(origin,0.0,segment/distance,distance*(1.0-1e-6));}
+  let shadow=anyHit(shadowRay);
   if(shadow.error!=0u || shadow.id!=NO_HIT) {return RoughLight(vec3f(0),shadow.error);}
-  let pdf=light.pdfArea*d2/lc;
   let weight=select(1.0,powerHeuristic(pdf,evaluated.pdf),strategy==0u);
   return RoughLight(evaluated.f*light.emission*abs(dot(ns,wi))*weight/pdf,0u);
 }

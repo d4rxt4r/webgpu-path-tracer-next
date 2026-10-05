@@ -41,7 +41,7 @@ export async function verifyPlate(inside = false) {
         output[id.x] = vec4f(value.radiance, f32(value.error));
       }`, 'absorbing parallel plate');
     const pipeline = await device.createComputePipelineAsync({ layout: 'auto', compute: { module, entryPoint: 'main' } });
-    const group = device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: output } }, ...gpu.entries(), ...gpu.transportEntries(), { binding: 7, resource: { buffer: sobol } }, gpu.spectralEntry()] });
+    const group = device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: output } }, ...gpu.entries(), ...gpu.transportEntries(true), { binding: 7, resource: { buffer: sobol } }, gpu.spectralEntry()] });
     const encoder = device.createCommandEncoder(), pass = encoder.beginComputePass();
     pass.setPipeline(pipeline); pass.setBindGroup(0, group); pass.dispatchWorkgroups(count / 64); pass.end();
     encoder.copyBufferToBuffer(output, 0, readback, 0, count * 16); device.queue.submit([encoder.finish()]);

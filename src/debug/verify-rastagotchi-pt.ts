@@ -66,7 +66,7 @@ export async function verifyRastagotchiPt(guard = true, count = 64, start = 9273
     const pipeline = await device.createComputePipelineAsync({ layout: "auto", compute: { module, entryPoint: "main" } });
     const group = device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries: [
       { binding: 0, resource: { buffer: output } }, { binding: 1, resource: { buffer: camera } },
-      ...gpu.entries(), ...gpu.transportEntries(), { binding: 7, resource: { buffer: sobol } }, gpu.spectralEntry(),
+      ...gpu.entries(), ...gpu.transportEntries(true), { binding: 7, resource: { buffer: sobol } }, gpu.spectralEntry(),
       { binding: 4, resource: { buffer: trace } },
     ] });
     const encoder = device.createCommandEncoder(), pass = encoder.beginComputePass();

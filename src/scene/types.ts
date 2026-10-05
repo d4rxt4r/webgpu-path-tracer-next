@@ -1,3 +1,4 @@
+import type { EnvironmentSettings } from './environment';
 export type Vec3 = [number, number, number];
 export interface CameraDescription {
   position: Vec3;
@@ -13,6 +14,7 @@ export interface MeshData {
   shells?: Uint32Array;
 }
 export interface SceneObject {
+  visible?: boolean;
   mesh: number;
   material: number;
   transform: number[];
@@ -51,6 +53,7 @@ export interface AreaLightDescription {
   object: number;
 }
 export interface SceneDescription {
+  environment?: EnvironmentSettings;
   version: 1;
   meshes: MeshData[];
   objects: SceneObject[];

@@ -63,7 +63,7 @@ export async function verifySppmPrism() {
     for(const dispersive of [true,false]) {
       scene.materials[0]!.type==='dielectric'&&(scene.materials[0]!.iorModel=dispersive?'nbk7':'constant');
       const bvh=buildBvh(bakeTriangles(scene)),packed={...packBvh(bvh),...packTransport(scene,bvh)};gpu?.dispose();gpu=new GpuScene(device,packed);
-      const group=device.createBindGroup({layout:pipeline.getBindGroupLayout(0),entries:[binding(1,params),...gpu.entries(),binding(4,error),...gpu.transportEntries(),binding(7,sobol),gpu.spectralEntry(),binding(11,settings),binding(21,photons)]});
+      const group=device.createBindGroup({layout:pipeline.getBindGroupLayout(0),entries:[binding(1,params),...gpu.entries(),binding(4,error),...gpu.transportEntries(true),binding(7,sobol),gpu.spectralEntry(),binding(11,settings),binding(21,photons)]});
       const projections:Map<number,Vec3>[]=[];
       for(let w=0;w<2;w++) {
         const wavelength=wavelengths[w]!,ior=nbk7Ior(dispersive?wavelength:587.6);

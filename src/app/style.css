@@ -252,6 +252,15 @@ details[open] summary {
   display: grid;
   gap: 10px;
 }
+#environment-settings:not([hidden]),
+#hdr-settings:not([hidden]) {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+#hdr-status:empty {
+  display: none;
+}
 .field {
   display: grid;
   grid-template-columns: 106px minmax(0, 1fr);

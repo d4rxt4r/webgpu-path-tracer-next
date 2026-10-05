@@ -42,7 +42,7 @@ export async function verifyShells(precise = true) {
         const shells=cameraShells(packed,scene.camera.position),initialShells=new Uint32Array(32);initialShells.set(shells);
         cameraView.set({eye:[...scene.camera.position,0],padding1:shells.length,initialShells});
         device.queue.writeBuffer(camera,0,cameraView.arrayBuffer);
-        const group=device.createBindGroup({layout:pipeline.getBindGroupLayout(0),entries:[{binding:0,resource:{buffer:output}},{binding:1,resource:{buffer:camera}},...gpu.entries(),...gpu.transportEntries(),{binding:7,resource:{buffer:sobol}},gpu.spectralEntry()]});
+        const group=device.createBindGroup({layout:pipeline.getBindGroupLayout(0),entries:[{binding:0,resource:{buffer:output}},{binding:1,resource:{buffer:camera}},...gpu.entries(),...gpu.transportEntries(true),{binding:7,resource:{buffer:sobol}},gpu.spectralEntry()]});
         const encoder=device.createCommandEncoder(),pass=encoder.beginComputePass();pass.setPipeline(pipeline);pass.setBindGroup(0,group);pass.dispatchWorkgroups(count/64);pass.end();
         encoder.copyBufferToBuffer(output,0,readback,0,count*16);device.queue.submit([encoder.finish()]);
         await readback.mapAsync(GPUMapMode.READ);const data=new Float32Array(readback.getMappedRange()).slice();readback.unmap();

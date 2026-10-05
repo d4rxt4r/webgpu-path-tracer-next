@@ -5,6 +5,7 @@ import debug from "./debug.wgsl?raw";
 import sampler from "./sampler.wgsl?raw";
 import lighting from "./lighting.wgsl?raw";
 import textures from "./textures.wgsl?raw";
+import environment from "./environment.wgsl?raw";
 import tracer from "./path-tracer.wgsl?raw";
 import media from "./media.wgsl?raw";
 import dielectric from "./dielectric.wgsl?raw";
@@ -33,6 +34,6 @@ export const pathCore =
   "\n" +
   media +
   "\n" +
-  tracer;
+  environment + "\n" + tracer;
 export const pathShader = pathCore + "\n" + color + "\n" + diagnostics + "\n" + output;
 export const displayShader = layouts + "\n" + color + "\n" + display;

@@ -148,7 +148,7 @@ export async function verifyTransport(coated = false, rough = false) {
         { binding: 0, resource: { buffer: output } },
         { binding: 1, resource: { buffer: params } },
         ...gpuScene.entries(),
-        ...gpuScene.transportEntries(),
+        ...gpuScene.transportEntries(true),
         { binding: 7, resource: { buffer: sobol } },
         gpuScene.spectralEntry(),
       ],

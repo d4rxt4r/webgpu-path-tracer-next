@@ -58,7 +58,7 @@ export async function replayBuddhaTransport(options: {
       {binding:1,resource:{buffer:uniform}},{binding:4,resource:{buffer:diagnostic}},
       {binding:7,resource:{buffer:sobol}},{binding:21,resource:{buffer:trace}},
       ...(options.phase==="photon"?[{binding:11,resource:{buffer:batchUniform}}]:[]),
-      ...gpu.entries(),...gpu.transportEntries(),gpu.spectralEntry()]});
+      ...gpu.entries(),...gpu.transportEntries(true),gpu.spectralEntry()]});
     const encoder=device.createCommandEncoder(),pass=encoder.beginComputePass();
     pass.setPipeline(pipeline);pass.setBindGroup(0,group);pass.dispatchWorkgroups(1);pass.end();
     encoder.copyBufferToBuffer(trace,0,readback,0,trace.size);encoder.copyBufferToBuffer(diagnostic,0,readback,trace.size,64);

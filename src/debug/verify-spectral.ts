@@ -56,7 +56,7 @@ export async function verifySpectral() {
       gpu?.dispose(); const bvh = buildBvh(bakeTriangles(scene)); gpu = new GpuScene(device,{ ...packBvh(bvh), ...packTransport(scene,bvh) });
       const active = prism ? prismPipeline : pipeline, size = prism ? 256 : count;
       device.queue.writeBuffer(params,0,new Uint32Array([size,1,mode,0]));
-      const group = device.createBindGroup({ layout:active.getBindGroupLayout(0), entries:[{binding:0,resource:{buffer:output}},{binding:1,resource:{buffer:params}},...gpu.entries(), ...(prism ? [{binding:5,resource:{buffer:gpu.materials}}] : [...gpu.transportEntries(),{binding:7,resource:{buffer:sobol}},gpu.spectralEntry()])] });
+      const group = device.createBindGroup({ layout:active.getBindGroupLayout(0), entries:[{binding:0,resource:{buffer:output}},{binding:1,resource:{buffer:params}},...gpu.entries(), ...(prism ? [{binding:5,resource:{buffer:gpu.materials}}] : [...gpu.transportEntries(true),{binding:7,resource:{buffer:sobol}},gpu.spectralEntry()])] });
       const encoder = device.createCommandEncoder(), pass = encoder.beginComputePass(); pass.setPipeline(active); pass.setBindGroup(0,group); pass.dispatchWorkgroups(Math.ceil(size/64)); pass.end();
       encoder.copyBufferToBuffer(output,0,readback,0,size*16); device.queue.submit([encoder.finish()]);
       await readback.mapAsync(GPUMapMode.READ); const data = new Float32Array(readback.getMappedRange().slice(0,size*16)); readback.unmap(); return data;

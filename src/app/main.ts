@@ -1,3 +1,4 @@
+import { applyArrangement, setupEnvironment } from './environment-ui';
 import { applyMaterialEditor, baseMaterial, initializeMaterialEditor, materialControlIds, materialMetadata, syncMaterialEditor, textureMemory } from "./material-editor";
 import { builtinModels, isBuiltinModel, loadBuiltinObj, type BuiltinObj } from "../assets/builtin-obj";
 import type { RepairedObj } from "../assets/mesh-repair";
@@ -108,7 +109,7 @@ function currentModelIsSolid(): boolean {
   return true;
 }
 function syncObjectScale(): void {
-  const max = selectInput("scene").value === "buddha" ? 1.15 : 1.4;
+  const max = selectInput("scene-layout").value === "open" ? 10 : selectInput("scene").value === "buddha" ? 1.15 : 1.4;
   input("object-scale").max = input("object-scale-value").max = String(max);
   input("object-scale").value = String(Math.min(max, value("object-scale")));
 }
@@ -192,6 +193,12 @@ function syncSettings(): void {
   syncRanges();
 }
 syncSettings();
+if (query.get('settings') === '1' && query.get('scene-layout') === 'open') {
+  for (const id of ['object-x', 'object-y', 'object-z', 'object-scale']) for (const suffix of ['', '-value']) {
+    input(id + suffix).min = id === 'object-scale' ? '.01' : '-10';
+    input(id + suffix).max = '10';
+  }
+}
 const linkedCamera = restoreSettingsLink(document, query, description.camera);
 const hasSharedSettings = linkedCamera !== undefined;
 if (linkedCamera) {
@@ -361,7 +368,7 @@ async function start(): Promise<void> {
   };
   const textures = textureMemory();
   let committedTextures = textures.capture();
-  const sceneFields = ["scene", "material", ...sceneControlIds.filter(id => id !== "absorption"), ...textureControlIds, ...materialControlIds];
+  const sceneFields = ["scene-layout", "ground", "area-light", "scene", "material", ...sceneControlIds.filter(id => id !== "absorption"), ...textureControlIds, ...materialControlIds];
   const captureSceneUi = () => Object.fromEntries(sceneFields.map(id => { const control = document.getElementById(id) as HTMLInputElement; return [id, control.type === "checkbox" ? control.checked : control.value]; }));
   let committedUi = captureSceneUi();
   let committedRepair = input("repair-obj").checked;
@@ -408,7 +415,8 @@ async function start(): Promise<void> {
         if (surface.type === "dielectric") surface.thin = !uploadedObj.solid;
       }
       const controls = Object.fromEntries(sceneControlIds.map(id => [id, id === "absorption" ? 1 : value(id)])) as SceneControls;
-      applySceneControls(scene, controls);
+      applySceneControls(scene, controls, selectInput("scene-layout").value !== "open");
+      applyArrangement(scene);
       applyTextureControls(scene, Object.fromEntries(textureControlIds.map(id => [id, value(id)])) as TextureControls);
       applyMaterialEditor(scene, selected === "uploaded" ? uploadedObj!.solid : builtin?.solid ?? true);
       scene.camera = currentCamera;
@@ -445,6 +453,7 @@ async function start(): Promise<void> {
       80,
     );
   };
+  const environmentUi = setupEnvironment(renderer, queueScene, showError);
   input("repair-obj").addEventListener("change", queueScene);
   button("import-obj").addEventListener("click", () => input("obj-file").click());
   input("obj-file").addEventListener("change", async () => {
@@ -674,6 +683,7 @@ async function start(): Promise<void> {
               JSON.stringify(
                 {
                   ...metadata,
+                  environment: environmentUi.metadata(),
                   scene: sceneName,
                   importedObject: sceneName === "uploaded" && uploadedObj ? { filename: uploadedObj.name, triangles: uploadedObj.triangles, solid: uploadedObj.solid, shells: uploadedObj.shells, repairEnabled: input("repair-obj").checked, repair: input("repair-obj").checked ? uploadedObj.repaired?.repair : undefined, glassMode: material === "dielectric" ? materialMetadata(currentModelIsSolid()).actualMode : undefined } : undefined,
                   builtinObject: isBuiltinModel(sceneName) && currentBuiltinModel ? { source: builtinModels[sceneName].source, skippedDegenerateTriangles: currentBuiltinModel.skippedDegenerateTriangles, triangles: currentBuiltinModel.triangles, shells: currentBuiltinModel.shells, solid: currentBuiltinModel.solid, repairEnabled: input("repair-obj").checked, repair: currentBuiltinModel.repair } : undefined,
@@ -739,6 +749,7 @@ async function start(): Promise<void> {
       objImporter.cancel();
       observer.disconnect();
       orbit.dispose();
+      environmentUi.dispose();
       renderer.dispose();
     }
   });
@@ -759,12 +770,14 @@ async function start(): Promise<void> {
     const initialDescription = controlScene ? hasSharedSettings ? cornellScene(material) : description : initialScene === "buddha" ? await buddhaScene(material, currentBuiltinModel) : await presentationScene(material, currentBuiltinModel);
     if (hasSharedSettings) {
       const controls = Object.fromEntries(sceneControlIds.map(id => [id, id === "absorption" ? 1 : value(id)])) as SceneControls;
-      applySceneControls(initialDescription, controls);
+      applySceneControls(initialDescription, controls, selectInput("scene-layout").value !== "open");
       applyTextureControls(initialDescription, Object.fromEntries(textureControlIds.map(id => [id, value(id)])) as TextureControls);
       initialDescription.camera = currentCamera;
       for (const id of ["object-x", "object-y", "object-z"] as const) input(id).value = String(controls[id]);
     }
     applyMaterialEditor(initialDescription, currentBuiltinModel?.solid ?? true);
+    applyArrangement(initialDescription);
+    await environmentUi.initialize();
     await renderer.setScene(initialDescription);
     await renderer.initialize();
     ready = true;

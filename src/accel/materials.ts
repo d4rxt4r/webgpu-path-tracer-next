@@ -212,7 +212,7 @@ export function packTransport(
   // Every emitter must participate in both light and BSDF estimates.
   for (const [i, object] of description.objects.entries())
     if (
-      isEmitter(description.materials[object.material]?.type) &&
+      object.visible !== false && isEmitter(description.materials[object.material]?.type) &&
       !objects.has(i)
     )
       throw new Error("Emissive object missing from area lights");

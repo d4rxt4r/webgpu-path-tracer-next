@@ -7,6 +7,8 @@ export function createSettingsLink(root: ParentNode, address: string, camera: Ca
   const fields = controls(root);
   if (fields.find(field => field.id === "scene")?.value === "uploaded")
     throw new Error("Для ссылки выберите предустановленный объект: локальный OBJ не передаётся через URL.");
+  if (fields.find(field => field.id === "environment-source")?.value === "hdr" && fields.find(field => field.id === "environment-map")?.value === "uploaded")
+    throw new Error("Для ссылки выберите HDR-пресет: локальный HDR не передаётся через URL.");
   const url = new URL(address);
   url.search = "";
   url.hash = "";

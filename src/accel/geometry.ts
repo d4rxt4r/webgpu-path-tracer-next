@@ -6,6 +6,7 @@ export function bakeTriangles(scene: SceneDescription): Triangle[] {
   const triangles: Triangle[] = [];
   let boundaryOffset = 1;
   for (const [surface, object] of scene.objects.entries()) {
+    if (object.visible === false) continue;
     const mesh = scene.meshes[object.mesh];
     if (!mesh || !scene.materials[object.material])
       throw new Error("Invalid mesh or material index");

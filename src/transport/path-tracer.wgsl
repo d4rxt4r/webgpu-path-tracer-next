@@ -16,6 +16,12 @@ fn tracePathWithMedia(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, max
     if (hit.error != 0u) { return PathResult(vec3f(0), hit.error, interactions); }
     if (hit.id == NO_HIT) {
       if (medium != NO_HIT) { return PathResult(vec3f(0), 4u, interactions); }
+      var weight=1.0;
+      if(depth>0u && !previousDelta) {
+        if(strategy==0u) {weight=powerHeuristic(previousPdf,environmentPdf(ray.direction)*environment.sampling.y);}
+        else if(strategy==1u) {weight=0.0;}
+      }
+      radiance+=beta*environmentRadiance(ray.direction,wavelength,depth==0u)*weight;
       break;
     }
     crossings++;
@@ -43,7 +49,7 @@ fn tracePathWithMedia(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, max
       if (dot(ng, -ray.direction) > 0.0) {
         var weight = 1.0;
         if (depth > 0u && !previousDelta) {
-          if (strategy == 0u) { weight = powerHeuristic(previousPdf, lightPdf(lightPosition, position, triangle.id, lightCount)); }
+          if (strategy == 0u) { weight = powerHeuristic(previousPdf, lightPdf(lightPosition, position, triangle.id, lightCount)*(1.0-environment.sampling.y)); }
           else if (strategy == 1u) { weight = 0.0; }
         }
         radiance += beta * surfaceEmission(material, position, wavelength) * weight;
@@ -57,8 +63,8 @@ fn tracePathWithMedia(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, max
       if(!PRECISE_TRANSPORT && needsPreciseOrigin(ray,triangle,hit)) {return PathResult(vec3f(0),5u,interactions);}
       let ns0=shadingNormal(triangle,hit);let ns=select(ns0,-ns0,dot(ns0,n)<0.0);
       let eta=materialIor(material,wavelength);
-      if(material.textureParams.x>0.0 && strategy!=2u && lightCount>0u) {
-        let light=sampleLightAtWavelength(sample1D(sampleIndex,dimension,pixel,seed),vec2f(sample1D(sampleIndex,dimension+1u,pixel,seed),sample1D(sampleIndex,dimension+2u,pixel,seed)),lightCount,wavelength);
+      if(material.textureParams.x>0.0 && strategy!=2u && (lightCount>0u || environment.sampling.y>0.0)) {
+        let light=sampleSceneLight(sample1D(sampleIndex,dimension,pixel,seed),vec2f(sample1D(sampleIndex,dimension+1u,pixel,seed),sample1D(sampleIndex,dimension+2u,pixel,seed)),lightCount,wavelength);
         let direct=roughDirect(material,position,triangle,hit,-ray.direction,n,ns,eta,wavelength,light,strategy);
         if(direct.error!=0u) {return PathResult(vec3f(0),direct.error,interactions);}
         radiance+=beta*direct.radiance;
@@ -90,8 +96,8 @@ fn tracePathWithMedia(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, max
       if(depth==maxDepth) {break;}
       let ns = shadingNormal(triangle, hit);
       let orientedShading = select(-ns, ns, entering);
-      if(material.textureParams.x>0.0 && strategy!=2u && lightCount>0u) {
-        let light=sampleLightAtWavelength(sample1D(sampleIndex,dimension,pixel,seed),vec2f(sample1D(sampleIndex,dimension+1u,pixel,seed),sample1D(sampleIndex,dimension+2u,pixel,seed)),lightCount,wavelength);
+      if(material.textureParams.x>0.0 && strategy!=2u && (lightCount>0u || environment.sampling.y>0.0)) {
+        let light=sampleSceneLight(sample1D(sampleIndex,dimension,pixel,seed),vec2f(sample1D(sampleIndex,dimension+1u,pixel,seed),sample1D(sampleIndex,dimension+2u,pixel,seed)),lightCount,wavelength);
         let direct=roughDirect(material,position,triangle,hit,-ray.direction,n,orientedShading,eta,wavelength,light,strategy);
         if(direct.error!=0u) {return PathResult(vec3f(0),direct.error,interactions);}
         radiance+=beta*direct.radiance;
@@ -112,17 +118,20 @@ fn tracePathWithMedia(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, max
       depth++;crossings=0u;continue;
     }
     let coating=coatingProbability(material);
-    if (strategy != 2u && lightCount > 0u) {
-      let light = sampleLightAtWavelength(sample1D(sampleIndex, dimension, pixel, seed), vec2f(sample1D(sampleIndex, dimension + 1u, pixel, seed), sample1D(sampleIndex, dimension + 2u, pixel, seed)), lightCount, wavelength);
-      let delta = light.position - position; let distanceSquared = dot(delta, delta);
-      let wi = normalize(delta); let cosine = max(0.0, dot(n, wi)); let lightCosine = dot(light.normal, -wi);
-      if (cosine > 0.0 && lightCosine > 0.0 && distanceSquared > 0.0) {
-        let pdf = light.pdfArea * distanceSquared / lightCosine;
-        // Offset both endpoints. Glass is not treated as an opacity shadow pass.
-        let origin = offsetSurface(triangle,hit,wi);
-        let lightEndpoint = offsetOrigin(light.position, light.normal, -wi);
-        let segment = lightEndpoint - origin; let distance = length(segment);
-        let shadow = anyHit(Ray(origin, 0.0, segment / distance, distance * (1.0 - 1e-6)));
+    if (strategy != 2u && (lightCount > 0u || environment.sampling.y>0.0)) {
+      let light = sampleSceneLight(sample1D(sampleIndex, dimension, pixel, seed), vec2f(sample1D(sampleIndex, dimension + 1u, pixel, seed), sample1D(sampleIndex, dimension + 2u, pixel, seed)), lightCount, wavelength);
+      var wi:vec3f;var pdf:f32;var visible=true;var endpoint:vec3f;
+      if(light.padding==1.0) {wi=light.position;pdf=light.pdfArea;}
+      else {
+        let delta=light.position-position;let d2=dot(delta,delta);wi=normalize(delta);let lc=dot(light.normal,-wi);
+        visible=lc>0.0 && d2>0.0;pdf=light.pdfArea*d2/max(lc,1e-20);
+        endpoint=offsetOrigin(light.position,light.normal,-wi);
+      }
+      let cosine=max(0.0,dot(n,wi));
+      if(cosine>0.0 && visible && pdf>0.0) {
+        let origin=offsetSurface(triangle,hit,wi);var shadowRay=Ray(origin,0.0,wi,1e20);
+        if(light.padding==0.0) {let segment=endpoint-origin;let distance=length(segment);shadowRay=Ray(origin,0.0,segment/distance,distance*(1.0-1e-6));}
+        let shadow=anyHit(shadowRay);
         if (shadow.error != 0u) { return PathResult(vec3f(0), shadow.error, interactions); }
         if (shadow.id == NO_HIT) {
           let weight = select(1.0, powerHeuristic(pdf, (1.0-coating)*cosine / PI), strategy == 0u);

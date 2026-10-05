@@ -55,6 +55,7 @@ export function applyTextureControls(
 export function applySceneControls(
   scene: SceneDescription,
   v: SceneControls,
+  clampRoom = true,
 ): void {
   const transform = mat4.create();
   mat4.rotateZ(transform, transform, ((v["object-rotation-z"] ?? 0) * Math.PI) / 180);
@@ -90,8 +91,8 @@ export function applySceneControls(
     const low =
         Math.ceil(((axis === 1 ? 0.001 : -0.999) - min[axis]!) * 100) / 100,
       high = Math.floor(((axis === 1 ? 1.98 : 0.999) - max[axis]!) * 100) / 100;
-    if (low > high) throw new Error("Object does not fit inside the room");
-    v[id] = Math.min(high, Math.max(low, v[id]));
+    if (clampRoom && low > high) throw new Error("Object does not fit inside the room");
+    if (clampRoom) v[id] = Math.min(high, Math.max(low, v[id]));
     transform[12 + axis] = v[id];
   }
   scene.objects[6]!.transform = Array.from(transform);
