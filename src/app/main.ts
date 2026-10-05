@@ -1,3 +1,5 @@
+import { attachSettingsHelp } from "./settings-help";
+import { attachMiddleReset } from "./settings-reset";
 import "./style.css";
 import { renderEditor } from "./editor-ui";
 import { createDevice } from "../gpu/device";
@@ -6,7 +8,7 @@ import type { SphereMaterial } from "../scene/cornell";
 import { presentationScene } from "../scene/presentation";
 import { buddhaScene } from "../scene/buddha";
 import { attachOrbit } from "./orbit";
-import { profiles } from "./profiles";
+import { profiles, qualityProfile } from "./profiles";
 import type { Profile } from "./profiles";
 import type { PathSettings, DebugView } from "../render/intersection-renderer";
 import { download, encodePfm } from "./export";
@@ -38,6 +40,7 @@ const initialMaterial: SphereMaterial =
         : "blue-glass";
 document.querySelector<HTMLDivElement>("#app")!.innerHTML =
   renderEditor(controlScene);
+attachSettingsHelp();
 
 const input = (id: string): HTMLInputElement =>
   document.querySelector<HTMLInputElement>(`#${id}`)!;
@@ -122,6 +125,8 @@ function syncSettings(): void {
   selectInput("batch").value = String(target.photonBatchSize);
   input("radius").value = String(target.initialRadius);
   input("memory-budget").value = String(target.memoryBudgetMiB);
+  const memoryProfile = selectInput("memory-profile");
+  memoryProfile.value = Array.from(memoryProfile.options).some(option => option.value === String(target.memoryBudgetMiB)) ? String(target.memoryBudgetMiB) : "custom";
   document
     .querySelectorAll<HTMLButtonElement>("[data-profile]")
     .forEach((b) =>
@@ -262,7 +267,13 @@ async function start(): Promise<void> {
   let currentCamera = description.camera,
     sceneRevision = 0;
   const applyTarget = (): void => {
-    if (!interacting) renderer.setSettings(target);
+    // Explicit edits take effect immediately, including during camera preview.
+    renderer.setSettings(target);
+    if (interacting) {
+      clearTimeout(idleTimer);
+      interacting = false;
+      renderer.setInteracting(false);
+    }
     syncSettings();
   };
   const applyDisplay = (): void => {
@@ -394,13 +405,22 @@ async function start(): Promise<void> {
     queueScene();
   });
   selectInput("profile").addEventListener("change", () => {
+    const previous = target, previousProfile = profile, previousDenoiser = input("denoiser").checked;
     profile = selectInput("profile").value as Profile;
-    if (profile !== "custom") {
-      target = { ...target, ...profiles[profile] };
-      input("denoiser").checked = profile === "quality";
+    try {
+      if (profile !== "custom") {
+        target = { ...target, ...profiles[profile] };
+        input("denoiser").checked = qualityProfile(profile);
+      }
+      applyTarget();
       applyDisplay();
+    } catch (error) {
+      target = previous;
+      profile = previousProfile;
+      input("denoiser").checked = previousDenoiser;
+      syncSettings();
+      showError(error);
     }
-    applyTarget();
   });
   document.querySelectorAll<HTMLButtonElement>("[data-profile]").forEach((b) =>
     b.addEventListener("click", () => {
@@ -435,21 +455,24 @@ async function start(): Promise<void> {
             key === "mode" || key === "integrator" || key === "strategy"
               ? control.value
               : Number(control.value);
-          const previous = target;
+          const previous = target, previousProfile = profile;
           target = { ...target, [key]: next };
           profile = "custom";
           try {
             applyTarget();
           } catch (error) {
             target = previous;
+            profile = previousProfile;
             syncSettings();
             showError(error);
           }
         },
       );
   selectInput("memory-profile").addEventListener("change", () => {
-    target.memoryBudgetMiB = Number(selectInput("memory-profile").value);
-    applyTarget();
+    const selected = selectInput("memory-profile").value;
+    if (selected === "custom") return;
+    input("memory-budget").value = selected;
+    input("memory-budget").dispatchEvent(new Event("input"));
   });
   input("auto-preview").addEventListener("change", () => {
     if (!input("auto-preview").checked) settle();
@@ -522,6 +545,7 @@ async function start(): Promise<void> {
       slider.dispatchEvent(new Event("input"));
     });
   }
+  attachMiddleReset(controlScene);
   button("reset").addEventListener("click", () => orbit.reset());
   button("restart").addEventListener("click", () =>
     renderer.setCamera(currentCamera),

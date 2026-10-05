@@ -277,9 +277,52 @@ details[open] summary {
   grid-template-columns: 1fr 1fr;
   gap: 6px;
 }
-.export-buttons button:last-child {
+.export-buttons > :last-child {
   grid-column: 1/-1;
 }
+.setting-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.setting-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border: 1px solid #777e8f;
+  border-radius: 50%;
+  color: #aeb5c4;
+  font-size: 11px;
+  cursor: help;
+  user-select: none;
+}
+.setting-info:hover,
+.setting-info:focus-visible {
+  color: #fff;
+  border-color: #b9caff;
+  outline: 2px solid #6079bb;
+  outline-offset: 2px;
+}
+.settings-tooltip {
+  position: fixed;
+  z-index: 1000;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 16px));
+  padding: 10px 12px;
+  border: 1px solid #69758c;
+  border-radius: 6px;
+  background: #202631;
+  color: #e0e6f0;
+  font-size: 12px;
+  line-height: 1.5;
+  box-shadow: 0 4px 20px #0008;
+  pointer-events: none;
+}
+.settings-tooltip[hidden] { display: none; }
 #error {
   position: absolute;
   inset: 50px 20px auto;

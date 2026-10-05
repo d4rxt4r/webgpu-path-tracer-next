@@ -25,9 +25,9 @@ export async function createDevice(): Promise<DeviceInfo> {
     requiredLimits: {
       maxStorageBufferBindingSize: Math.min(
         adapter.limits.maxStorageBufferBindingSize,
-        256 * 1048576,
+        2048 * 1048576,
       ),
-      maxBufferSize: Math.min(adapter.limits.maxBufferSize, 256 * 1048576),
+      maxBufferSize: Math.min(adapter.limits.maxBufferSize, 2048 * 1048576),
     },
   });
   const info = adapter.info;

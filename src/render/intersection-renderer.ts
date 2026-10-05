@@ -1,3 +1,4 @@
+import { settingsLimits, photonAllocation, checkPhotonLimits } from "./settings-limits";
 import { fastTransportShader } from "../transport/fast-source";
 import { debugShader, pathShader, displayShader } from "../transport/shaders";
 import { checkedShader, createDevice } from "../gpu/device";
@@ -285,10 +286,10 @@ export class IntersectionRenderer {
       !["pt", "sppm"].includes(next.integrator) ||
       !Number.isInteger(next.photonsPerIteration) ||
       next.photonsPerIteration < 1 ||
-      next.photonsPerIteration > 1048576 ||
+      next.photonsPerIteration > settingsLimits.maxPhotons ||
       !Number.isInteger(next.photonBatchSize) ||
       next.photonBatchSize < 1 ||
-      next.photonBatchSize > 4096 ||
+      next.photonBatchSize > settingsLimits.maxPhotonBatch ||
       !Number.isFinite(next.initialRadius) ||
       next.initialRadius < 0.0001 ||
       next.initialRadius > 0.5
@@ -302,17 +303,17 @@ export class IntersectionRenderer {
     if (
       !Number.isInteger(next.maxDepth) ||
       next.maxDepth < 1 ||
-      next.maxDepth > 64 ||
+      next.maxDepth > settingsLimits.maxDepth ||
       !Number.isInteger(next.seed) ||
       next.seed < 0 ||
       next.seed > 0xffffffff ||
       !["mis", "light", "bsdf"].includes(next.strategy) ||
       !Number.isInteger(next.maxPixels) ||
       next.maxPixels < 1 ||
-      next.maxPixels > 1920 * 1080 ||
+      next.maxPixels > settingsLimits.maxPixels ||
       !Number.isFinite(next.memoryBudgetMiB) ||
-      next.memoryBudgetMiB < 64 ||
-      next.memoryBudgetMiB > 384
+      next.memoryBudgetMiB < settingsLimits.minMemoryMiB ||
+      next.memoryBudgetMiB > settingsLimits.maxMemoryMiB
     )
       throw new Error("Invalid path tracing settings");
     if (
@@ -323,6 +324,12 @@ export class IntersectionRenderer {
       )
     )
       return;
+    if (this.device) {
+      if (next.integrator === "sppm")
+        checkPhotonLimits(next.photonBatchSize, next.maxDepth, this.device.limits);
+      if (this.fixedMemoryBytes(next) + 88 + (next.integrator === "sppm" ? SPPM_POINT_BYTES : 0) > next.memoryBudgetMiB * 1048576)
+        throw new Error("Сцена и фотонный пакет превышают бюджет памяти. Увеличьте бюджет или уменьшите пакет.");
+    }
     this.settings = next;
     if (next.integrator !== "sppm") this.photonDensity = false;
     this.invalidate();
@@ -645,6 +652,16 @@ export class IntersectionRenderer {
     this.schedule();
   }
 
+  private fixedMemoryBytes(settings: PathSettings): number {
+    const allocation = photonAllocation(settings.photonBatchSize, settings.maxDepth);
+    return (this.scene?.bytes ?? 0) +
+      (this.sobol?.size ?? 0) +
+      (this.front ? this.front.width * this.front.height * 8 : 0) +
+      1024 + TRANSPORT_QUEUE_BYTES + 12 + 2 * COMPUTE_READBACK_BYTES +
+      (this.packetUniforms?.bytes ?? 0) +
+      (settings.integrator === "sppm" ? allocation.photons + allocation.heads : 0);
+  }
+
   resize(): void {
     const device = this.device;
     if (
@@ -656,18 +673,10 @@ export class IntersectionRenderer {
     )
       return;
     const rect = this.canvas.getBoundingClientRect();
+    // Reserve the next presentation texture as well as a retained previous frame.
     const perPixel =
-      80 + (this.settings.integrator === "sppm" ? SPPM_POINT_BYTES : 0);
-    const slots = this.settings.photonBatchSize * (this.settings.maxDepth + 1);
-    const fixed =
-      (this.scene?.bytes ?? 0) +
-      (this.sobol?.size ?? 0) +
-      (this.front ? this.front.width * this.front.height * 8 : 0) +
-      1024 + TRANSPORT_QUEUE_BYTES + 12 +
-      (this.packetUniforms?.bytes ?? 0) +
-      (this.settings.integrator === "sppm"
-        ? slots * 64 + 2 ** Math.ceil(Math.log2(slots * 2)) * 4
-        : 0);
+      88 + (this.settings.integrator === "sppm" ? SPPM_POINT_BYTES : 0);
+    const fixed = this.fixedMemoryBytes(this.settings);
     const available = this.settings.memoryBudgetMiB * 1048576 - fixed;
     if (available < perPixel)
       throw new Error("Scene and photon batch exceed the memory budget");
@@ -705,7 +714,7 @@ export class IntersectionRenderer {
       Math.max(1, rect.width),
       Math.max(1, rect.height),
       window.devicePixelRatio || 1,
-      1920 * 1080,
+      settingsLimits.maxPixels,
       device.limits.maxTextureDimension2D,
     );
     if (this.canvas.width !== displaySize.width)

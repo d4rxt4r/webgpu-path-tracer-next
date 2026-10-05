@@ -1,3 +1,4 @@
+import { checkPhotonLimits } from "./settings-limits";
 import { makeStructuredView } from "webgpu-utils";
 import {
   sppmDefinitions,
@@ -140,6 +141,7 @@ export class SppmIntegrator {
     settings: SppmSettings,
     resources: SppmResources,
   ): void {
+    checkPhotonLimits(settings.photonBatchSize, settings.maxDepth, this.device.limits);
     const key = [
       width,
       height,
