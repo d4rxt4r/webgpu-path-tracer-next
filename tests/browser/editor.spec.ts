@@ -22,8 +22,9 @@ test("editor fits the window, exposes working groups and exports PNG plus raw PF
       })),
     ).toEqual(viewport);
     const canvasRect = (await page.locator("canvas").boundingBox())!;
+    const renderRect = (await page.locator(".viewport").boundingBox())!;
     expect(canvasRect.height).toBeGreaterThan(200);
-    expect(canvasRect.width).toBeCloseTo(canvasRect.height, 0);
+    expect(canvasRect).toEqual(renderRect);
   }
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.locator("[data-profile=reference]").click();

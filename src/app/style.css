@@ -168,12 +168,6 @@ canvas {
 canvas:active {
   cursor: grabbing;
 }
-.viewport > canvas {
-  width: min(100%, calc(100dvh - 148px));
-  height: auto;
-  aspect-ratio: 1;
-  max-height: 100%;
-}
 .viewport-overlay {
   position: absolute;
   top: 14px;
