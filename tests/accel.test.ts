@@ -99,7 +99,7 @@ describe('WGSL reflection and camera', () => {
     expect(node.size).toBe(32); expect(triangle.size).toBe(96);
     expect(node.fields.first!.offset).toBe(12); expect(node.fields.max!.offset).toBe(16); expect(node.fields.count!.offset).toBe(28);
     expect(triangle.fields.material!.offset).toBe(12); expect(triangle.fields.id!.offset).toBe(28); expect(triangle.fields.na!.offset).toBe(48);
-    expect(definitions.structs.CameraParams!.size).toBe(128);
+    expect(definitions.structs.CameraParams!.size).toBe(256);
     const packed = packBvh(bvh), floats = new Float32Array(packed.nodes), integers = new Uint32Array(packed.nodes);
     expect(floats[0]).toBe(bvh.nodes[0]!.min[0]); expect(integers[3]).toBe(bvh.nodes[0]!.first);
     expect(packed.triangles.byteLength).toBe(triangles.length * 96);

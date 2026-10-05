@@ -13,7 +13,8 @@ fn guideMain(@builtin(global_invocation_id) id:vec3u) {
   if(hit.error!=0u) {atomicAdd(&traversalErrors,1u);}
   else if(hit.id!=NO_HIT) {
     let triangle=triangles[hit.triangle];
-    let depth=select(hit.t,-hit.t,materials[triangle.material].kind==2u);
+    let kind=materials[triangle.material].kind;
+    let depth=select(hit.t,-hit.t,kind==2u||kind==5u);
     value=vec4f(shadingNormal(triangle,hit),depth);
   }
   textureStore(guides,vec2i(id.xy),value);

@@ -9,6 +9,8 @@ export interface MeshData {
   positions: Float32Array;
   indices: Uint32Array;
   normals?: Float32Array;
+  /** Connected-shell index for each triangle. */
+  shells?: Uint32Array;
 }
 export interface SceneObject {
   mesh: number;
@@ -35,6 +37,7 @@ export type MaterialDescription =
   | {
       type: "dielectric";
       ior: number;
+      thin?: boolean;
       absorption: Vec3;
       iorModel?: "constant" | "nbk7";
       absorptionSpectrum?: SpectrumTable;
@@ -61,6 +64,7 @@ export interface Triangle {
   id: number;
   material: number;
   surface: number;
+  boundary?: number;
 }
 export interface Ray {
   origin: Vec3;

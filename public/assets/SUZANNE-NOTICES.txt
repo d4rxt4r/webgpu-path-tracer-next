@@ -13,3 +13,8 @@ https://www.blender.org/about/license/
 No project-wide license is declared by this asset notice. Blender branding and
 logos are not included. Model attribution: Blender Suzanne primitive and Blender
 contributors; this project's closed-volume processing is recorded in its generator.
+
+Interactive default: suzanne-original.obj is Blender 4.4.3's original primitive,
+exported by scripts/export-suzanne-original.py with its native render tessellation
+and Y-up coordinates. No subdivision, remesh, smoothing or union is applied.
+The application's optional runtime hole repair is separate from this source asset.

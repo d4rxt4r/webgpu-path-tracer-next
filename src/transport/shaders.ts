@@ -6,6 +6,7 @@ import sampler from "./sampler.wgsl?raw";
 import lighting from "./lighting.wgsl?raw";
 import textures from "./textures.wgsl?raw";
 import tracer from "./path-tracer.wgsl?raw";
+import media from "./media.wgsl?raw";
 import dielectric from "./dielectric.wgsl?raw";
 import spectrum from "./spectrum.wgsl?raw";
 import color from "./color.wgsl?raw";
@@ -26,6 +27,8 @@ export const pathCore =
   lighting +
   "\n" +
   dielectric +
+  "\n" +
+  media +
   "\n" +
   tracer;
 export const pathShader = pathCore + "\n" + color + "\n" + diagnostics + "\n" + output;

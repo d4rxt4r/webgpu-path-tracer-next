@@ -1,3 +1,7 @@
+import { loadOriginalSuzanne, loadHighPolySuzanne, type OriginalSuzanne } from "../assets/suzanne-original";
+import type { RepairedObj } from "../assets/mesh-repair";
+import { ObjImporter } from "../assets/obj-import";
+import type { ImportedObj } from "../assets/obj";
 import { attachSettingsHelp } from "./settings-help";
 import { attachMiddleReset } from "./settings-reset";
 import "./style.css";
@@ -27,7 +31,7 @@ const initialScene =
     ? "control"
     : query.get("scene") === "buddha"
       ? "buddha"
-      : "suzanne";
+      : query.get("scene") === "suzanne" ? "suzanne" : "suzanne-high-poly";
 const controlScene = initialScene === "control";
 const requestedMaterial = query.get("material");
 const initialMaterial: SphereMaterial =
@@ -86,6 +90,10 @@ function syncObjectScale(): void {
   input("object-scale").value = String(Math.min(max, value("object-scale")));
 }
 syncObjectScale();
+const objImporter = new ObjImporter();
+let uploadedObj: (ImportedObj & { name: string; original: ImportedObj; repaired?: RepairedObj }) | undefined;
+let committedObj: typeof uploadedObj;
+let currentSuzanne: OriginalSuzanne | undefined;
 let target: PathSettings = {
   maxDepth: controlScene ? 8 : 32,
   seed: 1,
@@ -147,7 +155,8 @@ function syncSettings(): void {
       input("radius").disabled =
       input("radius-value").disabled =
         target.integrator !== "sppm";
-    const material = selectInput("material").value;
+    input("repair-obj").disabled = !["uploaded", "suzanne", "suzanne-high-poly"].includes(selectInput("scene").value);
+  const material = selectInput("material").value;
     const textured = material === "marble" || material === "lava";
     document.querySelector<HTMLElement>("#texture-group")!.hidden = !textured;
     document.querySelector<HTMLElement>("#lava-settings")!.hidden =
@@ -160,7 +169,7 @@ function syncSettings(): void {
     input("ior").disabled = input("ior-value").disabled =
       material === "diffuse" || material === "nbk7" || textured;
     input("absorption").disabled = input("absorption-value").disabled =
-      material === "diffuse" || textured;
+      material === "diffuse" || textured || (selectInput("scene").value === "uploaded" && !uploadedObj?.solid) || (["suzanne", "suzanne-high-poly"].includes(selectInput("scene").value) && !currentSuzanne?.solid);
     input("albedo").disabled = input("albedo-value").disabled =
       material !== "diffuse";
     for (const id of ["denoise-passes", "denoise-strength"])
@@ -315,43 +324,86 @@ async function start(): Promise<void> {
     }
     renderer.setCamera(camera);
   });
+  const objStatus = document.querySelector<HTMLElement>("#obj-status")!;
+  const describeModel = (model: OriginalSuzanne, name: string, glass: boolean): string => {
+    let text = `${name} · ${model.triangles.toLocaleString("ru-RU")} треугольников · Оболочек: ${model.shells ?? 1}`;
+    if (glass) text += model.solid ? " · Объёмное стекло" : " · Тонкое стекло: без объёмного преломления и поглощения";
+    if (input("repair-obj").checked && model.repair) text += model.repair.success ? ` · Закрыто отверстий: ${model.repair.closedHoles}` : ` · Ремонт не выполнен: ${model.repair.reason}`;
+    return text;
+  };
+  const sceneFields = ["scene", "material", ...sceneControlIds, ...textureControlIds];
+  const captureSceneUi = () => Object.fromEntries(sceneFields.map(id => [id, (document.getElementById(id) as HTMLInputElement).value]));
+  let committedUi = captureSceneUi();
+  let committedRepair = input("repair-obj").checked;
+  const restoreSceneUi = () => {
+    uploadedObj = committedObj;
+    input("repair-obj").checked = committedRepair;
+    const option = selectInput("scene").querySelector<HTMLOptionElement>('[value="uploaded"]');
+    if (uploadedObj && option) option.textContent = uploadedObj.name;
+    else option?.remove();
+    for (const [id, value] of Object.entries(committedUi)) (document.getElementById(id) as HTMLInputElement).value = value;
+    scenePending = false;
+    syncObjectScale(); syncSettings();
+  };
+  const resetObject = () => {
+    for (const id of ["object-scale", "object-x", "object-z", "object-rotation", "object-rotation-x", "object-rotation-z"]) input(id).value = id === "object-scale" ? "1" : "0";
+    input("object-y").value = selectInput("scene").value === "buddha" ? "0.86" : selectInput("scene").value === "control" ? "0.65" : "1";
+    syncObjectScale(); syncSettings();
+  };
   const updateScene = async (revision: number): Promise<void> => {
     activity.textContent = "Подготовка сцены…";
     const material = selectInput("material").value as SphereMaterial;
-    const scene =
-      selectInput("scene").value === "suzanne"
-        ? await presentationScene(material)
-        : selectInput("scene").value === "buddha"
-          ? await buddhaScene(material)
-          : cornellScene(material);
-    if (revision !== sceneRevision) return;
-    const controls = Object.fromEntries(
-      sceneControlIds.map((id) => [id, value(id)]),
-    ) as SceneControls;
-    applySceneControls(scene, controls);
-    applyTextureControls(
-      scene,
-      Object.fromEntries(
-        textureControlIds.map((id) => [id, value(id)]),
-      ) as TextureControls,
-    );
-    for (const id of ["object-x", "object-y", "object-z"] as const)
-      input(id).value = String(controls[id]);
-    syncRanges();
-    scene.camera = currentCamera;
+    const selected = selectInput("scene").value;
     try {
-      await renderer.setScene(scene);
-      if (revision === sceneRevision) {
-        scenePending = false;
-        errorPanel.hidden = true;
-        document.querySelector<HTMLElement>("#scene-name")!.textContent =
-          `${selectInput("scene").value === "suzanne" ? "Suzanne" : selectInput("scene").value === "buddha" ? "Happy Buddha" : "Sphere"} / ${material}`;
+      const isSuzanne = selected === "suzanne" || selected === "suzanne-high-poly";
+      const suzanne = isSuzanne ? await (selected === "suzanne-high-poly" ? loadHighPolySuzanne : loadOriginalSuzanne)(input("repair-obj").checked) : undefined;
+      const scene = isSuzanne ? await presentationScene(material, suzanne)
+        : selected === "buddha" ? await buddhaScene(material) : cornellScene(material);
+      if (revision !== sceneRevision) return;
+      if (selected === "uploaded") {
+        if (!uploadedObj) throw new Error("Загруженная модель отсутствует.");
+        const original = uploadedObj.original;
+        if (input("repair-obj").checked) {
+          let repaired = uploadedObj.repaired;
+          if (!repaired) {
+            objStatus.textContent = "Закрытие отверстий…";
+            repaired = await objImporter.repair(original);
+            if (revision !== sceneRevision) return;
+          }
+          uploadedObj = { ...uploadedObj, ...repaired, repaired };
+        } else uploadedObj = { ...uploadedObj, ...original };
+        scene.meshes[6] = uploadedObj.mesh;
+        scene.objects[3]!.material = 2; scene.objects[4]!.material = 1;
+        const surface = scene.materials[4]!;
+        if (surface.type === "dielectric") surface.thin = !uploadedObj.solid;
       }
+      const controls = Object.fromEntries(sceneControlIds.map(id => [id, value(id)])) as SceneControls;
+      applySceneControls(scene, controls);
+      applyTextureControls(scene, Object.fromEntries(textureControlIds.map(id => [id, value(id)])) as TextureControls);
+      scene.camera = currentCamera;
+      await renderer.setScene(scene);
+      if (revision !== sceneRevision) return;
+      for (const id of ["object-x", "object-y", "object-z"] as const) input(id).value = String(controls[id]);
+      scenePending = false;
+      if (isSuzanne) currentSuzanne = suzanne;
+      committedObj = uploadedObj;
+      committedRepair = input("repair-obj").checked;
+      committedUi = captureSceneUi();
+      errorPanel.hidden = true;
+      const name = selected === "uploaded" ? uploadedObj!.name : selected === "suzanne-high-poly" ? "Suzanne high poly" : selected === "suzanne" ? "Suzanne" : selected === "buddha" ? "Happy Buddha" : "Sphere";
+      const model = selected === "uploaded" ? { ...uploadedObj!, repair: uploadedObj!.repaired?.repair } : suzanne;
+      const glass = scene.materials[4]!.type === "dielectric";
+      const thin = !!model && !model.solid && glass;
+      objStatus.textContent = model ? describeModel(model, name, glass) : "";
+      document.querySelector<HTMLElement>("#scene-name")!.textContent = `${name} / ${material}${thin ? " / тонкое стекло" : ""}`;
+      syncSettings();
     } catch (error) {
-      if (revision === sceneRevision) showError(error);
+      if (revision === sceneRevision) { restoreSceneUi(); objStatus.textContent = "Изменение не применено; предыдущий объект сохранён."; showError(error); }
     }
   };
   const queueScene = (): void => {
+    objImporter.cancel();
+    renderer.cancelScenePreparation();
     scenePending = true;
     button("export-png").disabled = button("export-pfm").disabled = true;
     clearTimeout(sceneTimer);
@@ -361,25 +413,34 @@ async function start(): Promise<void> {
       80,
     );
   };
-  selectInput("scene").addEventListener("change", () => {
-    input("object-y").value =
-      selectInput("scene").value === "suzanne"
-        ? "1"
-        : selectInput("scene").value === "buddha"
-          ? "0.86"
-          : "0.65";
-    syncObjectScale();
-    if (
-      selectInput("scene").value === "buddha" &&
-      !["marble", "lava"].includes(selectInput("material").value)
-    ) {
-      selectInput("material").value = "marble";
-      input("texture-scale").value = "9";
-      input("texture-width").value = "0.1";
+  input("repair-obj").addEventListener("change", queueScene);
+  button("import-obj").addEventListener("click", () => input("obj-file").click());
+  input("obj-file").addEventListener("change", async () => {
+    const file = input("obj-file").files?.[0]; input("obj-file").value = "";
+    if (!file) return;
+    clearTimeout(sceneTimer);
+    const revision = ++sceneRevision;
+    scenePending = true;
+    renderer.cancelScenePreparation();
+    button("export-png").disabled = button("export-pfm").disabled = true;
+    objStatus.textContent = `Чтение ${file.name}…`;
+    try {
+      const result = await objImporter.load(file);
+      if (revision !== sceneRevision) return;
+      uploadedObj = { ...result, name: file.name, original: result };
+      input("repair-obj").checked = true;
+      let option = selectInput("scene").querySelector<HTMLOptionElement>('[value="uploaded"]');
+      if (!option) { option = document.createElement("option"); option.value = "uploaded"; selectInput("scene").append(option); }
+      option.textContent = file.name;
+      selectInput("scene").value = "uploaded";
+      resetObject();
+      objStatus.textContent = `Подготовка ${file.name}…`;
+      await updateScene(revision);
+    } catch (error) {
+      if (revision === sceneRevision) { restoreSceneUi(); objStatus.textContent = "Импорт не выполнен; предыдущий объект сохранён."; showError(error); }
     }
-    syncSettings();
-    queueScene();
   });
+  selectInput("scene").addEventListener("change", () => { resetObject(); queueScene(); });
   selectInput("material").addEventListener("change", () => {
     if (["marble", "lava"].includes(selectInput("material").value)) {
       input("texture-scale").value =
@@ -483,6 +544,8 @@ async function start(): Promise<void> {
     "object-y",
     "object-z",
     "object-rotation",
+    "object-rotation-x",
+    "object-rotation-z",
     "light-power",
     "light-size",
     "light-x",
@@ -609,6 +672,8 @@ async function start(): Promise<void> {
                 {
                   ...metadata,
                   scene: sceneName,
+                  importedObject: sceneName === "uploaded" && uploadedObj ? { filename: uploadedObj.name, triangles: uploadedObj.triangles, solid: uploadedObj.solid, shells: uploadedObj.shells, repairEnabled: input("repair-obj").checked, repair: input("repair-obj").checked ? uploadedObj.repaired?.repair : undefined, glassMode: ["glass", "blue-glass", "nbk7", "nbk7-constant"].includes(material) ? uploadedObj.solid ? "solid" : "thin" : undefined } : undefined,
+                  builtinObject: ["suzanne", "suzanne-high-poly"].includes(sceneName) && currentSuzanne ? { source: sceneName === "suzanne-high-poly" ? "assets/Suzanne.obj" : "Blender original Suzanne", triangles: currentSuzanne.triangles, shells: currentSuzanne.shells, solid: currentSuzanne.solid, repairEnabled: input("repair-obj").checked, repair: currentSuzanne.repair } : undefined,
                   sceneControls,
                   material,
                   display: {
@@ -655,6 +720,7 @@ async function start(): Promise<void> {
       clearTimeout(idleTimer);
       clearTimeout(sceneTimer);
       sceneRevision++;
+      objImporter.cancel();
       observer.disconnect();
       orbit.dispose();
       renderer.dispose();
@@ -672,15 +738,17 @@ async function start(): Promise<void> {
     controlScene ? target : { ...target, ...profiles.preview },
   );
   try {
+    if (initialScene === "suzanne" || initialScene === "suzanne-high-poly") currentSuzanne = await (initialScene === "suzanne-high-poly" ? loadHighPolySuzanne : loadOriginalSuzanne)(input("repair-obj").checked);
     await renderer.setScene(
       controlScene
         ? description
         : initialScene === "buddha"
           ? await buddhaScene(initialMaterial)
-          : await presentationScene(initialMaterial),
+          : await presentationScene(initialMaterial, currentSuzanne),
     );
     await renderer.initialize();
     ready = true;
+    if (currentSuzanne) objStatus.textContent = describeModel(currentSuzanne, initialScene === "suzanne-high-poly" ? "Suzanne high poly" : "Suzanne", ["glass", "blue-glass", "nbk7", "nbk7-constant"].includes(initialMaterial));
     document
       .querySelectorAll<
         HTMLSelectElement | HTMLInputElement | HTMLButtonElement
@@ -693,7 +761,7 @@ async function start(): Promise<void> {
       idleTimer = setTimeout(settle, 250);
     }
     document.querySelector<HTMLElement>("#scene-name")!.textContent =
-      `${initialScene === "control" ? "Sphere" : initialScene === "buddha" ? "Happy Buddha" : "Suzanne"} / ${initialMaterial}`;
+      `${initialScene === "control" ? "Sphere" : initialScene === "buddha" ? "Happy Buddha" : initialScene === "suzanne-high-poly" ? "Suzanne high poly" : "Suzanne"} / ${initialMaterial}`;
   } catch (error) {
     observer.disconnect();
     orbit.dispose();

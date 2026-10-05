@@ -23,7 +23,7 @@ export function fastTransportShader(source: string, threadedTraversal = false): 
     .replaceAll('originLow=vec3f(0);', '')
     .replace(/let origin=transportOrigin\(ray,originLow,triangle,hit,event.direction\);\s*ray\s*=\s*Ray\(origin.position,\s*0.0,\s*event.direction,\s*1e20\);originLow=origin.residual;/g,
       'ray=Ray(offsetSurface(triangle,hit,event.direction),0.0,event.direction,1e20);')
-    .replace(/    if\(material.kind==2u\) \{let origin=transportOrigin[^\r\n]+[\r\n]+    else \{ray=Ray\(offsetSurface\(triangle,hit,wi\),0.0,wi,1e20\);}/,
+    .replace(/    if\(material.kind==2u(?:\|\|material.kind==5u)?\) \{let origin=transportOrigin[^\r\n]+[\r\n]+    else \{ray=Ray\(offsetSurface\(triangle,hit,wi\),0.0,wi,1e20\);}/,
       '    ray=Ray(offsetSurface(triangle,hit,wi),0.0,wi,1e20);');
   fast=fast.replace('        var closer=hit.t<best.t;', '')
     .replace('(best.id == NO_HIT || closer || (hit.t == best.t && bitcast<f32>(hit.padding)==bitcast<f32>(best.padding) && hit.id < best.id))',

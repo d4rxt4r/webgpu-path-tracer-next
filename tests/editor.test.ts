@@ -33,6 +33,8 @@ it("keeps edited glass inside the room and scales RGB and spectral materials tog
     "object-y": 0.5,
     "object-z": 0.35,
     "object-rotation": 45,
+    "object-rotation-x": 25,
+    "object-rotation-z": -15,
     "light-power": 24,
     "light-size": 1.2,
     "light-x": 0.2,

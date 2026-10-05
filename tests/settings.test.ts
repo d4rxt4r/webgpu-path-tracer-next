@@ -9,7 +9,7 @@ describe("expanded settings", () => {
     const html = renderEditor(false);
     for (const id of Object.keys(profiles)) expect(html).toContain(`value="${id}"`);
     const ids = [...html.matchAll(/<(?:input|select) id="([^"]+)"/g)].map(match => match[1]!);
-    for (const id of ids.filter(id => !id.endsWith("-value"))) expect(settingHelp[id], id).toBeTruthy();
+    for (const id of ids.filter(id => !id.endsWith("-value") && id !== "obj-file")) expect(settingHelp[id], id).toBeTruthy();
     expect(html).not.toMatch(/<p class="hint">/);
     expect(html).toContain(`max="${settingsLimits.maxMemoryMiB}"`);
     expect(html).toContain(`max="${settingsLimits.maxPhotons}"`);

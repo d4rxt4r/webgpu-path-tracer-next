@@ -8,6 +8,8 @@ export const sceneControlIds = [
   "object-y",
   "object-z",
   "object-rotation",
+  "object-rotation-x",
+  "object-rotation-z",
   "light-power",
   "light-size",
   "light-x",
@@ -55,7 +57,9 @@ export function applySceneControls(
   v: SceneControls,
 ): void {
   const transform = mat4.create();
+  mat4.rotateZ(transform, transform, ((v["object-rotation-z"] ?? 0) * Math.PI) / 180);
   mat4.rotateY(transform, transform, (v["object-rotation"] * Math.PI) / 180);
+  mat4.rotateX(transform, transform, ((v["object-rotation-x"] ?? 0) * Math.PI) / 180);
   mat4.scale(transform, transform, [
     v["object-scale"],
     v["object-scale"],

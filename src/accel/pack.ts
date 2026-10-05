@@ -42,6 +42,9 @@ export function packBvh(bvh: Bvh): PackedScene {
       triangleInts[base + triangleDefinition.fields[key]!.offset / 4] =
         triangle[key];
   }
+  for (let i = 0; i < bvh.triangles.length; i++) {
+    triangleInts[i * triangleDefinition.size / 4 + triangleDefinition.fields.padding0!.offset / 4] = bvh.triangles[i]!.boundary ?? bvh.triangles[i]!.surface + 1;
+  }
   // A binary BVH has at most 2*T-1 nodes. Its escape links therefore fit
   // into two unused u32 normal-padding fields per triangle, without a buffer
   // or binding increase. Geometry, material IDs and the 96-byte layout stay intact.

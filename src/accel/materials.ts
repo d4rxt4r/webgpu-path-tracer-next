@@ -17,36 +17,31 @@ export function packTransport(
   bvh: Bvh,
 ): PackedTransport {
   for (const [surface, object] of description.objects.entries()) {
-    if (description.materials[object.material]?.type !== "dielectric") continue;
-    const edges = new Map<string, { count: number; orientation: number }>();
-    let volume = 0;
-    for (const t of bvh.triangles) {
-      if (t.surface !== surface) continue;
-      volume +=
-        t.a[0] * (t.b[1] * t.c[2] - t.b[2] * t.c[1]) +
-        t.a[1] * (t.b[2] * t.c[0] - t.b[0] * t.c[2]) +
-        t.a[2] * (t.b[0] * t.c[1] - t.b[1] * t.c[0]);
-      const vertices = [t.a.join(","), t.b.join(","), t.c.join(",")];
-      for (let i = 0; i < 3; i++) {
-        const a = vertices[i]!,
-          b = vertices[(i + 1) % 3]!;
-        const key = a < b ? `${a}|${b}` : `${b}|${a}`;
-        const edge = edges.get(key) ?? { count: 0, orientation: 0 };
-        edge.count++;
-        edge.orientation += a < b ? 1 : -1;
-        edges.set(key, edge);
-      }
+    const surfaceMaterial = description.materials[object.material];
+    if (surfaceMaterial?.type !== "dielectric" || surfaceMaterial.thin) continue;
+    const shells = new Map<number, typeof bvh.triangles>();
+    for (const triangle of bvh.triangles) {
+      if (triangle.surface !== surface) continue;
+      const id = triangle.boundary ?? surface + 1;
+      if (!shells.has(id)) shells.set(id, []);
+      shells.get(id)!.push(triangle);
     }
-    if (
-      volume <= 0 ||
-      edges.size === 0 ||
-      [...edges.values()].some(
-        (edge) => edge.count !== 2 || edge.orientation !== 0,
-      )
-    )
-      throw new Error(
-        "Dielectric requires a closed, outward-oriented manifold",
-      );
+    for (const shell of shells.values()) {
+      const edges = new Map<string, { count: number; orientation: number }>();
+      let volume = 0;
+      for (const t of shell) {
+        volume += t.a[0] * (t.b[1] * t.c[2] - t.b[2] * t.c[1]) + t.a[1] * (t.b[2] * t.c[0] - t.b[0] * t.c[2]) + t.a[2] * (t.b[0] * t.c[1] - t.b[1] * t.c[0]);
+        const vertices = [t.a.join(","), t.b.join(","), t.c.join(",")];
+        for (let i = 0; i < 3; i++) {
+          const a = vertices[i]!, b = vertices[(i + 1) % 3]!;
+          const key = a < b ? `${a}|${b}` : `${b}|${a}`;
+          const edge = edges.get(key) ?? { count: 0, orientation: 0 };
+          edge.count++; edge.orientation += a < b ? 1 : -1; edges.set(key, edge);
+        }
+      }
+      if (volume <= 0 || !edges.size || [...edges.values()].some(edge => edge.count !== 2 || edge.orientation !== 0))
+        throw new Error("Dielectric requires closed, outward-oriented shells");
+    }
   }
   const materialDef = definitions.structs.Material!,
     lightDef = definitions.structs.LightTriangle!;
@@ -164,7 +159,7 @@ export function packTransport(
         throw new Error("Invalid IOR model");
       makeStructuredView(materialDef, materials, i * materialDef.size).set({
         color: [1, 1, 1],
-        kind: 2,
+        kind: material.thin ? 5 : 2,
         absorption: material.absorption,
         ior: material.ior,
         spectrumOffset,

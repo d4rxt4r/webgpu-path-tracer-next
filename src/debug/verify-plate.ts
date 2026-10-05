@@ -1,3 +1,4 @@
+import { cameraShells } from "../accel/camera-media";
 import { createDevice, checkedShader } from '../gpu/device';
 import { GpuScene } from '../gpu/scene';
 import { loadSobol } from '../assets/sobol';
@@ -24,7 +25,9 @@ export async function verifyPlate(inside = false) {
       materials: [{ type: 'dielectric', ior: 1.5, absorption }, { type: 'emissive', emission: [1,1,1] }], lights: [{ object: 1 }],
     };
     const bvh = buildBvh(bakeTriangles(scene));
-    gpu = new GpuScene(device, { ...packBvh(bvh), ...packTransport(scene, bvh) });
+    const packed = { ...packBvh(bvh), ...packTransport(scene, bvh) };
+    const shells = cameraShells(packed,[0,inside ? 0.5 : 2,0]);
+    gpu = new GpuScene(device, packed);
     const directions = await loadSobol();
     const sobol = create(directions.byteLength, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST); device.queue.writeBuffer(sobol, 0, directions);
     const count = 65536, output = create(count * 16, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
@@ -32,7 +35,9 @@ export async function verifyPlate(inside = false) {
     const module = await checkedShader(device, pathCore + `
       @group(0) @binding(0) var<storage, read_write> output: array<vec4f>;
       @compute @workgroup_size(64) fn main(@builtin(global_invocation_id) id: vec3u) {
-        let value = tracePath(Ray(vec3f(0,${inside ? '0.5' : '2.0'},0), 0.0, vec3f(0,-1,0), 100.0), id.x, 17u, 1u, 32u, 1u, 2u);
+        var initialMedia:MediumSet;initialMedia.count=${shells.length}u;
+        ${Array.from(shells,(index,i)=>`initialMedia.entries[${i}u]=${index}u;`).join("\n")}
+        let value = tracePathWithMedia(Ray(vec3f(0,${inside ? '0.5' : '2.0'},0), 0.0, vec3f(0,-1,0), 100.0), id.x, 17u, 1u, 32u, 1u, 2u, 0.0, initialMedia);
         output[id.x] = vec4f(value.radiance, f32(value.error));
       }`, 'absorbing parallel plate');
     const pipeline = await device.createComputePipelineAsync({ layout: 'auto', compute: { module, entryPoint: 'main' } });

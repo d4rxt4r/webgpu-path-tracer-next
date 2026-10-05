@@ -1,3 +1,4 @@
+import { cameraShells } from "../accel/camera-media";
 import { makeStructuredView } from "webgpu-utils";
 import { createDevice } from "../gpu/device";
 import { GpuScene } from "../gpu/scene";
@@ -99,6 +100,8 @@ export async function renderSppm(
       texture: image,
     });
     const basis = cameraBasis(scene.camera);
+    const shells = cameraShells(packed, scene.camera.position);
+    const initialShells = new Uint32Array(32); initialShells.set(shells);
     let jobs = 0;
     const convergence: {
       iterations: number;
@@ -120,6 +123,7 @@ export async function renderSppm(
         seed: settings.seed,
         lightCount: packed.lightCount,
         transportMode: Number(mode === "spectral"),
+        padding1: shells.length, initialShells,
       });
       device.queue.writeBuffer(camera, 0, parameters.arrayBuffer);
       const encoder = device.createCommandEncoder();

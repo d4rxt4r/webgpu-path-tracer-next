@@ -40,3 +40,15 @@ fn sampleDielectricSurface(direction: vec3f, ng: vec3f, ns: vec3f, eta: f32, ran
   else { event.weight *= shadingNormalWeight(-direction, event.direction, ng, ns, importance); }
   return event;
 }
+
+// A zero-thickness, parallel interface pair; internal reflections sum analytically.
+fn thinReflectance(cosine: f32, ior: f32) -> f32 {
+  let r = dielectricFresnel(abs(cosine), ior);
+  return 2.0 * r / (1.0 + r);
+}
+fn sampleThinDielectric(direction: vec3f, normal: vec3f, ior: f32, random: f32) -> DielectricSample {
+  if (random < thinReflectance(dot(-direction, normal), ior)) {
+    return DielectricSample(reflect(direction, normal), 1.0, 0u);
+  }
+  return DielectricSample(direction, 1.0, 1u);
+}

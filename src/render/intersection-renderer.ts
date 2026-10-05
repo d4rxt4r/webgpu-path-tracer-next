@@ -1,3 +1,4 @@
+import { cameraShells } from "../accel/camera-media";
 import { settingsLimits, photonAllocation, checkPhotonLimits } from "./settings-limits";
 import { fastTransportShader } from "../transport/fast-source";
 import { debugShader, pathShader, displayShader } from "../transport/shaders";
@@ -98,6 +99,7 @@ export class IntersectionRenderer {
   private revision = 0;
   private sceneRevision = 0;
   private cameraRevision = 0;
+  private mediaCache?: { packed: PreparedScene; eye: string; shells: Uint32Array };
   private loading = false;
   private diagnostic?: GPUBuffer;
   private readback?: GPUBuffer;
@@ -207,6 +209,12 @@ export class IntersectionRenderer {
     private error: (error: Error) => void,
   ) {}
 
+  cancelScenePreparation(): void {
+    this.sceneRevision++;
+    this.preparer.cancel();
+    this.loading = false;
+    this.schedule(true);
+  }
   async setScene(description: SceneDescription): Promise<void> {
     if (this.disposed) throw new Error("Renderer is disposed");
     const sceneRevision = ++this.sceneRevision;
@@ -223,17 +231,42 @@ export class IntersectionRenderer {
         throw new Error(
           "Spectral mode requires spectra for non-neutral RGB materials",
         );
-      // Allocate first so failed uploads leave the previous GPU scene usable.
-      const scene = this.device ? new GpuScene(this.device, packed) : undefined;
-      this.packed = packed;
-      if (cameraRevision === this.cameraRevision) this.camera = camera;
-      this.scene?.dispose();
-      this.scene = scene;
-      this.stats.triangles = packed.triangleCount;
-      this.stats.nodes = packed.nodeCount;
-      this.stats.frames = 0;
-      this.invalidate();
-      this.updateGroups();
+      const bytes = packed.nodes.byteLength + packed.triangles.byteLength + packed.materials.byteLength + packed.lights.byteLength + packed.spectra.byteLength;
+      const minimum = this.fixedMemoryBytes(this.settings, bytes) + 88 + (this.settings.integrator === "sppm" ? SPPM_POINT_BYTES : 0);
+      if (minimum > this.settings.memoryBudgetMiB * 1048576)
+        throw new Error("Модель превышает бюджет памяти. Увеличьте бюджет или загрузите меньший OBJ.");
+      // Allocate and validate before committing the replacement.
+      let scene: GpuScene | undefined;
+      if (this.device) {
+        const device = this.device;
+        device.pushErrorScope("out-of-memory"); device.pushErrorScope("validation");
+        let allocationError: unknown;
+        try { scene = new GpuScene(device, packed); } catch (error) { allocationError = error; }
+        const [validation, memory] = await Promise.all([device.popErrorScope(), device.popErrorScope()]);
+        if (allocationError || validation || memory) {
+          scene?.dispose();
+          throw allocationError || new Error(validation?.message || memory?.message || "Не удалось загрузить модель в GPU.");
+        }
+      }
+      if (sceneRevision !== this.sceneRevision || this.disposed) { scene?.dispose(); return; }
+      const previous = { scene: this.scene, packed: this.packed, camera: this.camera, triangles: this.stats.triangles, nodes: this.stats.nodes };
+      try {
+        this.packed = packed;
+        if (cameraRevision === this.cameraRevision) this.camera = camera;
+        this.scene = scene;
+        this.stats.triangles = packed.triangleCount;
+        this.stats.nodes = packed.nodeCount;
+        this.invalidate();
+        this.resize();
+        this.updateGroups();
+      } catch (error) {
+        this.scene = previous.scene; this.packed = previous.packed; this.camera = previous.camera;
+        this.stats.triangles = previous.triangles; this.stats.nodes = previous.nodes;
+        scene?.dispose(); this.invalidate(); this.resize(); this.updateGroups();
+        throw error;
+      }
+      previous.scene?.dispose();
+      this.report({ ...this.stats });
     } finally {
       if (sceneRevision === this.sceneRevision) {
         this.loading = false;
@@ -652,9 +685,9 @@ export class IntersectionRenderer {
     this.schedule();
   }
 
-  private fixedMemoryBytes(settings: PathSettings): number {
+  private fixedMemoryBytes(settings: PathSettings, sceneBytes = this.scene?.bytes ?? 0): number {
     const allocation = photonAllocation(settings.photonBatchSize, settings.maxDepth);
-    return (this.scene?.bytes ?? 0) +
+    return sceneBytes +
       (this.sobol?.size ?? 0) +
       (this.front ? this.front.width * this.front.height * 8 : 0) +
       1024 + TRANSPORT_QUEUE_BYTES + 12 + 2 * COMPUTE_READBACK_BYTES +
@@ -962,6 +995,10 @@ export class IntersectionRenderer {
     this.redraw = false;
     try {
       const basis = cameraBasis(camera);
+      const eyeKey = camera.position.join(",");
+      if (this.mediaCache?.packed !== this.packed || this.mediaCache?.eye !== eyeKey)
+        this.mediaCache = { packed: this.packed!, eye: eyeKey, shells: cameraShells(this.packed!, camera.position) };
+      const initialShells = new Uint32Array(32); initialShells.set(this.mediaCache!.shells);
       if (!this.sweepTileSize)
         this.sweepTileSize = Math.min(
           this.interacting
@@ -1037,6 +1074,8 @@ export class IntersectionRenderer {
               lightCount: this.packed!.lightCount,
               transportMode: Number(this.settings.mode === "spectral"),
               padding0: Number(this.settings.integrator === "sppm"),
+              padding1: this.mediaCache!.shells.length,
+              initialShells,
             });
             snapshots.write(encoder, uniform, this.parameters.arrayBuffer);
             if (sppmMode)

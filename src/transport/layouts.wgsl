@@ -13,6 +13,7 @@ struct CameraParams {
   tile: vec4u,
   maxDepth: u32, seed: u32, strategy: u32, lightCount: u32,
   transportMode: u32, padding0: u32, padding1: u32, padding2: u32,
+  initialShells: array<vec4u,8>,
 }
 struct Material {
   color: vec3f, kind: u32, absorption: vec3f, ior: f32,

@@ -4,6 +4,7 @@ import type { SceneDescription, Triangle, Vec3 } from "../scene/types";
 export function bakeTriangles(scene: SceneDescription): Triangle[] {
   if (scene.version !== 1) throw new Error("Unsupported scene version");
   const triangles: Triangle[] = [];
+  let boundaryOffset = 1;
   for (const [surface, object] of scene.objects.entries()) {
     const mesh = scene.meshes[object.mesh];
     if (!mesh || !scene.materials[object.material])
@@ -31,6 +32,9 @@ export function bakeTriangles(scene: SceneDescription): Triangle[] {
       object.transform[15] !== 1
     )
       throw new Error("Object transform must be finite and affine");
+    if (mesh.shells && mesh.shells.length !== mesh.indices.length / 3) throw new Error("Invalid shell IDs");
+    const shellCount = mesh.shells ? mesh.shells.reduce((max, id) => Math.max(max, id + 1), 0) : 1;
+    if (boundaryOffset + shellCount >= 0xffffffff) throw new Error("Too many shell IDs");
     const matrix = mat4.clone(object.transform);
     const determinant = mat4.determinant(matrix);
     if (Math.abs(determinant) < 1e-12)
@@ -98,8 +102,10 @@ export function bakeTriangles(scene: SceneDescription): Triangle[] {
         id: triangles.length,
         material: object.material,
         surface,
+        boundary: boundaryOffset + (mesh.shells?.[i / 3] ?? 0),
       });
     }
+    boundaryOffset += shellCount;
   }
   if (!triangles.length) throw new Error("Scene has no triangles");
   return triangles;

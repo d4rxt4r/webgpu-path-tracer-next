@@ -25,7 +25,7 @@ describe("cached scene preparation", () => {
         definitions.structs.Triangle!,
         triangles,
         i * definitions.structs.Triangle!.size,
-      ).set({...triangle,padding1:new Uint32Array(packed.triangles)[i*24+19],padding2:new Uint32Array(packed.triangles)[i*24+23]}),
+      ).set({...triangle,padding0:triangle.boundary ?? triangle.surface + 1,padding1:new Uint32Array(packed.triangles)[i*24+19],padding2:new Uint32Array(packed.triangles)[i*24+23]}),
     );
     expect(new Uint8Array(packed.nodes)).toEqual(new Uint8Array(nodes));
     expect(new Uint8Array(packed.triangles)).toEqual(new Uint8Array(triangles));

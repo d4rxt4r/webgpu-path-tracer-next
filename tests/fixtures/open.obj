@@ -1,0 +1,7 @@
+# Open sheet: tests automatic thin glass fallback.
+v -1 -1 0
+v 1 -1 0
+v 1 1 0
+v -1 1 0
+s 1
+f 1 2 3 4

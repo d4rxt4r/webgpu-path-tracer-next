@@ -1,0 +1,95 @@
+import { triangulate } from "./polygon";
+import type { Corner, Point } from "./polygon";
+import { meshTopology } from "./mesh-topology";
+import type { MeshData } from "../scene/types";
+
+export const OBJ_MAX_BYTES = 128 * 1048576;
+export const OBJ_MAX_TRIANGLES = 2000000;
+export interface ImportedObj { mesh: MeshData; solid: boolean; triangles: number; shells?: number }
+export function parseObj(text: string): ImportedObj {
+  const vertices: Point[] = [], sourceNormals: Point[] = [];
+  const faces: { corners: Corner[]; smoothing: string }[] = [];
+  let smoothing = "off", triangleCount = 0, textureCoordinates = 0;
+  const index = (token: string, count: number): number => {
+    const value = Number(token), result = value < 0 ? count + value : value - 1;
+    if (!token || !Number.isInteger(value) || value === 0 || result < 0 || result >= count) throw new Error("Некорректный индекс OBJ.");
+    return result;
+  };
+  const lines = text.replace(/^\uFEFF/, "").replace(/\\\r?\n/g, " ").split(/\r?\n/);
+  for (let line = 0; line < lines.length; line++) {
+    const tokens = lines[line]!.split("#", 1)[0]!.trim().split(/\s+/), tag = tokens.shift();
+    try {
+      if (tag === "v" || tag === "vn") {
+        const p = tokens.slice(0, 3).map(Number);
+        if (p.length !== 3 || !p.every(Number.isFinite)) throw new Error("Некорректные координаты OBJ.");
+        if (tag === "v" && tokens.length === 4 && Number(tokens[3]) !== 1) throw new Error("Однородные вершины OBJ не поддерживаются.");
+        if (tag === "vn") {
+          const length = Math.hypot(...p);
+          if (!(length > 0)) throw new Error("Нулевая нормаль OBJ.");
+          sourceNormals.push(p.map(v => v / length) as Point);
+        } else vertices.push(p as Point);
+      } else if (tag === "vt") {
+        if (!tokens.length || tokens.length > 3 || !tokens.map(Number).every(Number.isFinite)) throw new Error("Некорректные координаты UV OBJ.");
+        textureCoordinates++;
+      } else if (tag === "s") smoothing = tokens[0] === "0" || tokens[0] === "off" ? "off" : tokens[0] || "off";
+      else if (tag === "f") {
+        const corners = tokens.map(token => {
+          const parts = token.split("/");
+          if (parts.length > 3) throw new Error("Некорректная грань OBJ.");
+          if (parts[1]) index(parts[1], textureCoordinates);
+          return { v: index(parts[0]!, vertices.length), n: parts[2] ? index(parts[2], sourceNormals.length) : undefined };
+        });
+        const triangles = triangulate(corners, vertices);
+        triangleCount += triangles.length;
+        if (triangleCount > OBJ_MAX_TRIANGLES) throw new Error("OBJ превышает предел 2 млн треугольников.");
+        faces.push(...triangles.map(corners => ({ corners, smoothing })));
+      } else if (tag && !["vt", "o", "g", "usemtl", "mtllib", "#"].includes(tag)) {
+        throw new Error(`Неподдерживаемая запись OBJ: ${tag}. Экспортируйте полигональную сетку.`);
+      }
+    } catch (error) { throw new Error(`OBJ, строка ${line + 1}: ${(error as Error).message}`); }
+  }
+  if (!faces.length) throw new Error("OBJ не содержит полигональной геометрии.");
+  const used = new Set<number>();
+  for (const face of faces) for (const corner of face.corners) used.add(corner.v);
+  const low = [Infinity, Infinity, Infinity], high = [-Infinity, -Infinity, -Infinity];
+  for (const v of used) for (let axis = 0; axis < 3; axis++) { low[axis] = Math.min(low[axis]!, vertices[v]![axis]!); high[axis] = Math.max(high[axis]!, vertices[v]![axis]!); }
+  const size = Math.max(...high.map((v, i) => v - low[i]!));
+  if (!Number.isFinite(size) || size <= 0) throw new Error("Некорректные размеры OBJ.");
+  for (const v of used) vertices[v] = vertices[v]!.map((p, i) => Math.fround(((p - low[i]!) / size - (high[i]! - low[i]!) / size / 2) * 1.2)) as Point;
+  const faceNormals: Point[] = [];
+  for (const face of faces) {
+    const [a, b, c] = face.corners.map(c => vertices[c.v]!) as [Point, Point, Point];
+    const u = b.map((v, i) => v - a[i]!), w = c.map((v, i) => v - a[i]!);
+    const normal: Point = [u[1]! * w[2]! - u[2]! * w[1]!, u[2]! * w[0]! - u[0]! * w[2]!, u[0]! * w[1]! - u[1]! * w[0]!];
+    if (Math.hypot(...normal) < 1e-12) throw new Error("OBJ содержит вырожденный треугольник после нормализации.");
+    faceNormals.push(normal);
+  }
+  const positions: number[] = [], normals: number[] = [], indices: number[] = [], output = new Map<string, number>();
+  faces.forEach((face, f) => {
+    for (const corner of face.corners) {
+      const key = corner.n !== undefined ? `${corner.v}/n${corner.n}` : `${vertices[corner.v]!.join(",")}/${face.smoothing === "off" ? `flat${f}` : `smooth${face.smoothing}`}`;
+      let i = output.get(key);
+      if (i === undefined) {
+        i = positions.length / 3; output.set(key, i); positions.push(...vertices[corner.v]!); normals.push(0, 0, 0);
+        if (corner.n !== undefined) sourceNormals[corner.n]!.forEach((v, axis) => { normals[i! * 3 + axis] = v; });
+      }
+      if (corner.n === undefined) faceNormals[f]!.forEach((v, axis) => { normals[i! * 3 + axis]! += v; });
+      indices.push(i);
+    }
+  });
+  for (let i = 0; i < normals.length; i += 3) {
+    const length = Math.hypot(normals[i]!, normals[i + 1]!, normals[i + 2]!);
+    if (length < 1e-12) throw new Error("Не удалось вычислить нормали OBJ.");
+    for (let axis = 0; axis < 3; axis++) normals[i + axis]! /= length;
+  }
+  const mesh = { positions: new Float32Array(positions), normals: new Float32Array(normals), indices: new Uint32Array(indices) };
+  const topology = meshTopology(mesh);
+  if (topology.solid) {
+    for (let face = 0; face < triangleCount; face++) {
+      if (topology.volumes[topology.shells[face]!]! >= 0) continue;
+      const i = face * 3;
+      [mesh.indices[i + 1], mesh.indices[i + 2]] = [mesh.indices[i + 2]!, mesh.indices[i + 1]!];
+    }
+  }
+  return { mesh: { ...mesh, shells: topology.shells }, solid: topology.solid, triangles: triangleCount, shells: topology.components };
+}
