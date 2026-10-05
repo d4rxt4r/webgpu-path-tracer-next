@@ -51,7 +51,7 @@ fn rouletteMain(@builtin(global_invocation_id) id: vec3u) {
  values[id.x] = vec4f(beta,0);
 }`;
 
-export async function verifyTransport(coated = false) {
+export async function verifyTransport(coated = false, rough = false) {
   const { device, name } = await createDevice();
   const resources: GPUBuffer[] = [];
   let gpuScene: GpuScene | undefined;
@@ -98,6 +98,10 @@ export async function verifyTransport(coated = false) {
         secondary: [0.5, 0.4, 0.3],
         coating,
       };
+      scene.camera.verticalFov = 0.01;
+    }
+    if (rough) {
+      scene.materials[0] = { type: "dielectric", thin: true, ior: 1.5, absorption: [0,0,0], roughness: 0.6 };
       scene.camera.verticalFov = 0.01;
     }
     const bvh = buildBvh(bakeTriangles(scene));
@@ -263,26 +267,46 @@ export async function verifyTransport(coated = false) {
           ),
         );
     // Independent deterministic area quadrature of cos(theta)^2 / r^2.
-    let irradiance = 0;
+    let irradiance = 0, roughReference = 0;
     const grid = 512;
     for (let y = 0; y < grid; y++)
       for (let x = 0; x < grid; x++) {
         const px = -1 + ((x + 0.5) * 2) / grid,
           pz = -1 + ((y + 0.5) * 2) / grid;
         irradiance += 4 / (grid * grid) / (1 + px * px + pz * pz) ** 2;
+        if (rough) {
+          const q = 1 + px * px + pz * pz, cosine = 1 / Math.sqrt(q);
+          const m2 = (1 + cosine) / 2, c = Math.sqrt(m2), eta = 1.5;
+          const ct = Math.sqrt(1 - (1 - m2) / eta ** 2);
+          const fresnel = 0.5 * (((eta * c - ct) / (eta * c + ct)) ** 2 + ((c - eta * ct) / (c + eta * ct)) ** 2);
+          const reflectance = 2 * fresnel / (1 + fresnel);
+          const alpha2 = 0.6 ** 4, d = alpha2 / (Math.PI * ((1 - m2) + alpha2 * m2) ** 2);
+          const g = 2 / (1 + Math.sqrt(1 + alpha2 * (1 - cosine ** 2) / cosine ** 2));
+          const f = reflectance * d * g / (4 * cosine);
+          roughReference += 4 * f / (grid * grid * q * q);
+        }
       }
-    const sppm = coated
+    const sppm = coated || rough
       ? await renderSppm(scene, {
           mode: "rgb",
-          iterations: 2048,
+          // Average independent pixel streams for glossy BSDF emitter hits.
+          width: rough ? 32 : 1,
+          height: rough ? 32 : 1,
+          iterations: rough ? 1024 : 2048,
           photonsPerIteration: 1,
           photonBatchSize: 1,
           maxDepth: 4,
         })
       : undefined;
+    if (rough && sppm) {
+      const mean = [0, 0, 0];
+      for (let i = 0; i < sppm.pixels.length; i++)
+        mean[i % 3]! += sppm.pixels[i]! / (sppm.width * sppm.height);
+      sppm.pixels = mean;
+    }
     return {
       estimates,
-      reference: [0.5, 0.4, 0.3].map(
+      reference: rough ? [roughReference, roughReference, roughReference] : [0.5, 0.4, 0.3].map(
         (albedo) => coating + ((1 - coating) * albedo * irradiance) / Math.PI,
       ),
       sppm,

@@ -7,7 +7,7 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.mesh.primitive_monkey_add()
 obj = bpy.context.object
 assert len(obj.data.vertices) == 507 and len(obj.modifiers) == 0
-target = ROOT / "public" / "assets" / "suzanne-original.obj"
+target = ROOT / "assets" / "suzanne-original.obj"
 # Use Blender's render tessellation without running its export triangulation
 # modifier, and preserve f32 coordinates rather than the OBJ exporter's 6 decimals.
 mesh = obj.data

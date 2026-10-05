@@ -3,12 +3,24 @@ import { fileURLToPath } from "node:url";
 
 const fixture = (name: string) => fileURLToPath(new URL(`../fixtures/${name}`, import.meta.url));
 
+test("crossed OBJ contours import and replace the scene object", async ({ page }) => {
+  test.setTimeout(120000);
+  await page.goto("/?scene=control");
+  await expect(page.locator("#status")).toHaveText("WebGPU готов", { timeout: 60000 });
+  await page.locator("#obj-file").setInputFiles(fixture("warped-projection.obj"));
+  await expect(page.locator("#scene")).toHaveValue("uploaded", { timeout: 30000 });
+  await expect(page.locator("#obj-status")).toContainText("52 треугольников");
+  await expect(page.locator("#scene-name")).toContainText("warped-projection.obj");
+  await expect.poll(async () => Number(await page.locator("canvas").getAttribute("data-samples")), { timeout: 30000 }).toBeGreaterThan(0);
+  await expect(page.locator("#error")).toBeHidden();
+});
+
 test("high poly Suzanne is the default and the original preset remains available", async ({ page }) => {
   test.setTimeout(90000);
   await page.goto("/");
   await expect(page.locator("#status")).toHaveText("WebGPU готов", { timeout: 60000 });
   await expect(page.locator("#scene")).toHaveValue("suzanne-high-poly");
-  await expect(page.locator("#scene option")).toHaveText(["Suzanne high poly", "Suzanne", "Happy Buddha", "Контрольная сфера"]);
+  await expect(page.locator("#scene option")).toHaveText(["Suzanne high poly", "Suzanne", "Rastagotchi", "Happy Buddha", "Контрольная сфера"]);
   await expect(page.locator("#obj-status")).toContainText("Закрыто отверстий: 4");
   await expect(page.locator("#repair-obj")).toBeChecked();
   await page.locator("#scene").evaluate(el => { el.closest("details")!.open = true; });
@@ -25,7 +37,7 @@ test("multiple OBJ shells repair reversibly and render intersections in PT and S
   await page.goto("/?scene=control");
   await expect(page.locator("#status")).toHaveText("WebGPU готов", { timeout: 25000 });
   for (const id of ["repair-obj", "material", "profile"]) await page.locator(`#${id}`).evaluate(el => { el.closest("details")!.open = true; });
-  await page.locator("#material").selectOption("glass");
+  await page.locator("#material").selectOption("dielectric");
   await page.locator("#obj-file").setInputFiles(fixture("overlap-open.obj"));
   await expect(page.locator("#obj-status")).toContainText("Оболочек: 2");
   await expect(page.locator("#repair-obj")).toBeChecked();
@@ -55,6 +67,12 @@ test("GPU medium tracking matches a solid slab for overlapping and nested shells
       return verifyShells(precise);
     }, precise);
     for (const result of results) {
+      // Common transport requests precise replay at coincident boundaries.
+      if (!precise && result.kind === "touching") {
+        expect(result.errors).toBeGreaterThan(0);
+        expect(result.retryable).toBe(result.errors);
+        continue;
+      }
       expect(result.errors).toBe(0);
       if (result.difference !== undefined) expect(result.difference).toBeLessThan(0.00001);
     }
@@ -93,10 +111,10 @@ test("original Suzanne remains available with runtime repair enabled", async ({ 
   await page.locator("#repair-obj").uncheck();
   await expect(page.locator("#obj-status")).toContainText("968 треугольников");
   await expect(page.locator("#obj-status")).toContainText("Тонкое стекло");
-  await expect(page.locator("#absorption")).toBeDisabled();
+  await expect(page.locator("#transmission-depth")).toBeDisabled();
   await page.locator("#repair-obj").check();
   await expect(page.locator("#obj-status")).toContainText("Закрыто отверстий: 4");
-  await expect(page.locator("#absorption")).toBeEnabled();
+  await expect(page.locator("#transmission-depth")).toBeEnabled();
   await expect.poll(async () => Number(await page.locator("canvas").getAttribute("data-samples")), { timeout: 15000 }).toBeGreaterThan(0);
   await expect(page.locator("#error")).toBeHidden();
 });
@@ -107,11 +125,11 @@ test("OBJ replaces the object, selects thin or solid glass and rolls back invali
   await expect(page.locator("#status")).toHaveText("WebGPU готов", { timeout: 25000 });
   await page.locator("#scene").evaluate(el => { el.closest("details")!.open = true; });
   await page.locator("#material").evaluate(el => { el.closest("details")!.open = true; });
-  await page.locator("#material").selectOption("glass");
+  await page.locator("#material").selectOption("dielectric");
   await page.locator("#obj-file").setInputFiles(fixture("open.obj"));
   await expect(page.locator("#obj-status")).toContainText("Тонкое стекло");
   await expect(page.locator("#scene")).toHaveValue("uploaded");
-  await expect(page.locator("#absorption")).toBeDisabled();
+  await expect(page.locator("#transmission-depth")).toBeDisabled();
   await page.locator("#object-rotation-x-value").fill("30");
   await page.locator("#object-rotation-x-value").press("Tab");
   await page.locator("#object-rotation-z-value").fill("45");
@@ -157,4 +175,17 @@ test("thin glass GPU optics conserve energy and transmit without angular refract
   expect(values[11]).toBe(1);
   expect(values[12]).toBeCloseTo(1 / 13, 3);
   expect(values[13]).toBe(1);
+});
+
+test("Rastagotchi loads with lightly rough green glass", async ({ page }) => {
+  test.setTimeout(120000);
+  await page.goto("/?scene=rastagotchi");
+  await expect(page.locator("#scene")).toHaveValue("rastagotchi");
+  await expect(page.locator("#material")).toHaveValue("dielectric");
+  await expect(page.locator("#transmission-color")).toHaveValue("#f4fff6");
+  await expect(page.locator("#roughness")).toHaveValue("0.03");
+  await expect(page.locator("#ior")).toHaveValue("1.5");
+  await expect(page.locator("#obj-status")).toContainText("Rastagotchi", { timeout: 90000 });
+  await expect.poll(async () => Number(await page.locator("canvas").getAttribute("data-samples")), { timeout: 30000 }).toBeGreaterThan(0);
+  await expect(page.locator("#error")).toBeHidden();
 });

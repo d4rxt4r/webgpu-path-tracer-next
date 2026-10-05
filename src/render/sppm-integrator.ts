@@ -222,7 +222,7 @@ export class SppmIntegrator {
       photon: [...transport, uniform, photons],
       photonRepair: [...transport, uniform, photons],
       hash: [camera, uniform, photons, heads],
-      gather: [camera, error, uniform, points, photons, heads],
+      gather: [camera, error, uniform, points, photons, heads, ...resources.scene.transportEntries().filter(entry => entry.binding === 5), binding(7, resources.sobol), resources.scene.spectralEntry()],
       update: [
         { binding: 0, resource: resources.texture.createView() },
         camera,

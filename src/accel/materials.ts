@@ -154,17 +154,26 @@ export function packTransport(
         throw new Error("Invalid dielectric material");
       if (
         material.iorModel &&
-        !["constant", "nbk7"].includes(material.iorModel)
+        !["constant", "nbk7", "cauchy"].includes(material.iorModel)
       )
         throw new Error("Invalid IOR model");
+      const roughness = material.roughness ?? 0;
+      const transmission = material.transmission ?? [1, 1, 1];
+      if (!Number.isFinite(roughness) || roughness < 0 || roughness > 1 ||
+          !transmission.every(v => Number.isFinite(v) && v >= 0 && v <= 1) ||
+          (material.iorModel === "cauchy" && (!material.cauchy || !material.cauchy.every(v => Number.isFinite(Math.fround(v))) || material.cauchy[1] < 0 || material.cauchy[0] + material.cauchy[1] / 0.83 ** 2 < 1)))
+        throw new Error("Invalid dielectric surface parameters");
+      spectra.set(bakeSpectrum(material.transmissionSpectrum ?? constantSpectrum(transmission[0]), true), spectrumOffset);
+      if (material.thin && !material.transmissionSpectrum && transmission.some(v => v !== transmission[0])) spectralReady = false;
       makeStructuredView(materialDef, materials, i * materialDef.size).set({
-        color: [1, 1, 1],
+        color: transmission,
         kind: material.thin ? 5 : 2,
         absorption: material.absorption,
         ior: material.ior,
         spectrumOffset,
         absorptionOffset,
-        iorModel: Number(material.iorModel === "nbk7"),
+        iorModel: material.iorModel === "cauchy" ? 2 : Number(material.iorModel === "nbk7"),
+        textureParams: [roughness, ...(material.cauchy ?? [0, 0]), 0],
       });
       return;
     }

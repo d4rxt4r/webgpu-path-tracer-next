@@ -3,9 +3,10 @@ import { OBJ_MAX_TRIANGLES } from "./obj";
 import { meshTopology } from "./mesh-topology";
 import { triangulate } from "./polygon";
 import type { Point } from "./polygon";
+import { cleanAmbiguousMesh } from "./mesh-cleanup";
 
 export interface ComponentRepair { shell: number; success: boolean; closedHoles: number; reason?: string }
-export interface RepairReport { success: boolean; closedHoles: number; reason?: string; components?: ComponentRepair[] }
+export interface RepairReport { success: boolean; closedHoles: number; removedFaces?: number; collapsedEdges?: number; reason?: string; components?: ComponentRepair[] }
 export interface RepairedObj extends ImportedObj { repair: RepairReport }
 
 /** Repairs are atomic: a failed component leaves the entire source untouched. */
@@ -13,16 +14,28 @@ export function repairMesh(source: ImportedObj): RepairedObj {
   let failedShell = 0;
   try {
     let topology = meshTopology(source.mesh);
+    let working = source.mesh;
+    let removedFaces = 0, collapsedEdges = 0;
+    if (!topology.manifold) {
+      failedShell = topology.shells[topology.invalidFace ?? 0] ?? 0;
+      const cleaned = cleanAmbiguousMesh(working, topology);
+      working = cleaned.mesh; topology = cleaned.topology;
+      removedFaces = cleaned.removedFaces; collapsedEdges = cleaned.collapsedEdges;
+    }
     if (!topology.manifold || !topology.orientable) {
       failedShell = topology.shells[topology.invalidFace ?? 0]!;
       throw new Error("Поверхность содержит неоднозначные рёбра или не допускает согласованную ориентацию.");
     }
     const shellHoles = Array<number>(topology.components).fill(0);
-    const indices = Array.from(source.mesh.indices);
+    const indices = Array.from(working.indices);
+    let changedOrientation = false;
     for (let face = 0; face < topology.flips.length; face++) {
-      if (topology.flips[face] === 1) [indices[face * 3 + 1], indices[face * 3 + 2]] = [indices[face * 3 + 2]!, indices[face * 3 + 1]!];
+      if (topology.flips[face] === 1) {
+        [indices[face * 3 + 1], indices[face * 3 + 2]] = [indices[face * 3 + 2]!, indices[face * 3 + 1]!];
+        changedOrientation = true;
+      }
     }
-    topology = meshTopology({ ...source.mesh, indices: new Uint32Array(indices) });
+    if (changedOrientation) topology = meshTopology({ ...working, indices: new Uint32Array(indices) });
     const outgoing = new Map<string, number>(), incoming = new Set<string>();
     for (const edge of topology.boundary) {
       failedShell = topology.shells[edge.face]!;
@@ -34,8 +47,8 @@ export function repairMesh(source: ImportedObj): RepairedObj {
       failedShell = Number(key.split(":")[0]);
       throw new Error("Граница отверстия не образует замкнутый контур.");
     }
-    const positions = Array.from(source.mesh.positions);
-    const normals = source.mesh.normals ? Array.from(source.mesh.normals) : undefined;
+    const positions = Array.from(working.positions);
+    const normals = working.normals ? Array.from(working.normals) : undefined;
     const capShells = Array.from(topology.shells);
     let closedHoles = 0;
     const visited = new Set<string>();
@@ -60,7 +73,7 @@ export function repairMesh(source: ImportedObj): RepairedObj {
         const u = b.map((value, i) => value - a[i]!), w = c.map((value, i) => value - a[i]!);
         const n = [u[1]! * w[2]! - u[2]! * w[1]!, u[2]! * w[0]! - u[0]! * w[2]!, u[0]! * w[1]! - u[1]! * w[0]!];
         const length = Math.hypot(...n);
-        if (length < 1e-12) throw new Error("Закрытие отверстия создаёт вырожденную грань.");
+        if (!(length > 0)) throw new Error("Закрытие отверстия создаёт вырожденную грань.");
         for (const point of [a, b, c]) {
           indices.push(positions.length / 3); positions.push(...point);
           normals?.push(...n.map(v => v / length));
@@ -69,17 +82,17 @@ export function repairMesh(source: ImportedObj): RepairedObj {
       closedHoles++; shellHoles[shell]!++;
     }
     const mesh = { positions: new Float32Array(positions), normals: normals ? new Float32Array(normals) : undefined, indices: new Uint32Array(indices), shells: new Uint32Array(capShells) };
-    topology = meshTopology(mesh);
+    if (closedHoles) topology = meshTopology(mesh);
     if (!topology.solid) {
-      failedShell = Math.max(0, topology.volumes.findIndex(v => Math.abs(v) <= 1e-12));
+      failedShell = Math.max(0, topology.volumes.findIndex((v, i) => Math.abs(v) <= topology.volumeThresholds[i]!));
       throw new Error("После закрытия отверстий не получены замкнутые объёмы.");
     }
     mesh.shells = topology.shells;
     for (let i = 0; i < mesh.indices.length; i += 3) {
       if (topology.volumes[topology.shells[i / 3]!]! < 0) [mesh.indices[i + 1], mesh.indices[i + 2]] = [mesh.indices[i + 2]!, mesh.indices[i + 1]!];
     }
-    return { mesh, solid: true, triangles: mesh.indices.length / 3, shells: topology.components,
-      repair: { success: true, closedHoles, components: shellHoles.map((holes, shell) => ({ shell: shell + 1, success: true, closedHoles: holes })) } };
+    return { ...source, mesh, solid: true, triangles: mesh.indices.length / 3, shells: topology.components,
+      repair: { success: true, closedHoles, ...(removedFaces ? { removedFaces } : {}), ...(collapsedEdges ? { collapsedEdges } : {}), components: shellHoles.map((holes, shell) => ({ shell: shell + 1, success: true, closedHoles: holes })) } };
   } catch (error) {
     const reason = `Оболочка ${failedShell + 1}: ${(error as Error).message}`;
     return { ...source, repair: { success: false, closedHoles: 0, reason, components: [{ shell: failedShell + 1, success: false, closedHoles: 0, reason }] } };

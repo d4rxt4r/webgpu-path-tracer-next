@@ -32,9 +32,9 @@ export async function verifyShells(precise = true) {
       }`;
     const module=await checkedShader(device,precise ? code : fastTransportShader(code),"independent overlapping shells");
     const pipeline=await device.createComputePipelineAsync({layout:"auto",compute:{module,entryPoint:"main"}});
-    const results: {kind:string;inside:boolean;errors:number;mean:number[];difference?:number}[]=[];
+    const results: {kind:string;inside:boolean;errors:number;retryable:number;mean:number[];difference?:number}[]=[];
     const reference=new Map<boolean,Float32Array>();
-    for(const inside of [false,true]) for(const kind of ["reference","overlap","nested","disjoint"] as const) {
+    for(const inside of [false,true]) for(const kind of ["reference","overlap","nested","touching","disjoint"] as const) {
       if(inside && kind==="disjoint") continue;
       const scene=shellScene(kind,inside),bvh=buildBvh(bakeTriangles(scene));
       const packed={...packBvh(bvh),...packTransport(scene,bvh)},gpu=new GpuScene(device,packed);
@@ -46,10 +46,11 @@ export async function verifyShells(precise = true) {
         const encoder=device.createCommandEncoder(),pass=encoder.beginComputePass();pass.setPipeline(pipeline);pass.setBindGroup(0,group);pass.dispatchWorkgroups(count/64);pass.end();
         encoder.copyBufferToBuffer(output,0,readback,0,count*16);device.queue.submit([encoder.finish()]);
         await readback.mapAsync(GPUMapMode.READ);const data=new Float32Array(readback.getMappedRange()).slice();readback.unmap();
-        let errors=0,difference=0;const mean=[0,0,0];
+        let errors=0,retryable=0,difference=0;const mean=[0,0,0];
+        for(let i=0;i<count;i++) retryable+=Number(data[i*4+3]===4 || data[i*4+3]===5);
         for(let i=0;i<count;i++) {errors+=Number(data[i*4+3]!==0);for(let c=0;c<3;c++) {mean[c]!+=data[i*4+c]!/count;if(kind!=="reference"&&kind!=="disjoint") difference=Math.max(difference,Math.abs(data[i*4+c]!-reference.get(inside)![i*4+c]!));}}
         if(kind==="reference") reference.set(inside,data);
-        results.push({kind,inside,errors,mean,difference:kind==="overlap"||kind==="nested" ? difference : undefined});
+        results.push({kind,inside,errors,retryable,mean,difference:kind==="overlap"||kind==="nested"||kind==="touching" ? difference : undefined});
       } finally {gpu.dispose();}
     }
     return results;

@@ -74,7 +74,7 @@ export interface RenderStats {
   gpuMs?: number;
   revision: number;
   presentedRevision: number;
-  status: "ready" | "paused" | "recovering" | "error";
+  status: "initializing" | "ready" | "paused" | "recovering" | "error";
   triangles: number;
   nodes: number;
   samples: number;
@@ -191,7 +191,7 @@ export class IntersectionRenderer {
     completionMs: 0,
     revision: 0,
     presentedRevision: -1,
-    status: "recovering",
+    status: "initializing",
     triangles: 0,
     nodes: 0,
     samples: 0,

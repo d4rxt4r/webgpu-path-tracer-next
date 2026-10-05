@@ -4,10 +4,15 @@ import { nbk7Ior } from "../transport/spectrum";
 export function numericDefault(id: string, controlScene: boolean): number {
   const selected = (name: string) => (document.getElementById(name) as HTMLSelectElement).value;
   const material = selected("material");
-  if (id === "ior") return material === "blue-glass" ? 1.7 : material === "glass" ? 1.5 : nbk7Ior(587.6);
+  if (selected("scene") === "rastagotchi" && material === "dielectric") {
+    if (id === "ior") return 1.5;
+    if (id === "roughness") return 0.03;
+  }
+  if (id === "ior") return material === "dielectric" ? 1.7 : material === "blue-glass" ? 1.7 : material === "glass" ? 1.5 : nbk7Ior(587.6);
   if (id === "object-y") return selected("scene") === "buddha" ? 0.86 : selected("scene") === "control" ? 0.65 : 1;
-  if (id === "texture-scale") return material === "lava" ? 6 : 9;
-  if (id === "texture-width") return material === "lava" ? 0.04 : 0.1;
+  const texture = document.getElementById("texture-kind") as HTMLSelectElement | null;
+  if (id === "texture-scale") return (texture?.value ?? material) === "lava" ? 6 : 9;
+  if (id === "texture-width") return (texture?.value ?? material) === "lava" ? 0.04 : 0.1;
   if (id === "max-depth") return controlScene ? 8 : 32;
   const defaults: Record<string, number> = { seed: 1, "sample-limit": 0, photons: 16384 };
   if (id in defaults) return defaults[id]!;

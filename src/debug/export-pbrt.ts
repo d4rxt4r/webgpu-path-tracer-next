@@ -40,6 +40,8 @@ export function exportPbrt(
       ? material.absorptionSpectrum.some(([, value]) => value > 0)
       : material.absorption.some((value) => value > 0));
   for (const material of scene.materials) {
+    if (material.type === "dielectric" && material.thin)
+      throw new Error("PBRT export cannot reproduce the renderer's tinted rough thin-interface approximation");
     if (material.type === "marble" || material.type === "lava")
       throw new Error(
         "PBRT reference export does not support procedural marble/lava materials",
@@ -95,9 +97,12 @@ export function exportPbrt(
               { length: 471 },
               (_, i) => [360 + i, nbk7Ior(360 + i)] as [number, number],
             )
-          : constantSpectrum(material.ior);
+          : material.iorModel === "cauchy" && material.cauchy
+            ? Array.from({ length: 471 }, (_, i) => [360 + i, material.cauchy![0] + material.cauchy![1] / ((360 + i) * 0.001) ** 2] as [number, number])
+            : constantSpectrum(material.ior);
+      const alpha = (material.roughness ?? 0) ** 2;
       lines.push(
-        `Material "dielectric" ${spectrum("eta", eta)} "float uroughness" [0] "float vroughness" [0]`,
+        `Material "dielectric" ${spectrum("eta", eta)} "float uroughness" [${alpha}] "float vroughness" [${alpha}] "bool remaproughness" [false]`,
       );
       if (hasAbsorption(material))
         lines.push(`MediumInterface "glass-${object.material}" ""`);

@@ -8,6 +8,7 @@ import textures from "./textures.wgsl?raw";
 import tracer from "./path-tracer.wgsl?raw";
 import media from "./media.wgsl?raw";
 import dielectric from "./dielectric.wgsl?raw";
+import roughDielectric from "./rough-dielectric.wgsl?raw";
 import spectrum from "./spectrum.wgsl?raw";
 import color from "./color.wgsl?raw";
 import output from "./path-output.wgsl?raw";
@@ -27,6 +28,8 @@ export const pathCore =
   lighting +
   "\n" +
   dielectric +
+  "\n" +
+  roughDielectric +
   "\n" +
   media +
   "\n" +

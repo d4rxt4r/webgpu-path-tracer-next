@@ -5,7 +5,7 @@ import { repairMesh } from "../src/assets/mesh-repair";
 import { meshTopology } from "../src/assets/mesh-topology";
 
 it("ships the native Blender primitive and closes its independent shells at runtime", () => {
-  const text = readFileSync(new URL("../public/assets/suzanne-original.obj", import.meta.url), "utf8");
+  const text = readFileSync(new URL("../assets/suzanne-original.obj", import.meta.url), "utf8");
   expect(text.split("\n").filter(line => line.startsWith("v "))).toHaveLength(507);
   expect(text.split("\n").filter(line => line.startsWith("f "))).toHaveLength(968);
   const original = parseObj(text), before = structuredClone(original);

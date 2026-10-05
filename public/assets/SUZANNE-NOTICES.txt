@@ -1,20 +1,16 @@
-Suzanne solid mesh
+Suzanne OBJ models
 
-Generated from Blender 4.4.3's built-in Suzanne primitive, not downloaded from
-a third-party model repository. The original editable primitive is stored in
-assets/source/suzanne.blend. Processing is in scripts/prepare-suzanne.py;
-format, SHA-256, generator version, topology and bounds are recorded in
-src/assets/suzanne-meta.json.
+The original Suzanne primitive is exported from Blender 4.4.3 by
+scripts/export-suzanne-original.py to assets/suzanne-original.obj.
+It preserves Blender's native render tessellation and f32 coordinates, with
+an axis conversion to Y-up. No subdivision, remesh, smoothing or union is applied.
+assets/Suzanne.obj is the user-provided high poly Blender Suzanne export.
+Both source OBJ files are distributed unchanged. Normalization and optional
+hole repair happen separately in the application's OBJ worker.
 
-Blender is GNU GPL-2.0-or-later software. Blender's licensing policy distinguishes
+Model attribution: Blender Suzanne primitive and Blender contributors.
+Blender is GNU GPL-2.0-or-later software. Its licensing policy distinguishes
 the application from artwork and data files generated with it:
 https://www.blender.org/about/license/
-
-No project-wide license is declared by this asset notice. Blender branding and
-logos are not included. Model attribution: Blender Suzanne primitive and Blender
-contributors; this project's closed-volume processing is recorded in its generator.
-
-Interactive default: suzanne-original.obj is Blender 4.4.3's original primitive,
-exported by scripts/export-suzanne-original.py with its native render tessellation
-and Y-up coordinates. No subdivision, remesh, smoothing or union is applied.
-The application's optional runtime hole repair is separate from this source asset.
+No project-wide license is declared by this asset notice.
+Blender branding and logos are not included.

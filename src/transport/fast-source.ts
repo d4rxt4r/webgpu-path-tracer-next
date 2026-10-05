@@ -20,6 +20,7 @@ export function fastTransportShader(source: string, threadedTraversal = false): 
     .replaceAll('traceBvh(ray, true,vec3f(0))', 'traceBvh(ray, true)')
     .replace(/var originLow\s*=\s*vec3f\(0\);/g, '')
     .replaceAll('closestHitWithOrigin(ray,originLow)', 'closestHit(ray)')
+    .replaceAll('changeMediumAtSurface(media,ray,originLow,hit)', 'changeMediumAtSurface(media,ray,hit)')
     .replaceAll('originLow=vec3f(0);', '')
     .replace(/let origin=transportOrigin\(ray,originLow,triangle,hit,event.direction\);\s*ray\s*=\s*Ray\(origin.position,\s*0.0,\s*event.direction,\s*1e20\);originLow=origin.residual;/g,
       'ray=Ray(offsetSurface(triangle,hit,event.direction),0.0,event.direction,1e20);')

@@ -4,15 +4,18 @@ Stanford 3D Scanning Repository
 https://graphics.stanford.edu/data/3Dscanrep/
 https://graphics.stanford.edu/pub/3Dscanrep/happy/happy_recon.tar.gz
 
-This project distributes a simplified reconstruction for a free research/demo
+This project distributes the full reconstruction for a free research/demo
 renderer. Stanford allows research use and free mirroring/redistribution with
 source attribution. Commercial use, including inclusion in a product for sale,
 requires permission from Stanford. The full terms are on the repository page
 under "Please acknowledge..." and "Inappropriate uses of these models".
 Credit rendered images to the Stanford Computer Graphics Laboratory.
 
-Prepared using scripts/prepare-buddha.py (Blender 4.4): decimation, normal
-recalculation, centering, uniform scale, 3mm voxel reconstruction to resolve
-degenerate scan bridges, and removal of seven disconnected scan specks.
-Procedural marble/lava appearances are renderer materials, not original scan
-textures. The geometry does not melt, break or change shape.
+The full happy_recon/happy_vrip.ply source (543652 vertices, 1087716 triangles)
+is converted to assets/Buddha.obj by scripts/export-buddha-original.py.
+Only the file format changes: original vertex coordinates, face indices and
+components are preserved. There is no decimation, voxel remesh or speck removal.
+Archive and OBJ hashes are recorded in assets/Buddha-source.json.
+At runtime the OBJ importer centers and scales the mesh and skips zero-area
+triangles, reporting their count. Optional hole repair is controlled by the UI.
+Procedural marble/lava appearances are renderer materials, not scan textures.

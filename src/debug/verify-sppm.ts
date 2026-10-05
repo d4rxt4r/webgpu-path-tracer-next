@@ -5,7 +5,7 @@ import { sppmDefinitions, sppmShader } from '../transport/sppm-shader';
 import type { Vec3 } from '../scene/types';
 
 /** Deliberately one hash bucket: all spatial cells collide. Compare to brute force. */
-export async function verifySppm() {
+export async function verifySppm(rough = false) {
   const {device,name}=await createDevice();const buffers:GPUBuffer[]=[];
   const create=(size:number,usage:GPUBufferUsageFlags,data?:ArrayBuffer)=>{const b=device.createBuffer({size,usage:usage|GPUBufferUsage.COPY_DST});buffers.push(b);if(data) device.queue.writeBuffer(b,0,data);return b;};
   try {
@@ -26,7 +26,8 @@ export async function verifySppm() {
       {position:[0.19,0,0],surface:1,normal:[0,1,0],flux:[1,1,1],valid:1},
       {position:[-0.4,0,0],surface:1,normal:[0,1,0],flux:[1,2,1],valid:1},
     ];
-    fixtures.forEach((photon,i)=>makeStructuredView(photonDef,photonData,i*photonDef.size).set(photon));
+    if (rough) positions.forEach((_, i) => makeStructuredView(pointDef, pointData, i * pointDef.size).set({ bsdf: 1, wo: [0,1,0], shading: [0,1,0], material: 0, eta: 1.5, boundary: 42 }));
+    fixtures.forEach((photon,i)=>makeStructuredView(photonDef,photonData,i*photonDef.size).set({ ...photon, incoming: photon.normal, boundary: i === 8 ? 43 : 42 }));
     const cameraView=makeStructuredView(definitions.structs.CameraParams!);cameraView.set({size:[4,1],tile:[0,0,4,1],maxDepth:1});
     const settingsView=makeStructuredView(sppmDefinitions.structs.SppmParams!);settingsView.set({initialRadius:0.2,photonsPerIteration:100,batchCount:64,batchSize:64,hashMask:0,iteration:2});
     const states=create(pointData.byteLength,GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_SRC,pointData);
@@ -34,6 +35,10 @@ export async function verifySppm() {
     const heads=create(4,GPUBufferUsage.STORAGE),diagnostic=create(4,GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_SRC);
     const camera=create(cameraView.arrayBuffer.byteLength,GPUBufferUsage.UNIFORM,cameraView.arrayBuffer),settings=create(settingsView.arrayBuffer.byteLength,GPUBufferUsage.UNIFORM,settingsView.arrayBuffer);
     const output=create(64,GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_SRC);
+    const materialView=makeStructuredView(definitions.structs.Material!);
+    materialView.set({ kind: 2, color: [1,1,1], ior: 1.5, textureParams: [0.6,0,0,0] });
+    const materials=create(materialView.arrayBuffer.byteLength,GPUBufferUsage.STORAGE,materialView.arrayBuffer);
+    const spectra=create(471*4,GPUBufferUsage.STORAGE),sobol=create(4,GPUBufferUsage.STORAGE);
     const readback=create(pointData.byteLength+64+4,GPUBufferUsage.MAP_READ|GPUBufferUsage.COPY_DST);
     const image=device.createTexture({size:[4,1],format:'rgba16float',usage:GPUTextureUsage.STORAGE_BINDING});
     try {
@@ -43,7 +48,7 @@ export async function verifySppm() {
       const binding=(binding:number,buffer:GPUBuffer):GPUBindGroupEntry=>({binding,resource:{buffer}});
       const groups=[
         [binding(1,camera),binding(11,settings),binding(21,photons),binding(22,heads)],
-        [binding(1,camera),binding(4,diagnostic),binding(10,states),binding(11,settings),binding(21,photons),binding(22,heads)],
+        [binding(1,camera),binding(4,diagnostic),binding(5,materials),binding(7,sobol),binding(9,spectra),binding(10,states),binding(11,settings),binding(21,photons),binding(22,heads)],
         [{binding:0,resource:image.createView()},binding(1,camera),binding(4,diagnostic),binding(8,output),binding(10,states),binding(11,settings)],
       ].map((entries,i)=>device.createBindGroup({layout:pipelines[i]!.getBindGroupLayout(0),entries}));
       const encoder=device.createCommandEncoder();encoder.clearBuffer(heads);encoder.clearBuffer(diagnostic);
@@ -54,10 +59,12 @@ export async function verifySppm() {
       const scalar=(i:number,field:string)=>floats[(i*pointDef.size+pointDef.fields[field]!.offset)/4]!;
       for(let i=0;i<4;i++) {
         let M=0;const phi=[0,0,0];
-        for(const photon of fixtures) {
+        for(const [fixtureIndex, photon] of fixtures.entries()) {
           const delta=photon.position.map((v,c)=>v-positions[i]![c]!);
-          if(i===3||!photon.valid||photon.surface!==(i===2?2:1)||photon.normal[1]<0.95||delta.reduce((sum,v)=>sum+v*v,0)>0.2**2||Math.abs(delta[1]!)>0.02) continue;
-          M++;for(let c=0;c<3;c++) phi[c]!+=weight[c]!*photon.flux[c]!;
+          if(i===3||!photon.valid||photon.surface!==(i===2?2:1)||(!rough && photon.normal[1]<0.95)||(rough && fixtureIndex===8)||delta.reduce((sum,v)=>sum+v*v,0)>0.2**2||Math.abs(delta[1]!)>0.02) continue;
+          const d = 1 / (Math.PI * 0.6 ** 4);
+          const f = !rough ? 1 : photon.normal[1] > 0 ? 0.04 * d / 4 : 0.96 * d / 0.5 ** 2;
+          M++;for(let c=0;c<3;c++) phi[c]!+=weight[c]!*photon.flux[c]! * f;
         }
         counts.push(ints[(i*pointDef.size+pointDef.fields.M!.offset)/4]!);
         const N=10+(2/3)*M,ratio=M?N/(10+M):1,radius=0.2*Math.sqrt(ratio);

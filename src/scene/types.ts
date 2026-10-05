@@ -39,7 +39,11 @@ export type MaterialDescription =
       ior: number;
       thin?: boolean;
       absorption: Vec3;
-      iorModel?: "constant" | "nbk7";
+      iorModel?: "constant" | "nbk7" | "cauchy";
+      cauchy?: [number, number];
+      roughness?: number;
+      transmission?: Vec3;
+      transmissionSpectrum?: SpectrumTable;
       absorptionSpectrum?: SpectrumTable;
     }
   | TexturedMaterial;

@@ -1,5 +1,5 @@
 import { OBJ_MAX_BYTES } from "./obj";
-import type { ImportedObj } from "./obj";
+import type { ImportedObj, ObjOptions } from "./obj";
 import type { RepairedObj } from "./mesh-repair";
 
 export class ObjImporter {
@@ -15,11 +15,16 @@ export class ObjImporter {
     if (!/\.obj$/i.test(file.name)) return Promise.reject(new Error("Выберите файл .obj."));
     return this.run<ImportedObj>(file);
   }
+  /** Built-in assets stay in the worker and avoid disk-backed Blob/File clones. */
+  loadUrl(url: string, options: ObjOptions = {}): Promise<ImportedObj> {
+    this.cancel();
+    return this.run<ImportedObj>({ url: new URL(url, location.href).href, options });
+  }
   repair(source: ImportedObj): Promise<RepairedObj> {
     this.cancel();
     return this.run<RepairedObj>({ repair: source });
   }
-  private run<T extends ImportedObj>(message: File | { repair: ImportedObj }): Promise<T> {
+  private run<T extends ImportedObj>(message: File | { repair: ImportedObj } | { url: string; options: ObjOptions }): Promise<T> {
     const worker = new Worker(new URL("./obj.worker.ts", import.meta.url), { type: "module" });
     this.worker = worker;
     return new Promise((resolve, reject) => {

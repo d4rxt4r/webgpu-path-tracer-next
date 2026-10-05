@@ -23,5 +23,6 @@ fn nbk7Ior(wavelengthNm: f32) -> f32 {
 }
 fn materialIor(material: Material, wavelength: f32) -> f32 {
   if (wavelength == 0.0 || material.iorModel == 0u) { return material.ior; }
+  if (material.iorModel == 2u) { let l=wavelength*0.001; return material.textureParams.y+material.textureParams.z/(l*l); }
   return nbk7Ior(wavelength);
 }

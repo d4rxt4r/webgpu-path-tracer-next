@@ -11,6 +11,7 @@ import { cameraBasis } from "../scene/camera";
 import type { SceneDescription } from "../scene/types";
 import { TRANSPORT_QUEUE_BYTES } from "../render/transport-diagnostics";
 import { SppmIntegrator } from "../render/sppm-integrator";
+import { sppmDefinitions } from "../transport/sppm-shader";
 import { Denoiser, type DenoiseSettings } from "../render/denoiser";
 
 /** Numerical acceptance runner; production rendering retains its RAF job budget. */
@@ -30,6 +31,7 @@ export async function renderSppm(
     checkpoints?: number[];
     specializeSampler?: boolean;
     preciseTransport?: boolean;
+    debugPixel?: number;
   },
 ) {
   const { device, name } = await createDevice();
@@ -250,7 +252,19 @@ export async function renderSppm(
     }
     const validation = await device.popErrorScope();
     if (validation) throw new Error(validation.message);
+    let debugPoint: unknown;
+    if (options.debugPixel !== undefined) {
+      const point = makeStructuredView(sppmDefinitions.structs.SppmPoint!);
+      const pointReadback = create(point.arrayBuffer.byteLength, GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
+      const encoder = device.createCommandEncoder();
+      const points = (integrator as unknown as { points: GPUBuffer }).points;
+      encoder.copyBufferToBuffer(points, options.debugPixel * point.arrayBuffer.byteLength, pointReadback, 0, point.arrayBuffer.byteLength);
+      device.queue.submit([encoder.finish()]); await pointReadback.mapAsync(GPUMapMode.READ);
+      new Uint8Array(point.arrayBuffer).set(new Uint8Array(pointReadback.getMappedRange())); pointReadback.unmap();
+      debugPoint = point.views;
+    }
     return {
+      debugPoint,
       width,
       height,
       pixels,

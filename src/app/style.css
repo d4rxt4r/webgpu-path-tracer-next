@@ -9,6 +9,12 @@
   color-scheme: dark;
   font-size: 12px;
 }
+[hidden] { display: none !important; }
+#dielectric-settings, #diffuse-settings, #texture-group, #dispersion-settings, #lava-settings {
+  display: grid;
+  gap: 8px;
+}
+input[type="color"] { width: 100%; min-height: 28px; padding: 2px; }
 * {
   box-sizing: border-box;
 }

@@ -11,6 +11,23 @@ import { pathShader } from "../src/transport/shaders";
 import { sppmShader } from "../src/transport/sppm-shader";
 import { ObjImporter } from "../src/assets/obj-import";
 import { OBJ_MAX_BYTES } from "../src/assets/obj";
+import { readFileSync } from "node:fs";
+
+it("keeps strict OBJ import while accounting for non-renderable scan triangles explicitly", () => {
+  const text = readFileSync(new URL("fixtures/solid.obj", import.meta.url), "utf8") + "\nf 1 1 2\n";
+  expect(() => parseObj(text)).toThrow();
+  const model = parseObj(text, { skipDegenerateTriangles: true });
+  expect(model.triangles).toBe(4);
+  expect(model.skippedDegenerateTriangles).toBe(1);
+  expect(model.solid).toBe(true);
+});
+
+it("uses an incident face normal when opposite smoothing normals cancel", () => {
+  const model = parseObj("v 0 0 0\nv 1 0 0\nv 0 1 0\ns 1\nf 1 2 3\nf 1 3 2");
+  expect(model.triangles).toBe(2);
+  expect(model.mesh.normals!.every(Number.isFinite)).toBe(true);
+  expect(model.mesh.normals![2]).toBe(1);
+});
 
 const tetrahedron = `v 0 0 0
 v 1 0 0
@@ -22,6 +39,15 @@ f 1 4 3
 f 2 3 4`;
 
 describe("OBJ import", () => {
+  it("splits and triangulates the crossed Rastagotchi contour in both directions", () => {
+    const text = readFileSync(new URL("./fixtures/warped-projection.obj", import.meta.url), "utf8");
+    const obj = parseObj(text);
+    expect(obj.triangles).toBe(52);
+    expect(obj.mesh.positions.every(Number.isFinite)).toBe(true);
+    expect(obj.mesh.normals!.every(Number.isFinite)).toBe(true);
+    const reversed = text.replace(/^f (.+)$/m, (_, corners: string) => `f ${corners.split(" ").reverse().join(" ")}`);
+    expect(parseObj(reversed).triangles).toBe(52);
+  });
   it.each([false, true])("triangulates a warped quad without flattening coordinates, reverse=%s", reverse => {
     const obj = parseObj(`v 0 0 0\nv 1 0 0\nv 1 1 1\nv 0 1 0\nvn 0 0 1\nvn 0 1 0\nf ${reverse ? "4//2 3//1 2//1 1//1" : "1//1 2//1 3//1 4//2"}`);
     expect(obj.triangles).toBe(2);
@@ -35,8 +61,21 @@ describe("OBJ import", () => {
     expect(obj.triangles).toBe(3);
     expect(Math.max(...Array.from(obj.mesh.positions).filter((_, i) => i % 3 === 2))).toBeCloseTo(0.03);
   });
-  it("rejects crossings even when the contour has nonzero signed area", () => {
-    expect(() => parseObj("v 0 0 0\nv 3 2 0\nv 0 2 0\nv 2 0 0\nf 1 2 3 4")).toThrow(/строка 5.*пересекает/);
+  it("splits a planar crossing into two simple triangles", () => {
+    const obj = parseObj("v 0 0 0\nv 3 2 0\nv 0 2 0\nv 2 0 0\nf 1 2 3 4");
+    expect(obj.triangles).toBe(2);
+    expect(new Set(Array.from({ length: obj.mesh.positions.length / 3 }, (_, i) => Array.from(obj.mesh.positions.slice(i * 3, i * 3 + 3)).join(","))).size).toBe(5);
+    expect(parseObj("v 0 0 0\nv 1 1 0\nv 0 1 0\nv 1 0 0\nf 1 2 3 4").triangles).toBe(2);
+  });
+  it("imports the tiny crossed Rastagotchi quad", () => {
+    expect(parseObj(readFileSync(new URL("./fixtures/crossed-cap.obj", import.meta.url), "utf8")).triangles).toBe(2);
+  });
+  it("splits neighboring faces and preserves negative indices and source normals", () => {
+    const obj = parseObj("v 0 0 0\nv 3 2 0\nv 0 2 0\nv 2 0 0\nvn 0 0 1\nf 1//1 2//1 3//1 4//1\nv 3 0 0\nvn 1 0 0\nf -5//-1 -4//-1 -1//-1");
+    expect(obj.triangles).toBe(4);
+    expect(obj.shells).toBe(1);
+    const normals = new Set(Array.from({ length: obj.mesh.normals!.length / 3 }, (_, i) => Array.from(obj.mesh.normals!.slice(i * 3, i * 3 + 3)).join(",")));
+    expect(normals).toEqual(new Set(["0,0,1", "1,0,0"]));
   });
   it("rejects oversized and non-OBJ files before creating a Worker", async () => {
     const importer = new ObjImporter();
@@ -98,6 +137,6 @@ describe("OBJ import", () => {
   it.each([
     "v 0 0 0\nf 0 1 1", "v NaN 0 0", "v 0 0 0\nv 1 0 0\nv 2 0 0\nf 1 2 3",
     "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 4", "v 0 0 0\nv 1 0 0\nv 0 1 0\nvn 0 0 0\nf 1 2 3",
-    "v 0 0 0\nv 2 2 0\nv 0 2 0\nv 2 0 0\nf 1 2 3 4", "curv 0 1 1 2", "# empty",
+    "v 0 0 0\nv 2 2 0\nv 0 2 0\nf 1 2 3 2", "curv 0 1 1 2", "# empty",
   ])("rejects malformed geometry without a partial mesh", obj => { expect(() => parseObj(obj)).toThrow(); });
 });

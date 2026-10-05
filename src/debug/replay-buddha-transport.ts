@@ -40,7 +40,7 @@ export async function replayBuddhaTransport(options: {
     let source=options.shaderTransform?.(shader) ?? shader;
     const begin=source.indexOf(options.phase==="camera"?"fn cameraPoint(":"fn tracePhoton("),end=source.indexOf(options.phase==="camera"?"fn cameraMain(":"fn hashMain(",begin);
     let part=source.slice(begin,end);
-    part=part.replace("let hit=closestHitWithOrigin(ray,originLow);", "let hit=closestHitWithOrigin(ray,originLow);photons[depth]=Photon(ray.origin,medium,ray.direction,hit.triangle,vec3f(hit.t,hit.u,hit.v),hit.id,bitcast<vec3i>(originLow),0u);");
+    part=part.replace("let hit=closestHitWithOrigin(ray,originLow);", "let hit=closestHitWithOrigin(ray,originLow);photons[depth]=Photon(ray.origin,medium,ray.direction,hit.triangle,vec3f(hit.t,hit.u,hit.v),hit.id,bitcast<vec3i>(originLow),0u,vec3f(0),0u);");
     part=part.replace(/photons\[first\+depth\]=Photon\([^;]+;/,"// Trace slot already contains the ray.\n");
     part=part.replace("if(event.weight==0.0)","photons[depth].next=event.transmitted+2u*u32(entering);if(event.weight==0.0)");
     source=source.slice(0,begin)+part+source.slice(end);

@@ -88,7 +88,7 @@ export function bakeTriangles(scene: SceneDescription): Triangle[] {
         vec3.subtract(vec3.create(), b, a),
         vec3.subtract(vec3.create(), c, a),
       );
-      if (!Array.from(n).every(Number.isFinite) || vec3.length(n) < 1e-12)
+      if (!Array.from(n).every(Number.isFinite) || !(vec3.length(n) > 0))
         throw new Error(`Degenerate or non-finite triangle ${i / 3}`);
       vec3.normalize(n, n);
       const geometric = Array.from(n) as Vec3;

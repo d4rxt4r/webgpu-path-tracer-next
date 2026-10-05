@@ -1,0 +1,11 @@
+{
+  "source": "Stanford University Computer Graphics Laboratory, Happy Buddha",
+  "sourceUrl": "https://graphics.stanford.edu/data/3Dscanrep/",
+  "downloadUrl": "https://graphics.stanford.edu/pub/3Dscanrep/happy/happy_recon.tar.gz",
+  "sourceArchiveSha256": "409cd294efbfd8244e15a382b95a9423f153b7776e736c9b09f19ec9d3c10ed0",
+  "sourceFile": "happy_recon/happy_vrip.ply",
+  "vertices": 543652,
+  "triangles": 1087716,
+  "objSha256": "28978c39438dd9bc9d270a2e637be10daff02dcd406c41bafc547dfff1b67461",
+  "conversion": "PLY to OBJ only; original coordinates, face indices and components"
+}

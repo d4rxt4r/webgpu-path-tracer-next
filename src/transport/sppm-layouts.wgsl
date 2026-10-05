@@ -6,12 +6,16 @@ struct SppmPoint {
   phi: vec3f, radius: f32,
   tau: vec3f, N: f32,
   directSum: vec3f, iterations: u32,
+  wo: vec3f, bsdf: u32,
+  shading: vec3f, material: u32,
+  eta: f32, boundary: u32, padding1: u32, padding2: u32,
 }
 struct Photon {
   position: vec3f, surface: u32,
   normal: vec3f, valid: u32,
   flux: vec3f, next: u32,
   cell: vec3i, padding: u32,
+  incoming: vec3f, boundary: u32,
 }
 struct SppmParams {
   initialRadius: f32, photonsPerIteration: u32, batchStart: u32, batchCount: u32,

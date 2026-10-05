@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { profiles, qualityProfile } from "../src/app/profiles";
-import { checkPhotonLimits, photonAllocation, settingsLimits } from "../src/render/settings-limits";
+import { checkPhotonLimits, photonAllocation, settingsLimits, PHOTON_BYTES } from "../src/render/settings-limits";
 import { renderEditor } from "../src/app/editor-ui";
 import { settingHelp } from "../src/app/settings-help";
 
@@ -25,7 +25,7 @@ describe("expanded settings", () => {
 
   it("rejects oversized buffers and dispatches independently before allocation", () => {
     const allocation = photonAllocation(16384, 64);
-    expect(allocation.photons).toBe(16384 * 65 * 64);
+    expect(allocation.photons).toBe(16384 * 65 * PHOTON_BYTES);
     const limits = { maxBufferSize: 128 * 1048576, maxStorageBufferBindingSize: 128 * 1048576, maxComputeWorkgroupsPerDimension: 65535 };
     expect(() => checkPhotonLimits(16384, 64, limits)).not.toThrow();
     expect(() => checkPhotonLimits(16384, 64, { ...limits, maxStorageBufferBindingSize: 64 * 1048576 })).toThrow(/GPU/);

@@ -107,6 +107,10 @@ fn preciseRayOrigin(ray:Ray,low:vec3f,tri:Triangle,hit:Hit,outgoing:vec3f)->Surf
 }
 
 fn transportOrigin(ray:Ray,low:vec3f,tri:Triangle,hit:Hit,outgoing:vec3f)->SurfaceOrigin {
-  if(PRECISE_TRANSPORT) {return preciseRayOrigin(ray,low,tri,hit,outgoing);}
+  if(PRECISE_TRANSPORT) {
+    let origin=preciseRayOrigin(ray,low,tri,hit,outgoing);
+    if(all(abs(origin.position)<vec3f(FAR)) && all(abs(origin.residual)<vec3f(FAR))) {return origin;}
+    return preciseSurfaceOrigin(tri,hit,outgoing);
+  }
   return SurfaceOrigin(offsetSurface(tri,hit,outgoing),vec3f(0));
 }

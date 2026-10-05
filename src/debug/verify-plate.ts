@@ -36,7 +36,7 @@ export async function verifyPlate(inside = false) {
       @group(0) @binding(0) var<storage, read_write> output: array<vec4f>;
       @compute @workgroup_size(64) fn main(@builtin(global_invocation_id) id: vec3u) {
         var initialMedia:MediumSet;initialMedia.count=${shells.length}u;
-        ${Array.from(shells,(index,i)=>`initialMedia.entries[${i}u]=${index}u;`).join("\n")}
+        ${Array.from(shells,(index,i)=>`initialMedia.entries[${i}u]=${index}u;initialMedia.windings[${i}u]=1;`).join("\n")}
         let value = tracePathWithMedia(Ray(vec3f(0,${inside ? '0.5' : '2.0'},0), 0.0, vec3f(0,-1,0), 100.0), id.x, 17u, 1u, 32u, 1u, 2u, 0.0, initialMedia);
         output[id.x] = vec4f(value.radiance, f32(value.error));
       }`, 'absorbing parallel plate');

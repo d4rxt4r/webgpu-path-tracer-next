@@ -10,7 +10,7 @@ fn tracePathWithMedia(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, max
   var previousDelta = true; var etaScale = 1.0;
   var media=initialMedia; var medium=activeMedium(media);
   if(media.error!=0u) {return PathResult(vec3f(0),4u,0u);}
-  var crossings=0u;
+  var crossings=0u; var spawnedTriangle=NO_HIT;
   for (var depth = 0u; depth <= maxDepth;) {
     let hit = closestHitWithOrigin(ray,originLow);
     if (hit.error != 0u) { return PathResult(vec3f(0), hit.error, interactions); }
@@ -20,6 +20,12 @@ fn tracePathWithMedia(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, max
     }
     crossings++;
     if(crossings>arrayLength(&triangles)+maxDepth+1u) {return PathResult(vec3f(0),4u,interactions);}
+    // The planar surface that spawned this straight ray cannot be hit again.
+    // Preserve other nearby boundaries by advancing only past the residual hit.
+    if(hit.triangle==spawnedTriangle) {
+      let distance=max(0.0,hit.t+abs(bitcast<f32>(hit.padding)));
+      ray.tMin=max(bitcast<f32>(0x00800000u),bitcast<f32>(bitcast<u32>(distance)+1u));continue;
+    }
     interactions = depth + 1u;
     let triangle = triangles[hit.triangle];
     if (triangle.material >= arrayLength(&materials)) { return PathResult(vec3f(0), 1u, interactions); }
@@ -49,46 +55,60 @@ fn tracePathWithMedia(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, max
     let dimension = 3u + depth * 7u;
     if (material.kind == 5u) {
       if(!PRECISE_TRANSPORT && needsPreciseOrigin(ray,triangle,hit)) {return PathResult(vec3f(0),5u,interactions);}
-      let event = sampleThinDielectric(ray.direction, n, materialIor(material, wavelength), sample1D(sampleIndex, dimension + 5u, pixel, seed));
-      previousPosition = position; lightPosition=position; previousPdf = 0.0; previousDelta = true;
+      let ns0=shadingNormal(triangle,hit);let ns=select(ns0,-ns0,dot(ns0,n)<0.0);
+      let eta=materialIor(material,wavelength);
+      if(material.textureParams.x>0.0 && strategy!=2u && lightCount>0u) {
+        let light=sampleLightAtWavelength(sample1D(sampleIndex,dimension,pixel,seed),vec2f(sample1D(sampleIndex,dimension+1u,pixel,seed),sample1D(sampleIndex,dimension+2u,pixel,seed)),lightCount,wavelength);
+        let direct=roughDirect(material,position,triangle,hit,-ray.direction,n,ns,eta,wavelength,light,strategy);
+        if(direct.error!=0u) {return PathResult(vec3f(0),direct.error,interactions);}
+        radiance+=beta*direct.radiance;
+      }
+      let event=sampleEditedDielectric(material,ray.direction,n,ns,eta,wavelength,vec2f(sample1D(sampleIndex,dimension+3u,pixel,seed),sample1D(sampleIndex,dimension+4u,pixel,seed)),sample1D(sampleIndex,dimension+5u,pixel,seed),false);
+      if(all(event.weight==vec3f(0))) {break;} beta*=event.weight;
+      previousPosition=position;lightPosition=position;previousPdf=event.pdf;previousDelta=material.textureParams.x==0.0;
       if (depth >= 4u) {
         beta = rouletteWeight(beta, etaScale, sample1D(sampleIndex, dimension + 6u, pixel, seed));
         if (all(beta == vec3f(0))) { break; }
       }
       let origin=transportOrigin(ray,originLow,triangle,hit,event.direction);
-      ray=Ray(origin.position,0.0,event.direction,1e20);originLow=origin.residual;
+      ray=Ray(origin.position,0.0,event.direction,1e20);originLow=origin.residual;spawnedTriangle=hit.triangle;
       depth++;crossings=0u;continue;
     }
     if (material.kind == 2u) {
       if(!PRECISE_TRANSPORT && needsPreciseOrigin(ray,triangle,hit)) {return PathResult(vec3f(0),5u,interactions);}
       let entering = dot(ng, ray.direction) < 0.0;
-      let nextMedia=changeMedium(media,hit.triangle,entering);
+      let nextMedia=changeMediumAtSurface(media,ray,originLow,hit);
       if(nextMedia.error!=0u) {return PathResult(vec3f(0),4u,interactions);}
       let eta=mediumIor(nextMedia,wavelength)/mediumIor(media,wavelength);
       if(eta==1.0) {
         media=nextMedia;medium=activeMedium(media);previousPosition=position;
         let event=DielectricSample(ray.direction,1.0,1u);
         let origin=transportOrigin(ray,originLow,triangle,hit,event.direction);
-        ray=Ray(origin.position,0.0,event.direction,1e20);originLow=origin.residual;
+        ray=Ray(origin.position,0.0,event.direction,1e20);originLow=origin.residual;spawnedTriangle=hit.triangle;
         continue;
       }
       if(depth==maxDepth) {break;}
       let ns = shadingNormal(triangle, hit);
       let orientedShading = select(-ns, ns, entering);
-      let event = sampleDielectricSurface(ray.direction, n, orientedShading, eta, sample1D(sampleIndex, dimension + 5u, pixel, seed), false);
-      if (event.weight == 0.0) { break; }
-      beta *= event.weight;
+      if(material.textureParams.x>0.0 && strategy!=2u && lightCount>0u) {
+        let light=sampleLightAtWavelength(sample1D(sampleIndex,dimension,pixel,seed),vec2f(sample1D(sampleIndex,dimension+1u,pixel,seed),sample1D(sampleIndex,dimension+2u,pixel,seed)),lightCount,wavelength);
+        let direct=roughDirect(material,position,triangle,hit,-ray.direction,n,orientedShading,eta,wavelength,light,strategy);
+        if(direct.error!=0u) {return PathResult(vec3f(0),direct.error,interactions);}
+        radiance+=beta*direct.radiance;
+      }
+      let event=sampleEditedDielectric(material,ray.direction,n,orientedShading,eta,wavelength,vec2f(sample1D(sampleIndex,dimension+3u,pixel,seed),sample1D(sampleIndex,dimension+4u,pixel,seed)),sample1D(sampleIndex,dimension+5u,pixel,seed),false);
+      if(all(event.weight==vec3f(0))) {break;} beta*=event.weight;
       if (event.transmitted != 0u) {
         media=nextMedia;medium=activeMedium(media);
         etaScale *= eta * eta;
       }
-      previousPosition = position; lightPosition=position; previousPdf = 0.0; previousDelta = true;
+      previousPosition = position; lightPosition=position; previousPdf = event.pdf; previousDelta = material.textureParams.x==0.0;
       if (depth >= 4u) {
         beta = rouletteWeight(beta, etaScale, sample1D(sampleIndex, dimension + 6u, pixel, seed));
         if (all(beta == vec3f(0))) { break; }
       }
       let origin=transportOrigin(ray,originLow,triangle,hit,event.direction);
-      ray = Ray(origin.position, 0.0, event.direction, 1e20);originLow=origin.residual;
+      ray = Ray(origin.position, 0.0, event.direction, 1e20);originLow=origin.residual;spawnedTriangle=hit.triangle;
       depth++;crossings=0u;continue;
     }
     let coating=coatingProbability(material);
@@ -116,7 +136,7 @@ fn tracePathWithMedia(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, max
       let wi=coatingDirection(ray.direction,n,oriented);
       previousPosition=position;lightPosition=position;previousPdf=0.0;previousDelta=true;
       if(depth>=4u) {beta=rouletteWeight(beta,etaScale,sample1D(sampleIndex,dimension+6u,pixel,seed));if(all(beta==vec3f(0))) {break;}}
-      ray=Ray(offsetSurface(triangle,hit,wi),0.0,wi,1e20);originLow=vec3f(0);
+      ray=Ray(offsetSurface(triangle,hit,wi),0.0,wi,1e20);originLow=vec3f(0);spawnedTriangle=hit.triangle;
       depth++;crossings=0u;continue;
     }
     let wi = cosineDirection(n, vec2f(sample1D(sampleIndex, dimension + 3u, pixel, seed), sample1D(sampleIndex, dimension + 4u, pixel, seed)));
@@ -128,7 +148,7 @@ fn tracePathWithMedia(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, max
       beta = rouletteWeight(beta, etaScale, sample1D(sampleIndex, dimension + 6u, pixel, seed));
       if (all(beta == vec3f(0))) { break; }
     }
-    ray = Ray(offsetSurface(triangle,hit,wi), 0.0, wi, 1e20);originLow=vec3f(0);
+    ray = Ray(offsetSurface(triangle,hit,wi), 0.0, wi, 1e20);originLow=vec3f(0);spawnedTriangle=hit.triangle;
     depth++;crossings=0u;
   }
   if (!all(radiance >= vec3f(0.0)) || !all(radiance < vec3f(FAR))) { return PathResult(vec3f(0), 3u, interactions); }

@@ -40,8 +40,34 @@ describe("mesh hole repair", () => {
     expect(repaired.repair).toMatchObject({ success: true, closedHoles: 0 });
     expect(repaired.mesh).toEqual(obj.mesh);
   });
-  it("returns the exact source after a zero-volume cap or nonmanifold failure", () => {
-    for (const text of ["v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3", openTetra + "\nf 1 3 2"]) {
+  it("removes a repeated face before closing the remaining hole", () => {
+    const source = parseObj(openTetra + "\nf 1 3 2"), before = structuredClone(source);
+    const repaired = repairMesh(source);
+    expect(repaired.repair).toMatchObject({ success: true, removedFaces: 1, closedHoles: 1 });
+    expect(meshTopology(repaired.mesh).solid).toBe(true);
+    expect(source).toEqual(before);
+  });
+  it("removes an opposite coincident internal pair without changing the outer solid", () => {
+    const source = parseObj(openTetra + "\nf 2 3 4\nv 0 -1 0\nf 1 2 5\nf 5 2 1");
+    const before = structuredClone(source);
+    const repaired = repairMesh(source);
+    expect(repaired.repair).toMatchObject({ success: true, removedFaces: 2, closedHoles: 0 });
+    expect(repaired.triangles).toBe(4);
+    expect(meshTopology(repaired.mesh).solid).toBe(true);
+    expect(source).toEqual(before);
+  });
+  it("recognizes a tiny closed shell far from the origin as a real volume", () => {
+    const tiny = "\nv .7 .3 -.1\nv .70001 .3 -.1\nv .7 .30001 -.1\nv .7 .3 -.09999\nf 5 7 6\nf 5 6 8\nf 5 8 7\nf 6 7 8";
+    const source = parseObj(openTetra + "\nf 2 3 4" + tiny, { skipDegenerateTriangles: true });
+    const topology = meshTopology(source.mesh);
+    expect(topology.solid).toBe(true);
+    expect(topology.components).toBe(2);
+    expect(topology.volumes[1]).toBeGreaterThan(topology.volumeThresholds[1]!);
+    expect(topology.volumes[1]).toBeLessThan(1e-12);
+    expect(repairMesh(source).repair.success).toBe(true);
+  });
+  it("returns the exact source after a zero-volume cap or a large nonmanifold edge", () => {
+    for (const text of ["v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3", openTetra + "\nv 0 -1 0\nf 1 2 5"]) {
       const obj = parseObj(text), repaired = repairMesh(obj);
       expect(repaired.repair.success).toBe(false);
       expect(repaired.repair.closedHoles).toBe(0);

@@ -120,7 +120,7 @@ try {
         el.closest("details").open = true;
       });
       await page.locator("#scene").selectOption("suzanne");
-      await expect(page.locator("#stats")).toContainText("98748", {
+      await expect(page.locator("#stats")).toContainText("1014", {
         timeout: 30000,
       });
       await expect
