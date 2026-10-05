@@ -17,11 +17,15 @@ fn renderPathPixel(id:vec2u,repair:bool) {
   let p = vec2f(2.0 * uv.x - 1.0, 1.0 - 2.0 * uv.y);
   let direction = normalize(params.forward.xyz + p.x * f32(params.size.x) / f32(params.size.y) * params.right.xyz + p.y * params.up.xyz);
   let ray = Ray(params.eye.xyz, 0.00001, direction, 1e20);
-  var result: PathResult;
-  if (params.transportMode == 0u) { result = tracePathWithMedia(ray, params.frame, pixel, params.seed, params.maxDepth, params.strategy, params.lightCount,0.0,cameraMedia(params)); }
-  else {
-    let wavelength=sampleWavelength(sample1D(params.frame,2u,pixel,params.seed));
-    result=tracePathWithMedia(ray,params.frame,pixel,params.seed,params.maxDepth,params.strategy,params.lightCount,wavelength.wavelength,cameraMedia(params));
+  // A single transport call avoids duplicating the entire megakernel during
+  // driver inlining. RGB still uses wavelength zero; spectral sampling and
+  // XYZ normalization are unchanged.
+  var wavelength=WavelengthSample(0.0,1.0);
+  if(params.transportMode!=0u) {
+    wavelength=sampleWavelength(sample1D(params.frame,2u,pixel,params.seed));
+  }
+  var result=tracePathWithMedia(ray,params.frame,pixel,params.seed,params.maxDepth,params.strategy,params.lightCount,wavelength.wavelength,cameraMedia(params));
+  if(params.transportMode!=0u) {
     result.radiance=cieXyz(wavelength.wavelength)*result.radiance.x/(wavelength.pdf*CIE_Y_INTEGRAL);
   }
   if(!PRECISE_TRANSPORT && (result.error==4u || result.error==5u)) {

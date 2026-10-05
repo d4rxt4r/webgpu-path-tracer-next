@@ -19,6 +19,7 @@ struct Material {
   color: vec3f, kind: u32, absorption: vec3f, ior: f32,
   spectrumOffset: u32, absorptionOffset: u32, iorModel: u32, padding: u32,
   textureParams: vec4f, worldToTexture: mat4x4f,
+  wearParams: vec4f, wearBounds: vec4f,
 }
 struct LightTriangle { a: vec3f, area: f32, b: vec3f, probability: f32, c: vec3f, triangleId: u32, emission: vec3f, cdf: f32, spectrumOffset: u32, material: u32, padding1: u32, padding2: u32 }
 struct Ray { origin: vec3f, tMin: f32, direction: vec3f, tMax: f32 }

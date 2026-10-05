@@ -1,3 +1,4 @@
+import { cleanSurface, rastagotchiWear, wearControlIds } from "../scene/surface-wear";
 import { applyArrangement, setupEnvironment } from './environment-ui';
 import { applyMaterialEditor, baseMaterial, initializeMaterialEditor, materialControlIds, materialMetadata, syncMaterialEditor, textureMemory } from "./material-editor";
 import { builtinModels, isBuiltinModel, loadBuiltinObj, type BuiltinObj } from "../assets/builtin-obj";
@@ -88,7 +89,16 @@ if (!controlScene) {
 selectInput("scene").value = initialScene;
 initializeMaterialEditor(initialMaterial);
 if (initialScene === "rastagotchi" && !requestedMaterial) applyRastagotchiPreset();
+function applyWearPreset(rastagotchi: boolean): void {
+  const wear = rastagotchi ? rastagotchiWear : cleanSurface;
+  for (const [id, value] of wearControlIds.map((id, i) => [id, [wear.scratches, wear.scuffs, wear.fingerprints, wear.seed][i]!] as const)) {
+    input(id).value = String(value);
+    const number = document.getElementById(`${id}-value`) as HTMLInputElement | null;
+    if (number) number.value = String(value);
+  }
+}
 function applyRastagotchiPreset(): void {
+  applyWearPreset(true);
   initializeMaterialEditor("glass");
   selectInput("dielectric-mode").value = "auto";
   input("transmission-color").value = "#f4fff6";
@@ -220,6 +230,31 @@ async function start(): Promise<void> {
   const { IntersectionRenderer } = await import(
     "../render/intersection-renderer"
   );
+  const startupAt = performance.now();
+  const startupTimings: Record<string, number> = {};
+  const startupTasks = new Set<string>();
+  const updateStartupStatus = (): void => {
+    if (ready) return;
+    const stages: Record<string, string> = {
+      model: "Загрузка модели…", scene: "Подготовка сцены…",
+      environment: "Загрузка окружения…", gpu: "Подготовка Preview…",
+    };
+    const stage = Object.keys(stages).find(name => startupTasks.has(name));
+    if (stage) status.textContent = stages[stage]!;
+  };
+  const startupPreview = ["beauty", "photon-density"].includes(selectInput("view").value) && (!controlScene || target.integrator === "sppm");
+  let startupPending = startupPreview, promotionStarted = false, targetPending = false, targetRequest = 0;
+  const timeStartup = async <T>(name: string, work: () => Promise<T>): Promise<T> => {
+    const start = performance.now();
+    startupTasks.add(name);
+    updateStartupStatus();
+    try { return await work(); }
+    finally {
+      startupTimings[name] = performance.now() - start;
+      startupTasks.delete(name);
+      updateStartupStatus();
+    }
+  };
   let accumulationStart = performance.now(),
     previousRevision = -1;
   const renderer = new IntersectionRenderer(
@@ -232,6 +267,7 @@ async function start(): Promise<void> {
         initializing: "Подготовка GPU…",
         error: "Ошибка GPU",
       }[info.status];
+      if (info.status === "initializing") updateStartupStatus();
       const phase = (
         {
           camera: "камера",
@@ -251,7 +287,7 @@ async function start(): Promise<void> {
           : ` · GPU ${info.gpuMs.toFixed(2)} мс`;
       stats.title = stats.textContent;
       document.querySelector<HTMLElement>("#progress")!.textContent = progress;
-      activity.textContent = interacting
+      activity.textContent = targetPending ? "Preview / подготовка выбранного режима…" : interacting
         ? "Preview / движение камеры"
         : `${profile === "custom" ? "Вручную" : profile} · ${info.integrator.toUpperCase()} / ${info.phase === "camera" ? "накопление" : phase}`;
       if (info.revision !== previousRevision)
@@ -273,9 +309,17 @@ async function start(): Promise<void> {
       canvas.dataset.integrator = info.integrator;
       canvas.dataset.interacting = String(interacting);
       lastSamples = info.samples;
+      if (ready && startupPending && !promotionStarted && info.samples > 0 && info.presentedRevision === info.revision) {
+        promotionStarted = true;
+        startupTimings["first-preview"] = performance.now() - startupAt;
+        applyTarget();
+      }
+      if (!startupPending && info.samples > 0 && info.presentedRevision === info.revision && startupTimings["first-target"] === undefined)
+        startupTimings["first-target"] = performance.now() - startupAt;
+      canvas.dataset.startupTimings = JSON.stringify({...startupTimings, ...renderer.startupTimings});
       const goal = value("sample-limit");
       if (
-        ready &&
+        ready && !startupPending && !targetPending &&
         goal > 0 &&
         info.samples >= goal &&
         info.status === "ready" &&
@@ -290,7 +334,7 @@ async function start(): Promise<void> {
         info.status === "error" || info.status === "recovering";
       if (ready)
         button("export-png").disabled = button("export-pfm").disabled =
-          lastSamples === 0 ||
+          startupPending || targetPending || lastSamples === 0 ||
           selectInput("view").value !== "beauty" ||
           interacting ||
           scenePending;
@@ -306,13 +350,23 @@ async function start(): Promise<void> {
   let currentCamera = description.camera,
     sceneRevision = 0;
   const applyTarget = (): void => {
-    // Explicit edits take effect immediately, including during camera preview.
-    renderer.setSettings(target);
-    if (interacting) {
-      clearTimeout(idleTimer);
+    const next = renderer.validateSettings(target);
+    const request = ++targetRequest;
+    targetPending = true;
+    clearTimeout(idleTimer);
+    void renderer.prepareIntegrator(next.integrator).then(() => {
+      if (request !== targetRequest) return;
+      renderer.setSettings(next);
+      if (startupPending) renderer.setDebugView(selectInput("view").value as DebugView);
+      startupPending = targetPending = false;
       interacting = false;
       renderer.setInteracting(false);
-    }
+      syncSettings();
+    }).catch(error => {
+      if (request !== targetRequest) return;
+      targetPending = false;
+      showError(error);
+    });
     syncSettings();
   };
   const applyDisplay = (): void => {
@@ -330,10 +384,7 @@ async function start(): Promise<void> {
   };
   const settle = (): void => {
     clearTimeout(idleTimer);
-    interacting = false;
-    renderer.setInteracting(false);
-    renderer.setSettings(target);
-    syncSettings();
+    applyTarget();
   };
   const orbit = attachOrbit(canvas, description.camera, (camera) => {
     currentCamera = camera;
@@ -347,6 +398,8 @@ async function start(): Promise<void> {
       selectInput("view").value === "beauty"
     ) {
       clearTimeout(idleTimer);
+      targetRequest++;
+      targetPending = false;
       interacting = true;
       renderer.setInteracting(true);
       renderer.setSettings({ ...target, ...profiles.preview });
@@ -474,6 +527,7 @@ async function start(): Promise<void> {
       if (!option) { option = document.createElement("option"); option.value = "uploaded"; selectInput("scene").append(option); }
       option.textContent = file.name;
       selectInput("scene").value = "uploaded";
+      applyWearPreset(false);
       resetObject();
       objStatus.textContent = `Подготовка ${file.name}…`;
       await updateScene(revision);
@@ -481,7 +535,7 @@ async function start(): Promise<void> {
       if (revision === sceneRevision) { restoreSceneUi(); objStatus.textContent = "Импорт не выполнен; предыдущий объект сохранён."; showError(error); }
     }
   });
-  selectInput("scene").addEventListener("change", () => { resetObject(); if (selectInput("scene").value === "rastagotchi") applyRastagotchiPreset(); syncSettings(); queueScene(); });
+  selectInput("scene").addEventListener("change", () => { resetObject(); applyWearPreset(selectInput("scene").value === "rastagotchi"); if (selectInput("scene").value === "rastagotchi") applyRastagotchiPreset(); syncSettings(); queueScene(); });
   selectInput("material").addEventListener("change", () => { syncSettings(); queueScene(); });
   selectInput("texture-kind").addEventListener("change", () => { textures.switch(); syncSettings(); queueScene(); });
   selectInput("dielectric-mode").addEventListener("change", () => { syncSettings(); queueScene(); });
@@ -569,6 +623,7 @@ async function start(): Promise<void> {
     "roughness",
     "albedo",
     ...textureControlIds,
+    ...wearControlIds,
   ])
     input(id).addEventListener("input", queueScene);
   for (const id of ["fov", "camera-distance"])
@@ -756,16 +811,21 @@ async function start(): Promise<void> {
   window.addEventListener("pageshow", (event) => {
     if (event.persisted && !document.hidden && !userPaused) renderer.resume();
   });
-  if (!controlScene && !hasSharedSettings) {
+  if (startupPreview) {
     interacting = true;
     renderer.setInteracting(true);
   }
   renderer.setSettings(
-    controlScene || hasSharedSettings ? target : { ...target, ...profiles.preview },
+    startupPreview ? { ...target, ...profiles.preview } : target,
   );
-  renderer.setDebugView(selectInput("view").value as DebugView);
+  renderer.setDebugView(startupPreview ? "beauty" : selectInput("view").value as DebugView);
+  // Attach rejection handlers immediately while independent preparation overlaps.
+  const gpuReady = timeStartup("gpu", () => renderer.prepareGpu());
+  const environmentReady = timeStartup("environment", () => environmentUi.initialize());
+  void gpuReady.catch(() => {});
+  void environmentReady.catch(() => {});
   try {
-    if (isBuiltinModel(initialScene)) currentBuiltinModel = await loadBuiltinObj(initialScene, input("repair-obj").checked);
+    if (isBuiltinModel(initialScene)) currentBuiltinModel = await timeStartup("model", () => loadBuiltinObj(initialScene, input("repair-obj").checked));
     const material = hasSharedSettings ? baseMaterial() : initialMaterial;
     const initialDescription = controlScene ? hasSharedSettings ? cornellScene(material) : description : initialScene === "buddha" ? await buddhaScene(material, currentBuiltinModel) : await presentationScene(material, currentBuiltinModel);
     if (hasSharedSettings) {
@@ -777,8 +837,7 @@ async function start(): Promise<void> {
     }
     applyMaterialEditor(initialDescription, currentBuiltinModel?.solid ?? true);
     applyArrangement(initialDescription);
-    await environmentUi.initialize();
-    await renderer.setScene(initialDescription);
+    await Promise.all([environmentReady, timeStartup("scene", () => renderer.setScene(initialDescription)), gpuReady]);
     await renderer.initialize();
     ready = true;
     committedUi = captureSceneUi();
@@ -796,7 +855,7 @@ async function start(): Promise<void> {
     if (!controlScene) {
       if (!hasSharedSettings) input("denoiser").checked = true;
       applyDisplay();
-      if (!hasSharedSettings) idleTimer = setTimeout(settle, 250);
+
     }
     document.querySelector<HTMLElement>("#scene-name")!.textContent =
       `${initialScene === "control" ? "Sphere" : initialScene === "buddha" ? "Happy Buddha" : initialScene === "rastagotchi" ? "Rastagotchi" : initialScene === "suzanne-high-poly" ? "Suzanne high poly" : "Suzanne"} / ${selectInput("material").selectedOptions[0]!.textContent}`;

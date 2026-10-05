@@ -1,22 +1,24 @@
 # WebGPU path tracing рендер-движок на TypeScript для браузера: архитектура, алгоритмы и план реализации
 
+> Статус 05.10.2026: историческое исследование, а не доказательство реализации. См. [актуальный аудит и дорожную карту](development-roadmap.md). Внутренние citation-токены непереносимы; ниже их идентификаторы обозначены как `Source not recovered` (источник не восстановлен) и не подтверждают утверждения. Внешние источники и датированные утверждения в этом пакете повторно не проверялись. Восстановление первичных ссылок остаётся отдельной задачей.
+
 ## Executive summary
 
-По состоянию на **30 сентября 2026 года** WebGPU и WGSL находятся на зрелой стадии стандартизации: актуальный WebGPU опубликован W3C как Candidate Recommendation Draft от 15 сентября 2026 года, а WGSL — Candidate Recommendation Draft от 21 сентября 2026 года. WebGPU предоставляет переносимые graphics/compute-возможности, но для браузерного path tracer практическая переносимая архитектура сегодня — это **software ray traversal в WGSL compute shaders поверх собственного BVH**, а не зависимость от DXR/Vulkan-RT-подобного аппаратного ray-tracing pipeline. Это именно тот подход, который используют существующие браузерные WebGPU path tracacer-проекты. citeturn13view0turn13view2turn6view1
+По состоянию на **30 сентября 2026 года** WebGPU и WGSL находятся на зрелой стадии стандартизации: актуальный WebGPU опубликован W3C как Candidate Recommendation Draft от 15 сентября 2026 года, а WGSL — Candidate Recommendation Draft от 21 сентября 2026 года. WebGPU предоставляет переносимые graphics/compute-возможности, но для браузерного path tracer практическая переносимая архитектура сегодня — это **software ray traversal в WGSL compute shaders поверх собственного BVH**, а не зависимость от DXR/Vulkan-RT-подобного аппаратного ray-tracing pipeline. Это именно тот подход, который используют существующие браузерные WebGPU path tracacer-проекты. [Source not recovered: turn13view0, turn13view2, turn6view1]
 
-**Главная рекомендация:** строить движок как GPU-first path tracer с TypeScript в роли control plane, а WebAssembly подключать не к основному циклу трассировки, а к тяжёлой подготовке данных: парсингу больших OBJ, построению высококачественного SAH-BVH, генерации геометрических атрибутов, декодированию/транскодированию ресурсов и, возможно, спектральной предобработке. WebAssembly имеет смысл выполнять в Worker; многопоточный Wasm через pthreads требует соответствующей конфигурации shared memory/cross-origin isolation. citeturn20view2turn19search1
+**Главная рекомендация:** строить движок как GPU-first path tracer с TypeScript в роли control plane, а WebAssembly подключать не к основному циклу трассировки, а к тяжёлой подготовке данных: парсингу больших OBJ, построению высококачественного SAH-BVH, генерации геометрических атрибутов, декодированию/транскодированию ресурсов и, возможно, спектральной предобработке. WebAssembly имеет смысл выполнять в Worker; многопоточный Wasm через pthreads требует соответствующей конфигурации shared memory/cross-origin isolation. [Source not recovered: turn20view2, turn19search1]
 
-Целевую архитектуру имеет смысл строить вокруг **двухуровневого BVH: BLAS для мешей + TLAS для instances**. Для статических OBJ/мешей предпочтителен SAH-BVH: он дороже строится, но даёт более качественное дерево. Для частых перестроений стоит иметь HLBVH/LBVH или refit-путь. PBRT прямо сопоставляет SAH и HLBVH: HLBVH быстрее и легче параллелизуется, но обычно уступает SAH по качеству полученного дерева; GPU-параллельный LBVH хорошо изучен в работе Karras. Для анимации разумна схема `refit → измерение деградации → периодический rebuild`. citeturn20view0turn9search0turn9search6
+Целевую архитектуру имеет смысл строить вокруг **двухуровневого BVH: BLAS для мешей + TLAS для instances**. Для статических OBJ/мешей предпочтителен SAH-BVH: он дороже строится, но даёт более качественное дерево. Для частых перестроений стоит иметь HLBVH/LBVH или refit-путь. PBRT прямо сопоставляет SAH и HLBVH: HLBVH быстрее и легче параллелизуется, но обычно уступает SAH по качеству полученного дерева; GPU-параллельный LBVH хорошо изучен в работе Karras. Для анимации разумна схема `refit → измерение деградации → периодический rebuild`. [Source not recovered: turn20view0, turn9search0, turn9search6]
 
-Базовый интегратор должен быть **unidirectional path tracing + next-event estimation + importance sampling + MIS + Russian roulette**. NEE и BSDF/light MIS дают принципиально меньшую дисперсию, чем чистый random walk; именно такую структуру использует современный reference path tracer PBRT. BDPT/VCM полезны прежде всего для сложных каустик и трудных light paths, но сильно хуже ложатся на первую браузерную GPU-реализацию из-за irregular control flow, соединения под-путей и дополнительного состояния. citeturn8view0turn8view2turn8view3
+Базовый интегратор должен быть **unidirectional path tracing + next-event estimation + importance sampling + MIS + Russian roulette**. NEE и BSDF/light MIS дают принципиально меньшую дисперсию, чем чистый random walk; именно такую структуру использует современный reference path tracer PBRT. BDPT/VCM полезны прежде всего для сложных каустик и трудных light paths, но сильно хуже ложатся на первую браузерную GPU-реализацию из-за irregular control flow, соединения под-путей и дополнительного состояния. [Source not recovered: turn8view0, turn8view2, turn8view3]
 
-Для спектральной части наиболее прагматичен не полный массив из десятков wavelength bins на каждый ray, а **wavelength packet / hero wavelength sampling**. Hero Wavelength Spectral Sampling был специально предложен для распространения небольшого постоянного числа длин волн по пути; хороший компромисс для WebGPU — четыре wavelength lanes в `vec4f`. RGB-текстуры можно преобразовывать в спектральное представление через компактную spectral upsampling-функцию; метод Jakob и Hanika позволяет хранить компактные коэффициенты и дешёво восстанавливать значение спектра в конкретной λ. PBRT v4 целиком перешёл на спектральный transport и демонстрирует, что такой подход естественно поддерживает wavelength-dependent refraction/dispersion и хроматические среды. citeturn10search32turn10search6turn10search2turn11search4
+Для спектральной части наиболее прагматичен не полный массив из десятков wavelength bins на каждый ray, а **wavelength packet / hero wavelength sampling**. Hero Wavelength Spectral Sampling был специально предложен для распространения небольшого постоянного числа длин волн по пути; хороший компромисс для WebGPU — четыре wavelength lanes в `vec4f`. RGB-текстуры можно преобразовывать в спектральное представление через компактную spectral upsampling-функцию; метод Jakob и Hanika позволяет хранить компактные коэффициенты и дешёво восстанавливать значение спектра в конкретной λ. PBRT v4 целиком перешёл на спектральный transport и демонстрирует, что такой подход естественно поддерживает wavelength-dependent refraction/dispersion и хроматические среды. [Source not recovered: turn10search32, turn10search6, turn10search2, turn11search4]
 
-Для volumetrics следует идти по ступеням: сначала homogeneous medium, затем heterogeneous density grid с majorants и delta tracking; для shadow/transmittance rays — ratio tracking; первая phase function — Henyey–Greenstein. PBRT v4 использует именно разделение на sampling реального пути через delta/null-collision tracking и оценивание transmittance через ratio tracking, включая multiple scattering. citeturn16view0turn16view1turn17view0turn17view1turn17view2
+Для volumetrics следует идти по ступеням: сначала homogeneous medium, затем heterogeneous density grid с majorants и delta tracking; для shadow/transmittance rays — ratio tracking; первая phase function — Henyey–Greenstein. PBRT v4 использует именно разделение на sampling реального пути через delta/null-collision tracking и оценивание transmittance через ratio tracking, включая multiple scattering. [Source not recovered: turn16view0, turn16view1, turn17view0, turn17view1, turn17view2]
 
-Для интерактивности я бы **не пытался добиться визуально чистых 30–60 FPS исключительно количеством samples**. Практичная стратегия — 1 spp или меньше эффективной работы на display frame, temporal accumulation, сниженное разрешение во время движения камеры и GPU denoising. SVGF показал реконструкцию temporally stable изображения из порядка одного path per pixel, используя temporal accumulation, variance estimates и hierarchical wavelet filtering. citeturn17view3
+Для интерактивности я бы **не пытался добиться визуально чистых 30–60 FPS исключительно количеством samples**. Практичная стратегия — 1 spp или меньше эффективной работы на display frame, temporal accumulation, сниженное разрешение во время движения камеры и GPU denoising. SVGF показал реконструкцию temporally stable изображения из порядка одного path per pixel, используя temporal accumulation, variance estimates и hierarchical wavelet filtering. [Source not recovered: turn17view3]
 
-Критическое ограничение — память. Один `RGBA32F` accumulator занимает около **31,6 MiB в 1080p, 56,3 MiB в 1440p и 126,6 MiB в 4K**. Минимально гарантируемый `maxStorageBufferBindingSize` WebGPU составляет 128 MiB, а `maxBufferSize` — 256 MiB, поэтому простая схема `array<vec4f>` для 4K accumulator практически упирается в portable binding limit ещё до BVH, geometry и AOV. Значит, 4K следует проектировать через storage textures, tiles/chunks либо рендеринг в меньшем внутреннем разрешении; реальные limits необходимо запрашивать у adapter/device, а не зашивать константами. citeturn14search0
+Критическое ограничение — память. Один `RGBA32F` accumulator занимает около **31,6 MiB в 1080p, 56,3 MiB в 1440p и 126,6 MiB в 4K**. Минимально гарантируемый `maxStorageBufferBindingSize` WebGPU составляет 128 MiB, а `maxBufferSize` — 256 MiB, поэтому простая схема `array<vec4f>` для 4K accumulator практически упирается в portable binding limit ещё до BVH, geometry и AOV. Значит, 4K следует проектировать через storage textures, tiles/chunks либо рендеринг в меньшем внутреннем разрешении; реальные limits необходимо запрашивать у adapter/device, а не зашивать константами. [Source not recovered: turn14search0]
 
 Рекомендуемый порядок разработки:
 
@@ -26,7 +28,7 @@
 
 ## Технологический стек и рекомендуемая архитектура
 
-WebGPU хорошо подходит к этой задаче именно потому, что path tracing можно выразить как general-purpose compute workload: лучи, BVH traversal, BSDF sampling и накопление являются обычными compute kernels. WGSL при этом имеет storage buffers/textures, compute stages, workgroups, memory model и в актуальной спецификации также subgroup primitives, хотя subgroup-оптимизации следует рассматривать как дополнительный fast path, а не основу корректности. citeturn13view2
+WebGPU хорошо подходит к этой задаче именно потому, что path tracing можно выразить как general-purpose compute workload: лучи, BVH traversal, BSDF sampling и накопление являются обычными compute kernels. WGSL при этом имеет storage buffers/textures, compute stages, workgroups, memory model и в актуальной спецификации также subgroup primitives, хотя subgroup-оптимизации следует рассматривать как дополнительный fast path, а не основу корректности. [Source not recovered: turn13view2]
 
 ### Разделение ответственности
 
@@ -51,26 +53,26 @@ WebGPU хорошо подходит к этой задаче именно по�
 | Tangent/normal generation | Worker/WASM | preprocessing |
 | Профайлинг GPU | WebGPU timestamp queries | измерение GPU passes |
 
-В основной поток WASM **не следует помещать только потому, что он потенциально быстрее JavaScript**. Когда shader уже владеет geometry/BVH, выполнение bounce на CPU/WASM потребовало бы синхронизации с GPU и разрушало бы главное преимущество архитектуры. Wasm особенно полезен там, где можно взять существующий оптимизированный Rust/C/C++ алгоритм, дать ему большой блок входных данных и получить другой большой блок данных один раз или редко. Emscripten документирует pthreads-based threading для такого кода; многопоточный web deployment требует соответствующей shared-memory конфигурации. citeturn20view2turn19search1
+В основной поток WASM **не следует помещать только потому, что он потенциально быстрее JavaScript**. Когда shader уже владеет geometry/BVH, выполнение bounce на CPU/WASM потребовало бы синхронизации с GPU и разрушало бы главное преимущество архитектуры. Wasm особенно полезен там, где можно взять существующий оптимизированный Rust/C/C++ алгоритм, дать ему большой блок входных данных и получить другой большой блок данных один раз или редко. Emscripten документирует pthreads-based threading для такого кода; многопоточный web deployment требует соответствующей shared-memory конфигурации. [Source not recovered: turn20view2, turn19search1]
 
 ### Рекомендуемый toolchain
 
 | Слой | Рекомендация | Комментарий |
 |---|---|---|
 | Язык приложения | TypeScript `strict` | renderer API, loaders, resource ownership |
-| WebGPU typings | `@webgpu/types` | официальный репозиторий GPUWeb предоставляет `.d.ts` для WebGPU. citeturn19search3 |
-| Shaders | WGSL | стандартный shading language WebGPU. citeturn13view2 |
+| WebGPU typings | `@webgpu/types` | официальный репозиторий GPUWeb предоставляет `.d.ts` для WebGPU. [Source not recovered: turn19search3] |
+| Shaders | WGSL | стандартный shading language WebGPU. [Source not recovered: turn13view2] |
 | Bundler/dev server | Vite | предпочтительнее для нового проекта; WGSL импортировать как raw source |
-| Shader struct helper | `webgpu-utils` либо собственный layout generator | существующий WebGPU path tracer использует `webgpu-utils` для согласования JS/WGSL data layouts. citeturn6view1 |
-| Math | `gl-matrix` или собственные packed functions | `gl-matrix` уже применяется в WebGPU path-tracing проекте daikiad. citeturn6view1 |
-| UI | `lil-gui` | очень удобно для integrator/debug controls; также используется в существующей реализации. citeturn6view1 |
-| Camera controls | Three.js OrbitControls или собственные | Three.js удобно оставить только для tooling/UI, не как renderer core. citeturn6view1 |
-| Mesh preprocessing | `meshoptimizer` / Wasm | проект включает оптимизацию meshes и `gltfpack`, полезен для offline/pre-load pipeline. citeturn21search3 |
-| Wasm C/C++ | Emscripten | особенно если используются существующие C/C++ geometry libraries. citeturn20view2 |
+| Shader struct helper | `webgpu-utils` либо собственный layout generator | существующий WebGPU path tracer использует `webgpu-utils` для согласования JS/WGSL data layouts. [Source not recovered: turn6view1] |
+| Math | `gl-matrix` или собственные packed functions | `gl-matrix` уже применяется в WebGPU path-tracing проекте daikiad. [Source not recovered: turn6view1] |
+| UI | `lil-gui` | очень удобно для integrator/debug controls; также используется в существующей реализации. [Source not recovered: turn6view1] |
+| Camera controls | Three.js OrbitControls или собственные | Three.js удобно оставить только для tooling/UI, не как renderer core. [Source not recovered: turn6view1] |
+| Mesh preprocessing | `meshoptimizer` / Wasm | проект включает оптимизацию meshes и `gltfpack`, полезен для offline/pre-load pipeline. [Source not recovered: turn21search3] |
+| Wasm C/C++ | Emscripten | особенно если используются существующие C/C++ geometry libraries. [Source not recovered: turn20view2] |
 | Wasm Rust | wasm-bindgen-style bridge | разумная альтернатива C++, особенно для собственного parser/BVH builder |
-| Asset standard | glTF 2.0 + собственный scene manifest | glTF имеет стандартизированную структуру buffers, accessors, materials, images, nodes. citeturn20view3 |
+| Asset standard | glTF 2.0 + собственный scene manifest | glTF имеет стандартизированную структуру buffers, accessors, materials, images, nodes. [Source not recovered: turn20view3] |
 
-Для GPU structs лучше не дублировать layout вручную десятками interface-типов. WGSL имеет строгие правила alignment/size для host-shareable structures. Поэтому либо определяйте layout декларативно и генерируйте и TS-view, и WGSL, либо держите WGSL source of truth и используйте reflection/helper. citeturn13view2
+Для GPU structs лучше не дублировать layout вручную десятками interface-типов. WGSL имеет строгие правила alignment/size для host-shareable structures. Поэтому либо определяйте layout декларативно и генерируйте и TS-view, и WGSL, либо держите WGSL source of truth и используйте reflection/helper. [Source not recovered: turn13view2]
 
 Например, BVH node можно уложить в удобные 32 байта:
 
@@ -145,7 +147,7 @@ flowchart LR
     DBG --> UI
 ```
 
-Такая организация близка к успешно работающим WebGPU path tracer-репозиториям: например, `daikiad/webgpu-path-tracer` уже разделяет `PathTracer`, WGSL shader, scene/BVH loader, materials, camera и UI; он также использует progressive accumulation, tile dispatch, GLB loader и debug/UI tooling. citeturn6view1
+Такая организация близка к успешно работающим WebGPU path tracer-репозиториям: например, `daikiad/webgpu-path-tracer` уже разделяет `PathTracer`, WGSL shader, scene/BVH loader, materials, camera и UI; он также использует progressive accumulation, tile dispatch, GLB loader и debug/UI tooling. [Source not recovered: turn6view1]
 
 ### Compute-loop
 
@@ -242,7 +244,7 @@ fn pathTrace(@builtin(global_invocation_id) gid: vec3u) {
 }
 ```
 
-Это именно стартовая **megakernel** архитектура. PBRT v4 также документирует отдельный wavefront GPU path tracer, где стадии вынесены в queues/kernels; wavefront-подход становится всё привлекательнее по мере появления большого количества divergent workloads. citeturn20view1
+Это именно стартовая **megakernel** архитектура. PBRT v4 также документирует отдельный wavefront GPU path tracer, где стадии вынесены в queues/kernels; wavefront-подход становится всё привлекательнее по мере появления большого количества divergent workloads. [Source not recovered: turn20view1]
 
 ## Алгоритмы трассировки, BVH и снижение дисперсии
 
@@ -273,7 +275,7 @@ L_{\text{indirect},b}
      {p_{\mathrm{BSDF}}(\omega_i)}.
 \]
 
-На каждом **не-delta** interaction стоит выполнять NEE: выбрать источник света и точку/направление на нём, запустить shadow ray и объединить light sampling с BSDF sampling через MIS. PBRT подчёркивает, что BSDF sampling и light sampling эффективны в разных ситуациях, а MIS позволяет комбинировать их без необходимости заранее знать, какая стратегия лучше для конкретного пути. citeturn8view0turn8view3
+На каждом **не-delta** interaction стоит выполнять NEE: выбрать источник света и точку/направление на нём, запустить shadow ray и объединить light sampling с BSDF sampling через MIS. PBRT подчёркивает, что BSDF sampling и light sampling эффективны в разных ситуациях, а MIS позволяет комбинировать их без необходимости заранее знать, какая стратегия лучше для конкретного пути. [Source not recovered: turn8view0, turn8view3]
 
 Практичный default:
 
@@ -294,17 +296,17 @@ environment sampling= importance map
 | Plain random-walk PT | минимальная сложность | огромный noise от малых/удалённых lights | только самый первый prototype |
 | BSDF importance sampling | хорошо для glossy/specular lobes | плохо на малых emitters | обязательно |
 | Next-event estimation | резко улучшает direct lighting | дополнительный shadow ray | обязательно |
-| MIS: BSDF + light sampling | robust для разных light/BRDF конфигураций | нужно корректно считать PDFs и delta events | **обязательно**; reference — Veach/PBRT. citeturn8view0turn8view3 |
-| Russian roulette | позволяет не задавать жёсткий маленький depth без bias | повышает variance при слишком раннем применении | после нескольких bounces; корректировать throughput на survival probability. citeturn8view0 |
+| MIS: BSDF + light sampling | robust для разных light/BRDF конфигураций | нужно корректно считать PDFs и delta events | **обязательно**; reference — Veach/PBRT. [Source not recovered: turn8view0, turn8view3] |
+| Russian roulette | позволяет не задавать жёсткий маленький depth без bias | повышает variance при слишком раннем применении | после нескольких bounces; корректировать throughput на survival probability. [Source not recovered: turn8view0] |
 | Environment importance sampling | огромный выигрыш с HDRI | нужен CDF/alias preprocess | высокий приоритет |
 | Light power sampling | лучше uniform light selection при многих lights | нужен rebuild при изменении lights | высокий приоритет |
-| BDPT | хорошо добирается до некоторых сложных transport paths | queues, storage, MIS намного сложнее | исследовательский этап; не MVP. citeturn8view2 |
+| BDPT | хорошо добирается до некоторых сложных transport paths | queues, storage, MIS намного сложнее | исследовательский этап; не MVP. [Source not recovered: turn8view2] |
 | VCM/vertex merging | мощно для caustics/сложного transport | память, spatial structures, высокая сложность | только если каустики — ключевая цель |
 | Reservoir-based/ReSTIR-class sampling | потенциально интересно при очень малом spp | отдельная система temporal/spatial state | после стабильного MIS path tracer; verified browser-specific implementation в данном исследовании — **неопределено** |
 
 ### BVH: рекомендуемая система
 
-BVH естественно подходит браузеру: AABB tree позволяет полностью отбрасывать subtrees, которые ray не пересекает. PBRT использует BVH как стандартную acceleration structure и сравнивает SAH с HLBVH; итоговый BVH у него также переводится в компактное pointerless linear representation, что особенно актуально для GPU. citeturn20view0
+BVH естественно подходит браузеру: AABB tree позволяет полностью отбрасывать subtrees, которые ray не пересекает. PBRT использует BVH как стандартную acceleration structure и сравнивает SAH с HLBVH; итоговый BVH у него также переводится в компактное pointerless linear representation, что особенно актуально для GPU. [Source not recovered: turn20view0]
 
 Я рекомендую:
 
@@ -320,9 +322,9 @@ Scene
 
 **Статическая геометрия:** SAH BLAS.
 
-**Большие меши, которые надо загрузить быстро:** HLBVH/LBVH как fast-build option, затем при наличии idle time можно перестроить качественный SAH tree. PBRT отмечает именно trade-off «быстрее build / хуже traversal» между HLBVH и SAH; Karras показывает эффективную параллельную конструкцию LBVH-подобных иерархий. citeturn20view0turn9search0
+**Большие меши, которые надо загрузить быстро:** HLBVH/LBVH как fast-build option, затем при наличии idle time можно перестроить качественный SAH tree. PBRT отмечает именно trade-off «быстрее build / хуже traversal» между HLBVH и SAH; Karras показывает эффективную параллельную конструкцию LBVH-подобных иерархий. [Source not recovered: turn20view0, turn9search0]
 
-**Rigid animation:** refit TLAS bottom-up. Если surface area внутренних bounds постепенно становится значительно хуже исходной, выполнить rebuild. Методы динамического update/refit с последующими локальными улучшениями/rotations изучались специально для animated scenes. citeturn9search6
+**Rigid animation:** refit TLAS bottom-up. Если surface area внутренних bounds постепенно становится значительно хуже исходной, выполнить rebuild. Методы динамического update/refit с последующими локальными улучшениями/rotations изучались специально для animated scenes. [Source not recovered: turn9search6]
 
 **Skinned/deforming geometry:** сначала refit BLAS; для серьёзной деформации — rebuild. Для первого browser engine skinning + dynamic BLAS я бы не включал в MVP.
 
@@ -370,7 +372,7 @@ NextRayQueue
 Intersect ...
 ```
 
-PBRT v4 содержит отдельную GPU wavefront implementation, что делает эту архитектуру хорошим reference для второго поколения renderer. citeturn20view1
+PBRT v4 содержит отдельную GPU wavefront implementation, что делает эту архитектуру хорошим reference для второго поколения renderer. [Source not recovered: turn20view1]
 
 Для данного проекта я бы выбрал **megakernel до появления heterogeneous volumes**, после чего профилировал. Если divergence становится dominant cost, переходить к hybrid/wavefront renderer.
 
@@ -378,7 +380,7 @@ PBRT v4 содержит отдельную GPU wavefront implementation, что
 
 Для interactive mode эффективнее сохранять физически корректный raw accumulator и отдельно строить display output.
 
-SVGF использует temporal accumulation, luminance variance и hierarchical wavelet filtering и был разработан именно для реконструкции крайне малосемплового path-traced GI. citeturn17view3
+SVGF использует temporal accumulation, luminance variance и hierarchical wavelet filtering и был разработан именно для реконструкции крайне малосемплового path-traced GI. [Source not recovered: turn17view3]
 
 Минимальные buffers:
 
@@ -427,7 +429,7 @@ struct SpectralPacket {
 }
 ```
 
-То есть один ray несёт четыре длины волн. Первая/hero wavelength выбирается случайно согласно spectral sampling distribution, остальные строятся коррелированно/смещённо так, чтобы лучше покрывать спектр. Hero Wavelength Spectral Sampling как раз был предложен для propagation небольшого постоянного количества wavelengths вместо полного спектрального массива. citeturn10search32
+То есть один ray несёт четыре длины волн. Первая/hero wavelength выбирается случайно согласно spectral sampling distribution, остальные строятся коррелированно/смещённо так, чтобы лучше покрывать спектр. Hero Wavelength Spectral Sampling как раз был предложен для propagation небольшого постоянного количества wavelengths вместо полного спектрального массива. [Source not recovered: turn10search32]
 
 На выходе каждого sample packet переводится в tristimulus:
 
@@ -457,7 +459,7 @@ evaluate reflectance at current λ
 spectral BSDF
 ```
 
-Работа Jakob/Hanika предлагает low-dimensional spectral upsampling, сохраняющий очень компактное представление, пригодное для дешёвой оценки на выбранной wavelength; reference implementation опубликована как `rgb2spec`. citeturn10search6turn10search2
+Работа Jakob/Hanika предлагает low-dimensional spectral upsampling, сохраняющий очень компактное представление, пригодное для дешёвой оценки на выбранной wavelength; reference implementation опубликована как `rgb2spec`. [Source not recovered: turn10search6, turn10search2]
 
 Имеет смысл поддержать два texture mode:
 
@@ -496,7 +498,7 @@ spectral BSDF
 }
 ```
 
-Тогда Fresnel и Snell вычисляются на каждой sampled wavelength. Именно spectral formulation позволяет PBRT v4 моделировать dispersion без RGB-specific hacks. citeturn11search4
+Тогда Fresnel и Snell вычисляются на каждой sampled wavelength. Именно spectral formulation позволяет PBRT v4 моделировать dispersion без RGB-specific hacks. [Source not recovered: turn11search4]
 
 Для metals требуется следующий шаг: wavelength-dependent complex IOR
 
@@ -520,7 +522,7 @@ spectral BSDF
 | Layered/coated | layered BSDF | P3 |
 | Subsurface | отдельный transport model | вне начального scope |
 
-У `strahl`, одного из современных WebGPU path tracers, material architecture базируется на OpenPBR-подобной physically based surface model, что делает проект полезным reference для более развитого material layer. citeturn6view2
+У `strahl`, одного из современных WebGPU path tracers, material architecture базируется на OpenPBR-подобной physically based surface model, что делает проект полезным reference для более развитого material layer. [Source not recovered: turn6view2]
 
 Внутренний API материала желательно проектировать не как `shade(): color`, а как:
 
@@ -543,7 +545,7 @@ Ray
  └── mediumId
 ```
 
-На поверхности требуется `insideMedium` / `outsideMedium`. Именно так устроена `MediumInterface` в PBRT: boundary primitive задаёт medium по обе стороны, а поверхность может быть физическим dielectric либо невидимой границей среды. citeturn16view1
+На поверхности требуется `insideMedium` / `outsideMedium`. Именно так устроена `MediumInterface` в PBRT: boundary primitive задаёт medium по обе стороны, а поверхность может быть физическим dielectric либо невидимой границей среды. [Source not recovered: turn16view1]
 
 Для каждой среды нужны:
 
@@ -553,7 +555,7 @@ Ray
 
 phase function и при необходимости emission.
 
-Первый phase function — **Henyey–Greenstein**. Она имеет один asymmetry parameter \(g\); положительные значения означают преимущественно forward scattering, отрицательные — backward scattering. PBRT предоставляет как evaluation, так и exact sampling HG distribution. citeturn16view0
+Первый phase function — **Henyey–Greenstein**. Она имеет один asymmetry parameter \(g\); положительные значения означают преимущественно forward scattering, отрицательные — backward scattering. PBRT предоставляет как evaluation, так и exact sampling HG distribution. [Source not recovered: turn16view0]
 
 Рекомендуемая последовательность:
 
@@ -567,13 +569,13 @@ phase function и при необходимости emission.
 | Ratio tracking | shadow-ray transmittance | высокая |
 | Spectral heterogeneous medium | λ-dependent coefficients/majorants | очень высокая |
 
-Для heterogeneous media majorant должен upper-bound extinction. PBRT отмечает, что локальные tighter majorants уменьшают частоту null collisions и улучшают производительность. citeturn16view1
+Для heterogeneous media majorant должен upper-bound extinction. PBRT отмечает, что локальные tighter majorants уменьшают частоту null collisions и улучшают производительность. [Source not recovered: turn16view1]
 
-При path sampling можно выбирать absorption / real scattering / null scattering относительно majorant; PBRT подробно реализует такую delta-tracking схему. Для прямого света/transmittance он использует ratio tracking. citeturn17view1turn17view0
+При path sampling можно выбирать absorption / real scattering / null scattering относительно majorant; PBRT подробно реализует такую delta-tracking схему. Для прямого света/transmittance он использует ratio tracking. [Source not recovered: turn17view1, turn17view0]
 
-Это важно для спектрального renderer: PBRT отдельно отмечает проблему, что один majorant или sampling wavelength может оказаться плохим proposal для остальных wavelengths packet-а, вызывая лишние null events. Поэтому spectral volumes — не просто «добавить vec4 вместо float», а один из наиболее сложных этапов проекта. citeturn17view1
+Это важно для спектрального renderer: PBRT отдельно отмечает проблему, что один majorant или sampling wavelength может оказаться плохим proposal для остальных wavelengths packet-а, вызывая лишние null events. Поэтому spectral volumes — не просто «добавить vec4 вместо float», а один из наиболее сложных этапов проекта. [Source not recovered: turn17view1]
 
-Multiple scattering не требует отдельного «fake» алгоритма: после реального volume scattering event путь получает новое направление через phase function и продолжает transport. `VolPathIntegrator` PBRT демонстрирует именно совместную работу surface transport, chromatic media и multiple scattering. citeturn17view2
+Multiple scattering не требует отдельного «fake» алгоритма: после реального volume scattering event путь получает новое направление через phase function и продолжает transport. `VolPathIntegrator` PBRT демонстрирует именно совместную работу surface transport, chromatic media и multiple scattering. [Source not recovered: turn17view2]
 
 ## Progressive rendering, память и производительность браузера
 
@@ -617,7 +619,7 @@ camera stopped:
     continue accumulation indefinitely
 ```
 
-Существующий WebGPU path tracer daikiad использует progressive accumulation, tiled dispatch и пониженное preview resolution во время scene manipulation, что подтверждает жизнеспособность этой схемы именно для browser WebGPU. citeturn6view1
+Существующий WebGPU path tracer daikiad использует progressive accumulation, tiled dispatch и пониженное preview resolution во время scene manipulation, что подтверждает жизнеспособность этой схемы именно для browser WebGPU. [Source not recovered: turn6view1]
 
 ### Реальная цена accumulator
 
@@ -629,7 +631,7 @@ camera stopped:
 | 2560×1440 | 3,686,400 | 56,3 MiB |
 | 3840×2160 | 8,294,400 | 126,6 MiB |
 
-WebGPU baseline limit для одного storage-buffer binding составляет 128 MiB, `maxBufferSize` — 256 MiB. Следовательно, 4K `array<vec4f>` практически исчерпывает portable storage-buffer binding сам по себе. citeturn14search0
+WebGPU baseline limit для одного storage-buffer binding составляет 128 MiB, `maxBufferSize` — 256 MiB. Следовательно, 4K `array<vec4f>` практически исчерпывает portable storage-buffer binding сам по себе. [Source not recovered: turn14search0]
 
 А реальный denoising renderer дополнительно хочет:
 
@@ -669,7 +671,7 @@ console.table({
 });
 ```
 
-Переносимый «объём доступной VRAM браузеру» как надёжная кросс-браузерная величина — **неопределено**. Поэтому resource manager должен опираться на фактические WebGPU limits, собственный memory accounting и обработку allocation/device failures, а не на предположение «у пользователя 8 GB GPU». citeturn14search0turn3search22
+Переносимый «объём доступной VRAM браузеру» как надёжная кросс-браузерная величина — **неопределено**. Поэтому resource manager должен опираться на фактические WebGPU limits, собственный memory accounting и обработку allocation/device failures, а не на предположение «у пользователя 8 GB GPU». [Source not recovered: turn14search0, turn3search22]
 
 ### Buffers против textures
 
@@ -697,7 +699,7 @@ AOV/frame images
 denoiser history
 ```
 
-WebGPU/WGSL прямо разделяет sampled и storage textures и storage-buffer memory model. citeturn13view2
+WebGPU/WGSL прямо разделяет sampled и storage textures и storage-buffer memory model. [Source not recovered: turn13view2]
 
 Не следует складывать всю сцену в один гигантский storage buffer. Помимо limits это осложняет incremental replacement. Более устойчивое разделение:
 
@@ -712,7 +714,7 @@ lightData
 spectralTables
 ```
 
-Для очень больших geometry pools нужны chunks/pages, поскольку реальный `maxStorageBufferBindingSize` зависит от adapter, а гарантированный baseline сравнительно консервативен. citeturn14search0
+Для очень больших geometry pools нужны chunks/pages, поскольку реальный `maxStorageBufferBindingSize` зависит от adapter, а гарантированный baseline сравнительно консервативен. [Source not recovered: turn14search0]
 
 ### Texture precision
 
@@ -729,11 +731,11 @@ spectralTables
 | Raw accumulation | float32 предпочтительно |
 | Denoiser auxiliaries | часто float16 достаточно |
 
-Для истинного spectral texture вместо многоканального 31/61-band texture лучше по возможности использовать compact coefficients и вычислять spectrum при текущей λ. Это непосредственно соответствует мотивации low-dimensional spectral upsampling. citeturn10search6
+Для истинного spectral texture вместо многоканального 31/61-band texture лучше по возможности использовать compact coefficients и вычислять spectrum при текущей λ. Это непосредственно соответствует мотивации low-dimensional spectral upsampling. [Source not recovered: turn10search6]
 
 ### Что оптимизировать в WGSL
 
-Первая оптимизация — **не micro-optimizations, а rays per useful sample**: NEE, MIS, light importance sampling и хороший BVH почти наверняка дадут больший эффект, чем ручное удаление пары arithmetic instructions. PBRT демонстрирует эту зависимость качества estimator от sampling strategy. citeturn8view0
+Первая оптимизация — **не micro-optimizations, а rays per useful sample**: NEE, MIS, light importance sampling и хороший BVH почти наверняка дадут больший эффект, чем ручное удаление пары arithmetic instructions. PBRT демонстрирует эту зависимость качества estimator от sampling strategy. [Source not recovered: turn8view0]
 
 После этого:
 
@@ -798,7 +800,7 @@ Worker timings
 asset parse/build timings
 ```
 
-Для GPU — feature-detect `timestamp-query`. Chrome отдельно документирует WebGPU timestamp queries; в browser context timestamp precision может быть квантована по security-причинам, поэтому результаты предназначены прежде всего для pass-level profiling, а не для микробенчмарков в наносекундах. citeturn3search22
+Для GPU — feature-detect `timestamp-query`. Chrome отдельно документирует WebGPU timestamp queries; в browser context timestamp precision может быть квантована по security-причинам, поэтому результаты предназначены прежде всего для pass-level profiling, а не для микробенчмарков в наносекундах. [Source not recovered: turn3search22]
 
 Каждый pass должен иметь label:
 
@@ -835,7 +837,7 @@ GPU memory estimate
 
 Для этой задачи я предпочёл бы **собственный versioned JSON manifest + glTF/OBJ как referenced assets**.
 
-Почему не делать всё только glTF: glTF 2.0 превосходно описывает mesh/node/material/image asset delivery, но custom integrator parameters, spectral distributions, volume majorants, debug presets и renderer settings — уже renderer-specific semantics. Khronos glTF определяет стандартные structures для buffers, accessors, meshes, nodes, materials и images, поэтому glTF всё равно должен быть first-class import format. citeturn20view3
+Почему не делать всё только glTF: glTF 2.0 превосходно описывает mesh/node/material/image asset delivery, но custom integrator parameters, spectral distributions, volume majorants, debug presets и renderer settings — уже renderer-specific semantics. Khronos glTF определяет стандартные structures для buffers, accessors, meshes, nodes, materials и images, поэтому glTF всё равно должен быть first-class import format. [Source not recovered: turn20view3]
 
 Сравнение:
 
@@ -843,7 +845,7 @@ GPU memory estimate
 |---|---|---|---|
 | JSON manifest | нативный browser parsing, schema validation, прозрачные URIs | verbose | **канонический scene format** |
 | YAML | удобнее редактировать вручную | нужен parser, больше неоднозначностей | authoring frontend → конвертация в canonical JSON |
-| glTF | стандартная geometry/material ecosystem, compact binary GLB | renderer-specific spectral/volume data требуют extensions | основной modern asset format. citeturn20view3 |
+| glTF | стандартная geometry/material ecosystem, compact binary GLB | renderer-specific spectral/volume data требуют extensions | основной modern asset format. [Source not recovered: turn20view3] |
 | OBJ/MTL | огромный legacy corpus, простота | слабая/неоднозначная PBR semantics, нет scene hierarchy | legacy import |
 | Custom binary | максимальная скорость загрузки | tooling/compatibility burden | поздняя optimization |
 
@@ -968,7 +970,7 @@ interface SceneDescription {
 }
 ```
 
-где `MYENGINE_*` здесь лишь иллюстрация собственного namespace. Правила core glTF и extension mechanism следует сверять с актуальной Khronos specification. citeturn20view3
+где `MYENGINE_*` здесь лишь иллюстрация собственного namespace. Правила core glTF и extension mechanism следует сверять с актуальной Khronos specification. [Source not recovered: turn20view3]
 
 Для production я бы всё же предпочёл:
 
@@ -1007,7 +1009,7 @@ interface MeshData {
 
 **Normals.** Если `vn` есть — сохранять. Если отсутствуют — строить с учётом smoothing/hard edges; не усреднять безусловно все соседние faces.
 
-**Tangents.** Если применяется tangent-space normal map, tangent frame строится после окончательного UV seam splitting. Внутренний формат удобно привести к glTF-подобному `TANGENT vec4`, где знак четвёртой компоненты позволяет восстановить bitangent; glTF является полезным reference для унифицированного GPU mesh representation. citeturn20view3
+**Tangents.** Если применяется tangent-space normal map, tangent frame строится после окончательного UV seam splitting. Внутренний формат удобно привести к glTF-подобному `TANGENT vec4`, где знак четвёртой компоненты позволяет восстановить bitangent; glTF является полезным reference для унифицированного GPU mesh representation. [Source not recovered: turn20view3]
 
 **MTL.** Не следует считать MTL современным physically based material definition. Импортер должен переводить найденные `Kd`, specular/shininess, opacity, index of refraction и texture references в approximate internal PBR material. Универсального физически однозначного отображения всех исторических MTL dialects в GGX/OpenPBR нет; точное соответствие здесь — **неопределено**. Храните import warnings.
 
@@ -1049,7 +1051,7 @@ atlasEmissionHDR
 
 Atlas mipmaps требуют padding/gutters вокруг islands, иначе возникнет bleeding.
 
-Для одинаковых по формату/размеру textures можно использовать texture arrays. Для production pipeline geometry/assets можно дополнительно оптимизировать до загрузки; `meshoptimizer` предоставляет mesh optimisation и `gltfpack` для glTF preprocessing. citeturn21search3
+Для одинаковых по формату/размеру textures можно использовать texture arrays. Для production pipeline geometry/assets можно дополнительно оптимизировать до загрузки; `meshoptimizer` предоставляет mesh optimisation и `gltfpack` для glTF preprocessing. [Source not recovered: turn21search3]
 
 ### Debugging — обязательная часть architecture
 
@@ -1086,7 +1088,7 @@ Leaf only
 Selected ray traversal
 ```
 
-Удобно держать отдельный raster debug overlay, а не пытаться path trace-ить AABB. Проект daikiad уже сочетает WebGPU path tracer с Three-based debug overlay, OrbitControls и `lil-gui`, поэтому это хорошая practical reference architecture. citeturn6view1
+Удобно держать отдельный raster debug overlay, а не пытаться path trace-ить AABB. Проект daikiad уже сочетает WebGPU path tracer с Three-based debug overlay, OrbitControls и `lil-gui`, поэтому это хорошая practical reference architecture. [Source not recovered: turn6view1]
 
 Особенно полезен **single-ray debugger**: пользователь кликает пиксель, renderer запускает отдельный debug path и пишет ограниченный trace:
 
@@ -1271,25 +1273,25 @@ src/
 
 | Приоритет | Источник | Зачем |
 |---|---|---|
-| A | **W3C WebGPU specification** | API, limits, resource model; актуальный CRD — сентябрь 2026. citeturn13view0 |
-| A | **W3C WGSL specification** | memory layout, shader stages, texture/storage types, compute/subgroups. citeturn13view2 |
-| A | **PBRT v4 — Better Path Tracer** | NEE, MIS, BSDF/light sampling, RR. citeturn8view0 |
-| A | **PBRT v4 — BVH** | SAH, HLBVH, linear BVH layouts. citeturn20view0 |
-| A | **PBRT v4 — Volume Scattering** | media, phase functions, majorants, delta/ratio tracking. citeturn16view0turn16view1turn17view0turn17view1 |
-| A | **Veach — thesis/MIS** | теоретическая основа multiple importance sampling и bidirectional transport. citeturn8view2turn8view3 |
-| A | **Hero Wavelength Spectral Sampling** | практичная wavelength packet strategy. citeturn10search32 |
-| A | **Jakob/Hanika spectral upsampling + rgb2spec** | превращение обычных RGB assets в spectral evaluations. citeturn10search6turn10search2 |
-| A | **SVGF** | low-spp temporal/spatial reconstruction. citeturn17view3 |
-| B | **daikiad/webgpu-path-tracer** | очень близкий browser/WebGPU/TS reference: compute PT, BVH, tiles, accumulation, smoke/HG, GUI. citeturn6view1 |
-| B | **strahl** | современная TypeScript/WebGPU library с physically based/OpenPBR-oriented materials. citeturn6view2 |
-| B | **James Randall WebGPU path tracer** | компактный TS+WGSL educational implementation с BVH, temporal accumulation и denoise. citeturn6view0 |
-| B | **Karras — Parallel BVH Construction** | основа быстрого GPU-friendly LBVH construction. citeturn9search0 |
-| B | **Fast BVH Updates for Animated Scenes** | refit/update/rotation ideas для dynamic geometry. citeturn9search6 |
-| B | **Khronos glTF 2.0** | canonical asset representation. citeturn20view3 |
-| B | **Emscripten pthreads documentation** | Wasm worker/multithreading design. citeturn20view2 |
-| C | **meshoptimizer/gltfpack** | asset preprocessing и geometry optimisation. citeturn21search3 |
+| A | **W3C WebGPU specification** | API, limits, resource model; актуальный CRD — сентябрь 2026. [Source not recovered: turn13view0] |
+| A | **W3C WGSL specification** | memory layout, shader stages, texture/storage types, compute/subgroups. [Source not recovered: turn13view2] |
+| A | **PBRT v4 — Better Path Tracer** | NEE, MIS, BSDF/light sampling, RR. [Source not recovered: turn8view0] |
+| A | **PBRT v4 — BVH** | SAH, HLBVH, linear BVH layouts. [Source not recovered: turn20view0] |
+| A | **PBRT v4 — Volume Scattering** | media, phase functions, majorants, delta/ratio tracking. [Source not recovered: turn16view0, turn16view1, turn17view0, turn17view1] |
+| A | **Veach — thesis/MIS** | теоретическая основа multiple importance sampling и bidirectional transport. [Source not recovered: turn8view2, turn8view3] |
+| A | **Hero Wavelength Spectral Sampling** | практичная wavelength packet strategy. [Source not recovered: turn10search32] |
+| A | **Jakob/Hanika spectral upsampling + rgb2spec** | превращение обычных RGB assets в spectral evaluations. [Source not recovered: turn10search6, turn10search2] |
+| A | **SVGF** | low-spp temporal/spatial reconstruction. [Source not recovered: turn17view3] |
+| B | **daikiad/webgpu-path-tracer** | очень близкий browser/WebGPU/TS reference: compute PT, BVH, tiles, accumulation, smoke/HG, GUI. [Source not recovered: turn6view1] |
+| B | **strahl** | современная TypeScript/WebGPU library с physically based/OpenPBR-oriented materials. [Source not recovered: turn6view2] |
+| B | **James Randall WebGPU path tracer** | компактный TS+WGSL educational implementation с BVH, temporal accumulation и denoise. [Source not recovered: turn6view0] |
+| B | **Karras — Parallel BVH Construction** | основа быстрого GPU-friendly LBVH construction. [Source not recovered: turn9search0] |
+| B | **Fast BVH Updates for Animated Scenes** | refit/update/rotation ideas для dynamic geometry. [Source not recovered: turn9search6] |
+| B | **Khronos glTF 2.0** | canonical asset representation. [Source not recovered: turn20view3] |
+| B | **Emscripten pthreads documentation** | Wasm worker/multithreading design. [Source not recovered: turn20view2] |
+| C | **meshoptimizer/gltfpack** | asset preprocessing и geometry optimisation. [Source not recovered: turn21search3] |
 
-Существуют и проекты, экспериментирующие с нестандартными ray-tracing extensions поверх WebGPU/Dawn/Vulkan, но их нельзя делать архитектурным требованием переносимого browser renderer. Для production-target имеет смысл держать core renderer на стандартном WGSL compute/BVH traversal, а возможный будущий hardware-RT backend добавлять как отдельный backend, если соответствующий API когда-либо станет достаточно стандартным и распространённым. Текущий переносимый путь подтверждается браузерными WebGPU path tracer implementations. citeturn6view1turn6view3turn5search3
+Существуют и проекты, экспериментирующие с нестандартными ray-tracing extensions поверх WebGPU/Dawn/Vulkan, но их нельзя делать архитектурным требованием переносимого browser renderer. Для production-target имеет смысл держать core renderer на стандартном WGSL compute/BVH traversal, а возможный будущий hardware-RT backend добавлять как отдельный backend, если соответствующий API когда-либо станет достаточно стандартным и распространённым. Текущий переносимый путь подтверждается браузерными WebGPU path tracer implementations. [Source not recovered: turn6view1, turn6view3, turn5search3]
 
 **Итоговая рекомендуемая конфигурация проекта**:
 

@@ -4,6 +4,7 @@ import { definitions } from "./pack";
 import type { Bvh } from "./bvh";
 import type { SceneDescription } from "../scene/types";
 import { bakeSpectrum, cie, constantSpectrum } from "../transport/spectrum";
+import { hasSurfaceWear, validateSurfaceWear } from "../scene/surface-wear";
 
 export interface PackedTransport {
   materials: ArrayBuffer;
@@ -144,6 +145,7 @@ export function packTransport(
       material.type === "dielectric" ? absorptionOffset : spectrumOffset,
     );
     if (material.type === "dielectric") {
+      if (material.surfaceWear) validateSurfaceWear(material.surfaceWear);
       if (
         !Number.isFinite(Math.fround(material.ior)) ||
         material.ior < 1 ||
@@ -165,6 +167,29 @@ export function packTransport(
         throw new Error("Invalid dielectric surface parameters");
       spectra.set(bakeSpectrum(material.transmissionSpectrum ?? constantSpectrum(transmission[0]), true), spectrumOffset);
       if (material.thin && !material.transmissionSpectrum && transmission.some(v => v !== transmission[0])) spectralReady = false;
+      const worldToTexture = mat4.create();
+      const wearBounds = [0, 0, 0, 0];
+      if (hasSurfaceWear(material.surfaceWear)) {
+        const objects = description.objects.filter(object => object.material === i);
+        if (objects.some(object => object.mesh !== objects[0]!.mesh || object.transform.some((value, axis) => value !== objects[0]!.transform[axis])))
+          throw new Error("Textured instances require separate material descriptions");
+        if (objects[0]) {
+          const mesh = description.meshes[objects[0].mesh]!;
+          const low = [Infinity, Infinity, Infinity], high = [-Infinity, -Infinity, -Infinity];
+          for (let vertex = 0; vertex < mesh.positions.length; vertex += 3) for (let axis = 0; axis < 3; axis++) {
+            low[axis] = Math.min(low[axis]!, mesh.positions[vertex + axis]!);
+            high[axis] = Math.max(high[axis]!, mesh.positions[vertex + axis]!);
+          }
+          const extent = Math.max(...high.map((value, axis) => value - low[axis]!));
+          if (!Number.isFinite(extent) || extent <= 0 || !mat4.invert(worldToTexture, objects[0].transform))
+            throw new Error("Invalid surface wear transform or bounds");
+          const normalize = mat4.create();
+          mat4.scale(normalize, normalize, [1 / extent, 1 / extent, 1 / extent]);
+          mat4.translate(normalize, normalize, low.map((value, axis) => -(value + high[axis]!) * 0.5) as [number, number, number]);
+          mat4.multiply(worldToTexture, normalize, worldToTexture);
+          for (let axis = 0; axis < 3; axis++) wearBounds[axis] = (high[axis]! - low[axis]!) / (2 * extent);
+        }
+      }
       makeStructuredView(materialDef, materials, i * materialDef.size).set({
         color: transmission,
         kind: material.thin ? 5 : 2,
@@ -174,6 +199,9 @@ export function packTransport(
         absorptionOffset,
         iorModel: material.iorModel === "cauchy" ? 2 : Number(material.iorModel === "nbk7"),
         textureParams: [roughness, ...(material.cauchy ?? [0, 0]), 0],
+        worldToTexture,
+        wearParams: material.surfaceWear ? [material.surfaceWear.scratches, material.surfaceWear.scuffs, material.surfaceWear.fingerprints, material.surfaceWear.seed] : [0, 0, 0, 1],
+        wearBounds,
       });
       return;
     }

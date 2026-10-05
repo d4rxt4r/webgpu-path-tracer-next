@@ -1,4 +1,5 @@
 import { bakeTriangles } from "../accel/geometry";
+import { hasSurfaceWear } from "../scene/surface-wear";
 import type {
   MaterialDescription,
   SceneDescription,
@@ -20,6 +21,8 @@ export function exportPbrt(
   filename: string,
   maxDepth = 32,
 ): string {
+  if (scene.materials.some(material => material.type === "dielectric" && hasSurfaceWear(material.surfaceWear)))
+    throw new Error("PBRT reference export does not support procedural surface wear; disable wear first");
   const spectrum = (name: string, table: SpectrumTable) =>
     `"spectrum ${name}" [${table.flat().join(" ")}]`;
   const camera = scene.camera;

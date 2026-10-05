@@ -1,4 +1,5 @@
-import type { MaterialDescription, SpectrumTable, Vec3 } from "./types";
+import type { MaterialDescription, SpectrumTable, SurfaceWear, Vec3 } from "./types";
+import { validateSurfaceWear } from "./surface-wear";
 
 export interface DielectricSettings {
   mode: "auto" | "volume" | "thin";
@@ -8,6 +9,7 @@ export interface DielectricSettings {
   transmission: Vec3;
   depth: number;
   roughness: number;
+  surfaceWear?: SurfaceWear;
 }
 export const defaultDielectric: DielectricSettings = {
   mode: "auto", ior: 1.7, dispersion: false, abbe: 64,
@@ -32,6 +34,7 @@ export function transmissionSpectrum(color: Vec3): SpectrumTable {
   return [[360, color[2]], [460, color[2]], [550, color[1]], [610, color[0]], [830, color[0]]];
 }
 export function dielectricMaterial(settings: DielectricSettings, solid: boolean): MaterialDescription {
+  if (settings.surfaceWear) validateSurfaceWear(settings.surfaceWear);
   if (!["auto", "volume", "thin"].includes(settings.mode) || !Number.isFinite(settings.ior) || settings.ior < 1 || settings.ior > 2.5 ||
       !Number.isFinite(settings.abbe) || settings.abbe < 10 || settings.abbe > 1000 ||
       !Number.isFinite(settings.depth) || settings.depth < 0.0001 || settings.depth > 1000 ||
@@ -46,6 +49,7 @@ export function dielectricMaterial(settings: DielectricSettings, solid: boolean)
     iorModel: settings.dispersion ? "cauchy" : "constant",
     cauchy: cauchyCoefficients(settings.ior, settings.abbe),
     roughness: settings.roughness, transmission: settings.transmission,
+    surfaceWear: settings.surfaceWear ? { ...settings.surfaceWear } : undefined,
     transmissionSpectrum: transmissionSpectrum(settings.transmission),
     absorption: thin ? [0, 0, 0] : absorption,
     absorptionSpectrum: transmissionSpectrum(absorption),

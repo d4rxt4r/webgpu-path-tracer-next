@@ -15,7 +15,8 @@ fn guideMain(@builtin(global_invocation_id) id:vec3u) {
     let triangle=triangles[hit.triangle];
     let kind=materials[triangle.material].kind;
     let depth=select(hit.t,-hit.t,kind==2u||kind==5u);
-    value=vec4f(shadingNormal(triangle,hit),depth);
+    let surface=dielectricWear(materials[triangle.material],surfacePosition(triangle,hit),geometricNormal(triangle),shadingNormal(triangle,hit));
+    value=vec4f(surface.normal,depth);
   }
   textureStore(guides,vec2i(id.xy),value);
 }

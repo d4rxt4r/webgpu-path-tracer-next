@@ -152,6 +152,11 @@ export class IntersectionRenderer {
   private displayOnly = false;
   private activeFrame?: Promise<void>;
   private device?: GPUDevice;
+  private gpuPreparation?: Promise<void>;
+  private preparationJobs = new Map<string, Promise<void>>();
+  readonly startupTimings: Record<string, number> = {};
+  private startedAt = performance.now();
+  private booting = true;
   private context?: GPUCanvasContext;
   private compute?: GPUComputePipeline;
   private display?: GPURenderPipeline;
@@ -257,7 +262,7 @@ export class IntersectionRenderer {
     try {
       cameraBasis(description.camera);
       const camera = structuredClone(description.camera);
-      const packed = await this.preparer.prepare(description);
+      const packed = await this.timed("scene", () => this.preparer.prepare(description));
       if (sceneRevision !== this.sceneRevision || this.disposed) return;
       if (this.settings.mode === "spectral" && !packed.spectralReady)
         throw new Error(
@@ -349,7 +354,7 @@ export class IntersectionRenderer {
     this.invalidate();
     this.schedule(true);
   }
-  setSettings(settings: Partial<PathSettings>): void {
+  validateSettings(settings: Partial<PathSettings>): PathSettings {
     const next = { ...this.settings, ...settings };
     if (
       !["pt", "sppm"].includes(next.integrator) ||
@@ -385,6 +390,16 @@ export class IntersectionRenderer {
       next.memoryBudgetMiB > settingsLimits.maxMemoryMiB
     )
       throw new Error("Invalid path tracing settings");
+    if (this.device) {
+      if (next.integrator === "sppm")
+        checkPhotonLimits(next.photonBatchSize, next.maxDepth, this.device.limits);
+      if (this.fixedMemoryBytes(next) + 88 + (next.integrator === "sppm" ? SPPM_POINT_BYTES : 0) > next.memoryBudgetMiB * 1048576)
+        throw new Error("Сцена и фотонный пакет превышают бюджет памяти. Увеличьте бюджет или уменьшите пакет.");
+    }
+    return next;
+  }
+  setSettings(settings: Partial<PathSettings>): void {
+    const next = this.validateSettings(settings);
     if (
       Object.keys(next).every(
         (key) =>
@@ -393,12 +408,6 @@ export class IntersectionRenderer {
       )
     )
       return;
-    if (this.device) {
-      if (next.integrator === "sppm")
-        checkPhotonLimits(next.photonBatchSize, next.maxDepth, this.device.limits);
-      if (this.fixedMemoryBytes(next) + 88 + (next.integrator === "sppm" ? SPPM_POINT_BYTES : 0) > next.memoryBudgetMiB * 1048576)
-        throw new Error("Сцена и фотонный пакет превышают бюджет памяти. Увеличьте бюджет или уменьшите пакет.");
-    }
     this.settings = next;
     if (next.integrator !== "sppm") this.photonDensity = false;
     this.invalidate();
@@ -447,6 +456,7 @@ export class IntersectionRenderer {
     )
       this.filterDirty = true;
     this.denoise = next;
+    this.prepareDenoiser();
     this.displayOnly = !this.needsClear;
     this.schedule(true);
   }
@@ -565,9 +575,113 @@ export class IntersectionRenderer {
     this.report({ ...this.stats });
   }
 
+  /** May run alongside model/HDR loading and BVH preparation. */
+  prepareGpu(): Promise<void> {
+    if (this.disposed) return Promise.reject(new Error("Renderer is disposed"));
+    return this.gpuPreparation ??= this.initializeGpu();
+  }
+
+  private async timed<T>(name: string, work: () => Promise<T>): Promise<T> {
+    const start = performance.now();
+    const generation = this.generation;
+    try { return await work(); }
+    finally {
+      if (generation === this.generation) this.startupTimings[name] = performance.now() - start;
+    }
+  }
+
+  private async prepareOnce(name: string, work: (device: GPUDevice) => Promise<void>): Promise<void> {
+    const preparation = this.prepareGpu();
+    const generation = this.generation;
+    await preparation;
+    if (this.disposed || generation !== this.generation) return;
+    let job = this.preparationJobs.get(name);
+    if (!job) {
+      const device = this.device!;
+      job = this.timed(name, () => work(device));
+      this.preparationJobs.set(name, job);
+    }
+    await job;
+  }
+
+  prepareIntegrator(integrator: PathSettings["integrator"]): Promise<void> {
+    if (integrator === "pt") return this.prepareGpu();
+    return this.prepareOnce("sppm", async device => {
+      const generation = this.generation;
+      const sppm = await SppmIntegrator.create(device, this.specializedSppmSampler, false, (entry, ms) => {
+        if (generation === this.generation) this.startupTimings[entry] = ms;
+      });
+      if (generation !== this.generation || this.disposed) { sppm.dispose(); return; }
+      this.sppm = sppm;
+      this.updateGroups();
+    });
+  }
+
+  private async prepareDebug(): Promise<void> {
+    return this.prepareOnce("debug", async device => {
+      const generation = this.generation;
+      const module = await checkedShader(device, debugShader, "BVH intersections");
+      const pipeline = await device.createComputePipelineAsync({layout: "auto", compute: {module, entryPoint: "main"}});
+      if (generation !== this.generation || this.disposed) return;
+      this.compute = pipeline;
+      this.updateGroups();
+    });
+  }
+
+  private prepareDenoiser(): void {
+    if (!this.denoise.enabled || this.booting || !this.device || this.preparationJobs.has("denoiser")) return;
+    const generation = this.generation;
+    void this.prepareOnce("denoiser", async device => {
+      const denoiser = await Denoiser.create(device, (entry, ms) => {
+        if (generation === this.generation) this.startupTimings[entry] = ms;
+      });
+      if (generation !== this.generation || this.disposed) { denoiser.dispose(); return; }
+      this.denoiser = denoiser;
+      this.updateGroups();
+      this.displayOnly = !this.needsClear;
+      this.schedule(true);
+    }).catch(error => {
+      if (!this.disposed && generation === this.generation)
+        this.error(error instanceof Error ? error : new Error(String(error)));
+    });
+  }
+
+  private async prepareActiveMode(): Promise<void> {
+    // A user can change the view while a pipeline is compiling. Recheck the
+    // requested mode before scheduling work rather than dispatching stale work.
+    let previous: string;
+    do {
+      previous = `${this.view}:${this.settings.integrator}:${this.photonDensity}`;
+      if (this.view === 3 || this.view === 5 || this.view === 6) {
+        await this.prepareIntegrator(this.view === 3 ? this.settings.integrator : "pt");
+        if (this.photonDensity && this.sppm) await this.sppm.prepareDensity();
+      } else await this.prepareDebug();
+      if (this.disposed) return;
+    } while (previous !== `${this.view}:${this.settings.integrator}:${this.photonDensity}`);
+  }
+
   async initialize(): Promise<void> {
-    if (!this.packed || !this.camera)
-      throw new Error("Set a scene before initialization");
+    if (!this.packed || !this.camera) throw new Error("Set a scene before initialization");
+    const preparation = this.prepareGpu();
+    const generation = this.generation;
+    await preparation;
+    if (this.disposed || generation !== this.generation) return;
+    const device = this.device!;
+    this.environment ??= new GpuEnvironment(device, this.environmentImage);
+    this.environment.setScene(this.packed);
+    this.environment.update(this.environmentSettings);
+    this.scene?.dispose();
+    this.scene = new GpuScene(device, this.packed, this.environment);
+    await this.prepareActiveMode();
+    if (this.disposed || generation !== this.generation) return;
+    this.invalidate();
+    this.resize();
+    this.stats.status = this.paused ? "paused" : "ready";
+    this.report({ ...this.stats });
+    this.schedule();
+  }
+
+  private async initializeGpu(): Promise<void> {
     const generation = ++this.generation;
     const { device, name, adapter } = await createDevice();
     // These two choices have measured wins on gen-12lp. Other adapters use the
@@ -612,61 +726,26 @@ export class IntersectionRenderer {
     context.configure({ device, format, alphaMode: "opaque" });
     device.pushErrorScope("validation");
     try {
-      const [computeModule, pathModule, displayModule, sobolData, fastPathModule] =
-        await Promise.all([
-          checkedShader(device, debugShader, "BVH intersections"),
-          checkedShader(device, pathShader, "RGB / spectral path tracer"),
-          checkedShader(device, displayShader, "Display"),
-          loadSobol(),
-          checkedShader(device, fastTransportShader(pathShader, calibratedIntel), "PT common transport"),
-        ]);
-      const [compute, pathPipeline, display, sppm, denoiser, pngPipeline, pathRepairPipeline] =
-        await Promise.all([
-          device.createComputePipelineAsync({
-            layout: "auto",
-            compute: { module: computeModule, entryPoint: "main" },
-          }),
-          device.createComputePipelineAsync({
-            layout: "auto",
-            compute: { module: fastPathModule, entryPoint: "main" },
-          }),
-          device.createRenderPipelineAsync({
-            layout: "auto",
-            vertex: { module: displayModule, entryPoint: "vertexMain" },
-            fragment: {
-              module: displayModule,
-              entryPoint: "fragmentMain",
-              targets: [{ format }],
-            },
-            primitive: { topology: "triangle-list" },
-          }),
-          SppmIntegrator.create(device, this.specializedSppmSampler),
-          Denoiser.create(device),
-          device.createRenderPipelineAsync({
-            layout: "auto",
-            vertex: { module: displayModule, entryPoint: "vertexMain" },
-            fragment: {
-              module: displayModule,
-              entryPoint: "fragmentMain",
-              targets: [{ format: "rgba8unorm" }],
-            },
-            primitive: { topology: "triangle-list" },
-          }),
-          device.createComputePipelineAsync({ layout: "auto", compute: { module: pathModule, entryPoint: "repairMain" } }),
-        ]);
-      if (this.disposed || generation !== this.generation) {
-        sppm.dispose();
-        denoiser.dispose();
-        return;
-      }
-      this.compute = compute;
+      const [pathModule, displayModule, sobolData, fastPathModule] = await Promise.all([
+        checkedShader(device, pathShader, "RGB / spectral path tracer"),
+        checkedShader(device, displayShader, "Display"),
+        loadSobol(),
+        checkedShader(device, fastTransportShader(pathShader, calibratedIntel), "PT common transport"),
+      ]);
+      const [pathPipeline, display, pathRepairPipeline] = await Promise.all([
+        this.timed("pt", () => device.createComputePipelineAsync({layout: "auto", compute: {module: fastPathModule, entryPoint: "main"}})),
+        this.timed("display", () => device.createRenderPipelineAsync({
+          layout: "auto", vertex: {module: displayModule, entryPoint: "vertexMain"},
+          fragment: {module: displayModule, entryPoint: "fragmentMain", targets: [{format}]},
+          primitive: {topology: "triangle-list"},
+        })),
+        this.timed("pt-repair", () => device.createComputePipelineAsync({layout: "auto", compute: {module: pathModule, entryPoint: "repairMain"}})),
+      ]);
+      if (this.disposed || generation !== this.generation) return;
       this.pathPipeline = pathPipeline;
       this.pathRepairPipeline = pathRepairPipeline;
       this.precisionIndirect = device.createBuffer({label: "PT precision dispatch", size:12, usage:GPUBufferUsage.INDIRECT | GPUBufferUsage.COPY_DST});
       this.display = display;
-      this.sppm = sppm;
-      this.denoiser = denoiser;
-      this.pngPipeline = pngPipeline;
       this.uniform = device.createBuffer({
         label: "Camera parameters",
         size: this.parameters.arrayBuffer.byteLength,
@@ -678,10 +757,6 @@ export class IntersectionRenderer {
         size: this.displayParameters.arrayBuffer.byteLength,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
-      this.environment = new GpuEnvironment(device, this.environmentImage);
-      this.environment.setScene(this.packed);
-      this.environment.update(this.environmentSettings);
-      this.scene = new GpuScene(device, this.packed, this.environment);
       this.sobol = device.createBuffer({
         label: "Sobol directions",
         size: sobolData.byteLength,
@@ -717,11 +792,7 @@ export class IntersectionRenderer {
     if (this.disposed || generation !== this.generation) return;
     this.stats.adapter = name;
     this.stats.frames = 0;
-    this.invalidate();
-    this.resize();
-    this.stats.status = this.paused ? "paused" : "ready";
-    this.report({ ...this.stats });
-    this.schedule();
+    this.startupTimings["gpu-ready"] = performance.now() - this.startedAt;
   }
 
   private fixedMemoryBytes(settings: PathSettings, sceneBytes = this.scene?.bytes ?? 0): number {
@@ -738,7 +809,7 @@ export class IntersectionRenderer {
     const device = this.device;
     if (
       !device ||
-      !this.compute ||
+      !this.packed ||
       !this.display ||
       !this.uniform ||
       this.disposed
@@ -842,7 +913,6 @@ export class IntersectionRenderer {
     } = this;
     if (
       !device ||
-      !compute ||
       !display ||
       !texture ||
       !uniform ||
@@ -852,7 +922,7 @@ export class IntersectionRenderer {
     )
       return;
     const view = texture.createView();
-    this.computeGroup = device.createBindGroup({
+    if (compute) this.computeGroup = device.createBindGroup({
       layout: compute.getBindGroupLayout(0),
       entries: [
         { binding: 0, resource: view },
@@ -973,7 +1043,20 @@ export class IntersectionRenderer {
     const run = () => {
       this.raf = 0;
       this.jobTimer = 0;
-      this.activeFrame = this.frame();
+      const generation = this.generation;
+      this.busy = true;
+      this.activeFrame = (async () => {
+        try {
+          await this.prepareActiveMode();
+          if (this.disposed || generation !== this.generation) return;
+          this.busy = false;
+          if (!this.paused || this.redraw) await this.frame();
+        } catch (error) {
+          if (!this.disposed && generation === this.generation) this.fail(error);
+        } finally {
+          if (generation === this.generation) this.busy = false;
+        }
+      })();
     };
     // Accumulation portions need not wait for a screen refresh. Each portion
     // awaits GPU completion before another is scheduled; the queue stays bounded.
@@ -1011,9 +1094,8 @@ export class IntersectionRenderer {
     if (
       !device ||
       !context ||
-      !compute ||
       !display ||
-      !computeGroup ||
+      ((this.view !== 3 && this.view !== 5 && this.view !== 6) && (!compute || !computeGroup)) ||
       !uniform ||
       !diagnostic ||
       !readback ||
@@ -1122,8 +1204,8 @@ export class IntersectionRenderer {
             else {
               if(pathMode && nextTile===0) clearTransportQueue(encoder, diagnostic);
               const pass = encoder.beginComputePass();
-              pass.setPipeline(pathMode ? this.pathPipeline! : compute);
-              pass.setBindGroup(0, pathMode ? this.pathGroup! : computeGroup);
+              pass.setPipeline(pathMode ? this.pathPipeline! : compute!);
+              pass.setBindGroup(0, pathMode ? this.pathGroup! : computeGroup!);
               const group = pathMode ? this.pathWorkgroup : [8, 8];
               pass.dispatchWorkgroups(
                 Math.ceil(tile[2]! / group[0]!),
@@ -1223,7 +1305,12 @@ export class IntersectionRenderer {
       this.stats.packetCount = submitted.length;
       this.stats.completionMs = performance.now() - started;
       this.stats.gpuMs = gpuMs;
+      if (this.booting && this.view === 3 && this.samples > 0 && this.presentedRevision === this.revision) {
+        this.booting = false;
+        this.startupTimings["first-image"] = performance.now() - this.startedAt;
+      }
       this.report({ ...this.stats });
+      this.prepareDenoiser();
     } catch (error) {
       if (generation === this.generation && !this.disposed) this.fail(error);
     } finally {
@@ -1245,7 +1332,7 @@ export class IntersectionRenderer {
           [this.stats.width, this.stats.height],
         );
       let source = this.complete!;
-      if (this.view === 3 && this.denoise.enabled) {
+      if (this.view === 3 && this.denoise.enabled && this.denoiser) {
         if (commit || this.filterDirty || this.guidesDirty || !this.filtered) {
           this.filtered = this.denoiser!.encode(
             encoder,
@@ -1356,6 +1443,16 @@ export class IntersectionRenderer {
     if (errors) throw new Error("GPU display guides failed");
   }
   async capturePng(): Promise<Blob> {
+    await this.prepareOnce("png", async device => {
+      const generation = this.generation;
+      const module = await checkedShader(device, displayShader, "PNG display");
+      const pipeline = await device.createRenderPipelineAsync({
+        layout: "auto", vertex: {module, entryPoint: "vertexMain"},
+        fragment: {module, entryPoint: "fragmentMain", targets: [{format: "rgba8unorm"}]},
+        primitive: {topology: "triangle-list"},
+      });
+      if (generation === this.generation && !this.disposed) this.pngPipeline = pipeline;
+    });
     await this.activeFrame;
     if (!this.device || !this.front || this.presentedRevision !== this.revision)
       throw new Error("Wait for a complete displayed frame before PNG export");
@@ -1438,6 +1535,9 @@ export class IntersectionRenderer {
     this.error(error instanceof Error ? error : new Error(String(error)));
   }
   private release(): void {
+    this.gpuPreparation = undefined;
+    this.preparationJobs.clear();
+    this.booting = true;
     this.cancelScheduled();
     this.sppm?.dispose();
     this.sppm = undefined;

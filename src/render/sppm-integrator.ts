@@ -54,7 +54,7 @@ export class SppmIntegrator {
   private constructor(
     private device: GPUDevice,
     private pipelines: Record<
-      "camera" | "photon" | "cameraRepair" | "photonRepair" | "hash" | "gather" | "update" | "density",
+      "camera" | "photon" | "cameraRepair" | "photonRepair" | "hash" | "gather" | "update",
       GPUComputePipeline
     >,
   ) {
@@ -69,6 +69,7 @@ export class SppmIntegrator {
     device: GPUDevice,
     specializeSampler = false,
     preciseTransport = false,
+    timing?: (entry: string, milliseconds: number) => void,
   ): Promise<SppmIntegrator> {
     const module = await checkedShader(
       device,
@@ -84,15 +85,17 @@ export class SppmIntegrator {
       "hash",
       "gather",
       "update",
-      "density",
     ] as const;
     const pipelines = await Promise.all(
-      entries.map((entry) =>
-        device.createComputePipelineAsync({
+      entries.map(async (entry) => {
+        const started = performance.now();
+        const pipeline = await device.createComputePipelineAsync({
           layout: "auto",
           compute: { module: (entry === "camera" || entry === "photon") ? fastModule : module, entryPoint: entry + "Main" },
-        }),
-      ),
+        });
+        timing?.(entry + "Main", performance.now() - started);
+        return pipeline;
+      }),
     );
     return new SppmIntegrator(
       device,
@@ -322,11 +325,21 @@ export class SppmIntegrator {
     }
     return false;
   }
+  private densityPipeline?: GPUComputePipeline;
+  private densityJob?: Promise<void>;
+  private disposed = false;
+  prepareDensity(): Promise<void> {
+    return this.densityJob ??= (async () => {
+      const module = await checkedShader(this.device, sppmShader, "Photon density");
+      const pipeline = await this.device.createComputePipelineAsync({layout: "auto", compute: {module, entryPoint: "densityMain"}});
+      if (!this.disposed) this.densityPipeline = pipeline;
+    })();
+  }
   encodeDensity(encoder: GPUCommandEncoder, texture: GPUTexture): void {
     if (!this.points || !this.camera)
       throw new Error("Wait for SPPM before displaying photon density");
     const group = this.device.createBindGroup({
-      layout: this.pipelines.density.getBindGroupLayout(0),
+      layout: this.densityPipeline!.getBindGroupLayout(0),
       entries: [
         { binding: 0, resource: texture.createView() },
         { binding: 1, resource: { buffer: this.camera } },
@@ -335,7 +348,7 @@ export class SppmIntegrator {
       ],
     });
     const pass = encoder.beginComputePass();
-    pass.setPipeline(this.pipelines.density);
+    pass.setPipeline(this.densityPipeline!);
     pass.setBindGroup(0, group);
     pass.dispatchWorkgroups(
       Math.ceil(this.width / 8),
@@ -355,6 +368,7 @@ export class SppmIntegrator {
     this.reset();
   }
   dispose(): void {
+    this.disposed = true;
     this.releaseBuffers();
     this.uniform.destroy();
     this.indirect.destroy();

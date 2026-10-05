@@ -3,8 +3,9 @@ import type { SceneDescription } from "../scene/types";
 import { defaultDielectric, dielectricMaterial, hexToLinear, linearToHex, type DielectricSettings } from "../scene/dielectric-settings";
 import { textureControlIds, type TextureControls } from "../scene/editor";
 import { nbk7Ior } from "../transport/spectrum";
+import { wearControlIds } from "../scene/surface-wear";
 
-export const materialControlIds = ["dielectric-mode", "dispersion", "abbe", "transmission-color", "transmission-depth", "roughness", "texture-kind"];
+export const materialControlIds = ["dielectric-mode", "dispersion", "abbe", "transmission-color", "transmission-depth", "roughness", "texture-kind", ...wearControlIds];
 const field = (id: string) => document.getElementById(id) as HTMLInputElement;
 export function baseMaterial(): SphereMaterial {
   const type = field("material").value;
@@ -17,6 +18,8 @@ export function readDielectric(): DielectricSettings {
     ior: Number(field("ior").value), dispersion: field("dispersion").checked,
     abbe: Number(field("abbe").value), roughness: Number(field("roughness").value),
     depth: Number(field("transmission-depth").value),
+    surfaceWear: { scratches: Number(field("wear-scratches").value), scuffs: Number(field("wear-scuffs").value),
+      fingerprints: Number(field("wear-fingerprints").value), seed: Number(field("wear-seed").value) },
     transmission: color === linearToHex(defaultDielectric.transmission) ? [...defaultDielectric.transmission] : hexToLinear(color),
   };
 }
@@ -40,7 +43,7 @@ export function syncMaterialEditor(solid: boolean, ready = true): void {
     document.getElementById(id)!.hidden = !visible;
   const thin = field("dielectric-mode").value === "thin" || (field("dielectric-mode").value === "auto" && !solid);
   (field("dielectric-mode") as unknown as HTMLSelectElement).querySelector<HTMLOptionElement>('[value="volume"]')!.disabled = !solid;
-  for (const id of ["ior", "abbe", "roughness", "transmission-depth", "dispersion", "transmission-color", "dielectric-mode", "albedo", "texture-kind", ...textureControlIds]) {
+  for (const id of ["ior", "abbe", "roughness", "transmission-depth", "dispersion", "transmission-color", "dielectric-mode", "albedo", "texture-kind", ...textureControlIds, ...wearControlIds]) {
     const disabled = id === "albedo" ? type !== "diffuse" : id === "texture-kind" || (textureControlIds as readonly string[]).includes(id) ? type !== "textured" || (id.startsWith("lava-") && texture !== "lava") : type !== "dielectric" || (id === "abbe" && !field("dispersion").checked) || (id === "transmission-depth" && thin);
     field(id).disabled = !ready || disabled;
     const number = document.getElementById(`${id}-value`) as HTMLInputElement | null;

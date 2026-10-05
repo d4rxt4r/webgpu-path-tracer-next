@@ -20,6 +20,12 @@ export interface SceneObject {
   transform: number[];
 }
 export type SpectrumTable = [number, number][];
+export interface SurfaceWear {
+  scratches: number;
+  scuffs: number;
+  fingerprints: number;
+  seed: number;
+}
 interface TextureParameters {
   reflectance: Vec3;
   spectrum: SpectrumTable;
@@ -44,6 +50,7 @@ export type MaterialDescription =
       iorModel?: "constant" | "nbk7" | "cauchy";
       cauchy?: [number, number];
       roughness?: number;
+      surfaceWear?: SurfaceWear;
       transmission?: Vec3;
       transmissionSpectrum?: SpectrumTable;
       absorptionSpectrum?: SpectrumTable;

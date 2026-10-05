@@ -1,5 +1,5 @@
 import { checkedShader } from "../gpu/device";
-import { intersectionCore } from "../transport/shaders";
+import { intersectionCore, surfaceWearCore } from "../transport/shaders";
 import guideSource from "./guide.wgsl?raw";
 import filterSource from "./atrous.wgsl?raw";
 import type { GpuScene } from "../gpu/scene";
@@ -23,25 +23,24 @@ export class Denoiser {
     private guidePipeline: GPUComputePipeline,
     private filterPipeline: GPUComputePipeline,
   ) {}
-  static async create(device: GPUDevice): Promise<Denoiser> {
+  static async create(device: GPUDevice, timing?: (entry: string, milliseconds: number) => void): Promise<Denoiser> {
     const [guide, filter] = await Promise.all([
       checkedShader(
         device,
-        intersectionCore + "\n" + guideSource,
+        intersectionCore + "\n" + surfaceWearCore + "\n" + guideSource,
         "Denoise guides",
       ),
       checkedShader(device, filterSource, "Spatial à-trous"),
     ]);
-    const [gp, fp] = await Promise.all([
-      device.createComputePipelineAsync({
-        layout: "auto",
-        compute: { module: guide, entryPoint: "guideMain" },
-      }),
-      device.createComputePipelineAsync({
-        layout: "auto",
-        compute: { module: filter, entryPoint: "filterMain" },
-      }),
-    ]);
+    const compile = async (module: GPUShaderModule, entryPoint: string) => {
+      const started = performance.now();
+      const pipeline = await device.createComputePipelineAsync({
+        layout: "auto", compute: {module, entryPoint},
+      });
+      timing?.(entryPoint, performance.now() - started);
+      return pipeline;
+    };
+    const [gp, fp] = await Promise.all([compile(guide, "guideMain"), compile(filter, "filterMain")]);
     return new Denoiser(device, gp, fp);
   }
   get bytes(): number {

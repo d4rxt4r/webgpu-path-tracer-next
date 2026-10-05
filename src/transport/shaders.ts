@@ -5,6 +5,7 @@ import debug from "./debug.wgsl?raw";
 import sampler from "./sampler.wgsl?raw";
 import lighting from "./lighting.wgsl?raw";
 import textures from "./textures.wgsl?raw";
+import wear from "./surface-wear.wgsl?raw";
 import environment from "./environment.wgsl?raw";
 import tracer from "./path-tracer.wgsl?raw";
 import media from "./media.wgsl?raw";
@@ -17,6 +18,7 @@ import diagnostics from "./diagnostics.wgsl?raw";
 import display from "../render/display.wgsl?raw";
 export const intersectionCore = layouts + "\n" + preciseIntersections + "\n" + intersections;
 export const debugShader = intersectionCore + "\n" + debug;
+export const surfaceWearCore = wear;
 export const pathCore =
   intersectionCore +
   "\n" +
@@ -25,6 +27,8 @@ export const pathCore =
   spectrum +
   "\n" +
   textures +
+  "\n" +
+  wear +
   "\n" +
   lighting +
   "\n" +

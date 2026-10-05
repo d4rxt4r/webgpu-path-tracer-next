@@ -35,10 +35,13 @@ fn tracePathWithMedia(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, max
     interactions = depth + 1u;
     let triangle = triangles[hit.triangle];
     if (triangle.material >= arrayLength(&materials)) { return PathResult(vec3f(0), 1u, interactions); }
-    let material = materials[triangle.material];
+    let sourceMaterial = materials[triangle.material];
+    var material = sourceMaterial;
     if(!PRECISE_TRANSPORT && medium!=NO_HIT && material.kind!=2u) {return PathResult(vec3f(0),5u,interactions);}
     let ng = geometricNormal(triangle);
     let position = surfacePosition(triangle,hit);
+    let surface=dielectricWear(sourceMaterial,position,ng,shadingNormal(triangle,hit));
+    material.textureParams.x=surface.roughness;
     let color = surfaceColor(material, position, wavelength);
 
     if (medium != NO_HIT) {
@@ -61,7 +64,7 @@ fn tracePathWithMedia(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, max
     let dimension = 3u + depth * 7u;
     if (material.kind == 5u) {
       if(!PRECISE_TRANSPORT && needsPreciseOrigin(ray,triangle,hit)) {return PathResult(vec3f(0),5u,interactions);}
-      let ns0=shadingNormal(triangle,hit);let ns=select(ns0,-ns0,dot(ns0,n)<0.0);
+      let ns0=surface.normal;let ns=select(ns0,-ns0,dot(ns0,n)<0.0);
       let eta=materialIor(material,wavelength);
       if(material.textureParams.x>0.0 && strategy!=2u && (lightCount>0u || environment.sampling.y>0.0)) {
         let light=sampleSceneLight(sample1D(sampleIndex,dimension,pixel,seed),vec2f(sample1D(sampleIndex,dimension+1u,pixel,seed),sample1D(sampleIndex,dimension+2u,pixel,seed)),lightCount,wavelength);
@@ -94,7 +97,7 @@ fn tracePathWithMedia(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, max
         continue;
       }
       if(depth==maxDepth) {break;}
-      let ns = shadingNormal(triangle, hit);
+      let ns = surface.normal;
       let orientedShading = select(-ns, ns, entering);
       if(material.textureParams.x>0.0 && strategy!=2u && (lightCount>0u || environment.sampling.y>0.0)) {
         let light=sampleSceneLight(sample1D(sampleIndex,dimension,pixel,seed),vec2f(sample1D(sampleIndex,dimension+1u,pixel,seed),sample1D(sampleIndex,dimension+2u,pixel,seed)),lightCount,wavelength);
@@ -140,7 +143,7 @@ fn tracePathWithMedia(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, max
       }
     }
     if (sample1D(sampleIndex,dimension+5u,pixel,seed)<coating) {
-      let ns=shadingNormal(triangle,hit);
+      let ns=surface.normal;
       let oriented=select(ns,-ns,dot(ns,n)<0.0);
       let wi=coatingDirection(ray.direction,n,oriented);
       previousPosition=position;lightPosition=position;previousPdf=0.0;previousDelta=true;

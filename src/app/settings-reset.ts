@@ -7,6 +7,7 @@ export function numericDefault(id: string, controlScene: boolean): number {
   if (selected("scene") === "rastagotchi" && material === "dielectric") {
     if (id === "ior") return 1.5;
     if (id === "roughness") return 0.03;
+    if (["wear-scratches", "wear-scuffs", "wear-fingerprints"].includes(id)) return 0.5;
   }
   if (id === "ior") return material === "dielectric" ? 1.7 : material === "blue-glass" ? 1.7 : material === "glass" ? 1.5 : nbk7Ior(587.6);
   if (id === "object-y") return selected("scene") === "buddha" ? 0.86 : selected("scene") === "control" ? 0.65 : 1;
