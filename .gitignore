@@ -3,6 +3,7 @@ dist/
 test-results/
 playwright-report/
 .performance-cache/
+public/models/
 docs/validation/performance-*/*.raw.json
 *.local
 docs/validation/stage10-suzanne.pbrt

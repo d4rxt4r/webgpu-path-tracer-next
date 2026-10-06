@@ -4,6 +4,7 @@ import type { HdrImage } from '../assets/hdr';
 import { cameraShells } from "../accel/camera-media";
 import { settingsLimits, photonAllocation, checkPhotonLimits } from "./settings-limits";
 import { fastTransportShader } from "../transport/fast-source";
+import { rgbPathShader } from "../transport/pt-source";
 import { debugShader, pathShader, displayShader } from "../transport/shaders";
 import { checkedShader, createDevice } from "../gpu/device";
 import { GpuTimer } from "../gpu/timer";
@@ -117,6 +118,8 @@ export class IntersectionRenderer {
   private sobol?: GPUBuffer;
   private pathPipeline?: GPUComputePipeline;
   private pathRepairPipeline?: GPUComputePipeline;
+  private pathVariants = new Map<'rgb' | 'generic', { pipeline: GPUComputePipeline; repair: GPUComputePipeline }>();
+  private specializedPtSource = false;
   private pathRepairGroup?: GPUBindGroup;
   private precisionIndirect?: GPUBuffer;
   private pathWorkgroup: [number, number] = [8, 8];
@@ -274,18 +277,28 @@ export class IntersectionRenderer {
         throw new Error("Модель превышает бюджет памяти. Увеличьте бюджет или загрузите меньший OBJ.");
       // Allocate and validate before committing the replacement.
       let scene: GpuScene | undefined;
+      let createdEnvironment: GpuEnvironment | undefined;
       if (this.device) {
         const device = this.device;
         device.pushErrorScope("out-of-memory"); device.pushErrorScope("validation");
         let allocationError: unknown;
-        try { scene = new GpuScene(device, packed, this.environment); } catch (error) { allocationError = error; }
+        try {
+          const environment = this.environment ?? (createdEnvironment = new GpuEnvironment(device, this.environmentImage));
+          scene = new GpuScene(device, packed, environment);
+        } catch (error) { allocationError = error; }
         const [validation, memory] = await Promise.all([device.popErrorScope(), device.popErrorScope()]);
         if (allocationError || validation || memory) {
           scene?.dispose();
+          createdEnvironment?.dispose();
           throw allocationError || new Error(validation?.message || memory?.message || "Не удалось загрузить модель в GPU.");
         }
       }
-      if (sceneRevision !== this.sceneRevision || this.disposed) { scene?.dispose(); return; }
+      if (sceneRevision !== this.sceneRevision || this.disposed) { scene?.dispose(); createdEnvironment?.dispose(); return; }
+      if (createdEnvironment) {
+        if (this.environment) createdEnvironment.dispose();
+        else this.environment = createdEnvironment;
+      }
+      if (scene && this.environment) scene.environment = this.environment;
       const previous = { scene: this.scene, packed: this.packed, camera: this.camera, triangles: this.stats.triangles, nodes: this.stats.nodes };
       try {
         this.packed = packed;
@@ -601,11 +614,37 @@ export class IntersectionRenderer {
       job = this.timed(name, () => work(device));
       this.preparationJobs.set(name, job);
     }
-    await job;
+    try { await job; }
+    catch (error) { if (!this.disposed && generation === this.generation) throw error; }
   }
 
-  prepareIntegrator(integrator: PathSettings["integrator"]): Promise<void> {
-    if (integrator === "pt") return this.prepareGpu();
+  async prepareIntegrator(integrator: PathSettings["integrator"], mode = this.settings.mode): Promise<void> {
+    if (integrator === "pt") {
+      const preparation = this.prepareGpu(), generation = this.generation;
+      await preparation;
+      if (this.disposed || !this.device || generation !== this.generation) return;
+      const key = this.specializedPtSource && mode === 'rgb' ? 'rgb' : 'generic';
+      if (!this.pathVariants.has(key)) await this.prepareOnce(`pt-${key}`, async device => {
+        const generation = this.generation;
+        const source = key === 'rgb' ? rgbPathShader() : pathShader;
+        const [module, fastModule] = await Promise.all([
+          checkedShader(device, source, `PT ${key} precise`),
+          checkedShader(device, fastTransportShader(source, this.specializedPtSource), `PT ${key} common`),
+        ]);
+        const [pipeline, repair] = await Promise.all([
+          device.createComputePipelineAsync({layout: 'auto', compute: {module: fastModule, entryPoint: 'main'}}),
+          device.createComputePipelineAsync({layout: 'auto', compute: {module, entryPoint: 'repairMain'}}),
+        ]);
+        if (generation === this.generation && !this.disposed) this.pathVariants.set(key, {pipeline, repair});
+      });
+      if (generation !== this.generation || this.disposed) return;
+      const variant = this.pathVariants.get(key);
+      if (variant && mode === this.settings.mode && this.pathPipeline !== variant.pipeline) {
+        this.pathPipeline = variant.pipeline; this.pathRepairPipeline = variant.repair;
+        this.updateGroups();
+      }
+      return;
+    }
     return this.prepareOnce("sppm", async device => {
       const generation = this.generation;
       const sppm = await SppmIntegrator.create(device, this.specializedSppmSampler, false, (entry, ms) => {
@@ -651,13 +690,13 @@ export class IntersectionRenderer {
     // requested mode before scheduling work rather than dispatching stale work.
     let previous: string;
     do {
-      previous = `${this.view}:${this.settings.integrator}:${this.photonDensity}`;
+      previous = `${this.view}:${this.settings.integrator}:${this.settings.mode}:${this.photonDensity}`;
       if (this.view === 3 || this.view === 5 || this.view === 6) {
         await this.prepareIntegrator(this.view === 3 ? this.settings.integrator : "pt");
         if (this.photonDensity && this.sppm) await this.sppm.prepareDensity();
       } else await this.prepareDebug();
       if (this.disposed) return;
-    } while (previous !== `${this.view}:${this.settings.integrator}:${this.photonDensity}`);
+    } while (previous !== `${this.view}:${this.settings.integrator}:${this.settings.mode}:${this.photonDensity}`);
   }
 
   async initialize(): Promise<void> {
@@ -670,8 +709,8 @@ export class IntersectionRenderer {
     this.environment ??= new GpuEnvironment(device, this.environmentImage);
     this.environment.setScene(this.packed);
     this.environment.update(this.environmentSettings);
-    this.scene?.dispose();
-    this.scene = new GpuScene(device, this.packed, this.environment);
+    if (this.scene && this.scene.environment !== this.environment) { this.scene.dispose(); this.scene = undefined; }
+    this.scene ??= new GpuScene(device, this.packed, this.environment);
     await this.prepareActiveMode();
     if (this.disposed || generation !== this.generation) return;
     this.invalidate();
@@ -690,6 +729,7 @@ export class IntersectionRenderer {
       adapter.info.vendor === "intel" &&
       adapter.info.architecture === "gen-12lp";
     this.specializedSppmSampler = calibratedIntel;
+    this.specializedPtSource = calibratedIntel;
     // On gen-12lp the robust PT kernel loses throughput below 128 pixels:
     // shrinking to 16 made the same four samples take 16.4s instead of 5.9s.
     // PacketBudget still bounds submissions and reacts to expensive tiles.
@@ -726,11 +766,13 @@ export class IntersectionRenderer {
     context.configure({ device, format, alphaMode: "opaque" });
     device.pushErrorScope("validation");
     try {
+      const pathKey = calibratedIntel && this.settings.mode === 'rgb' ? 'rgb' : 'generic';
+      const source = pathKey === 'rgb' ? rgbPathShader() : pathShader;
       const [pathModule, displayModule, sobolData, fastPathModule] = await Promise.all([
-        checkedShader(device, pathShader, "RGB / spectral path tracer"),
+        checkedShader(device, source, "RGB / spectral path tracer"),
         checkedShader(device, displayShader, "Display"),
         loadSobol(),
-        checkedShader(device, fastTransportShader(pathShader, calibratedIntel), "PT common transport"),
+        checkedShader(device, fastTransportShader(source, calibratedIntel), "PT common transport"),
       ]);
       const [pathPipeline, display, pathRepairPipeline] = await Promise.all([
         this.timed("pt", () => device.createComputePipelineAsync({layout: "auto", compute: {module: fastPathModule, entryPoint: "main"}})),
@@ -744,6 +786,7 @@ export class IntersectionRenderer {
       if (this.disposed || generation !== this.generation) return;
       this.pathPipeline = pathPipeline;
       this.pathRepairPipeline = pathRepairPipeline;
+      this.pathVariants.set(pathKey, {pipeline: pathPipeline, repair: pathRepairPipeline});
       this.precisionIndirect = device.createBuffer({label: "PT precision dispatch", size:12, usage:GPUBufferUsage.INDIRECT | GPUBufferUsage.COPY_DST});
       this.display = display;
       this.uniform = device.createBuffer({
@@ -1566,6 +1609,7 @@ export class IntersectionRenderer {
     this.precisionIndirect?.destroy();
     this.precisionIndirect = undefined;
     this.pathRepairPipeline = undefined;
+    this.pathVariants.clear();
     this.pathRepairGroup = undefined;
     this.readback?.destroy();
     this.nextReadback?.destroy();

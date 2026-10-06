@@ -17,14 +17,14 @@ export async function installCsrCandidate(renderer) {
   gather = gather
     .replace(
       "var link=atomicLoad(&heads[cellHash(targetCell)]);var visited=0u;",
-      `let bucket=cellHash(targetCell);let blocks=arrayLength(&csrBlocks)/2u;
-    let first=csrOffsets[bucket]+csrBlocks[blocks+bucket/256u];let countInBucket=atomicLoad(&heads[bucket]);`,
+      `let bucket=cellHash(targetCell);let blocks=(sppm.hashMask+256u)/256u;
+    let first=csrData[bucket]+csrData[sppm.hashMask+1u+blocks+bucket/256u];let countInBucket=atomicLoad(&heads[bucket]);`,
     )
     .replace(
       "while(link!=0u) {\n      let index=link-1u;",
       `for(var item=0u;item<countInBucket;item++) {
-      if(first+item>=arrayLength(&csrIndices)){atomicAdd(&errors,1u);return;}
-      let index=csrIndices[first+item];`,
+
+      let index=csrData[sppm.hashMask+1u+2u*blocks+first+item];`,
     )
     .replace("||visited>=arrayLength(&photons)", "")
     .replace("link=photon.next;visited++;", "");
@@ -35,9 +35,7 @@ export async function installCsrCandidate(renderer) {
       .replace("fn hashMain(", "fn legacyHashMain(")
       .replace("fn gatherMain(", "fn legacyGatherMain(") +
     `
-@group(0) @binding(23) var<storage,read_write> csrOffsets:array<u32>;
-@group(0) @binding(24) var<storage,read_write> csrBlocks:array<u32>;
-@group(0) @binding(25) var<storage,read_write> csrIndices:array<u32>;
+@group(0) @binding(23) var<storage,read_write> csrData:array<u32>;
 @compute @workgroup_size(64) fn hashMain(@builtin(global_invocation_id) id:vec3u) {
   if(id.x>=sppm.batchCount*(params.maxDepth+1u)){return;}
   // Keep the original bind layout; actual hashing is encoded as separate passes.
@@ -56,18 +54,18 @@ var<workgroup> scanValues:array<u32,256>;
     var add=0u;if(lane>=stride){add=scanValues[lane-stride];}
     workgroupBarrier();scanValues[lane]+=add;workgroupBarrier();
   }
-  if(id.x<arrayLength(&heads)){csrOffsets[id.x]=scanValues[lane]-value;}
-  if(lane==255u){csrBlocks[group.x]=scanValues[lane];}
+  if(id.x<arrayLength(&heads)){csrData[id.x]=scanValues[lane]-value;}
+  if(lane==255u){csrData[arrayLength(&heads)+group.x]=scanValues[lane];}
 }
 @compute @workgroup_size(64) fn csrBlockMain(@builtin(global_invocation_id) id:vec3u) {
-  let blocks=arrayLength(&csrBlocks)/2u;if(id.x>=blocks){return;}
-  var sum=0u;for(var i=0u;i<id.x;i++){sum+=csrBlocks[i];}csrBlocks[blocks+id.x]=sum;
+  let blocks=(sppm.hashMask+256u)/256u;if(id.x>=blocks){return;}
+  var sum=0u;for(var i=0u;i<id.x;i++){sum+=csrData[sppm.hashMask+1u+i];}csrData[sppm.hashMask+1u+blocks+id.x]=sum;
 }
 @compute @workgroup_size(64) fn csrScatterMain(@builtin(global_invocation_id) id:vec3u) {
   if(id.x>=sppm.batchCount*(params.maxDepth+1u)||photons[id.x].valid==0u){return;}
-  let bucket=cellHash(photons[id.x].cell);let blocks=arrayLength(&csrBlocks)/2u;
-  let first=csrOffsets[bucket]+csrBlocks[blocks+bucket/256u];let item=atomicAdd(&heads[bucket],1u);
-  csrIndices[first+item]=id.x;
+  let bucket=cellHash(photons[id.x].cell);let blocks=(sppm.hashMask+256u)/256u;
+  let first=csrData[bucket]+csrData[sppm.hashMask+1u+blocks+bucket/256u];let item=atomicAdd(&heads[bucket],1u);
+  csrData[sppm.hashMask+1u+2u*blocks+first+item]=id.x;
 }
 ` +
     gather;
@@ -97,10 +95,8 @@ var<workgroup> scanValues:array<u32,256>;
       size,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
-  const offsets = create(base.heads.size),
-    scratch = create(blocks * 8),
-    indices = create((base.photons.size / 64) * 4);
-  const buffers = [offsets, scratch, indices];
+  const data = create(base.heads.size + blocks * 8 + (base.photons.size / 80) * 4);
+  const buffers = [data];
   const resources = {
     1: base.camera,
     4: renderer.diagnostic,
@@ -108,17 +104,18 @@ var<workgroup> scanValues:array<u32,256>;
     11: base.uniform,
     21: base.photons,
     22: base.heads,
-    23: offsets,
-    24: scratch,
-    25: indices,
+    5: renderer.scene.materials,
+    7: renderer.sobol,
+    9: renderer.scene.spectra,
+    23: data,
   };
   const bindings = {
     hash: [1, 11, 21, 22],
     csrCount: [1, 11, 21, 22],
-    csrScan: [22, 23, 24],
-    csrBlock: [24],
-    csrScatter: [1, 11, 21, 22, 23, 24, 25],
-    gather: [1, 4, 10, 11, 21, 22, 23, 24, 25],
+    csrScan: [22, 23],
+    csrBlock: [11, 23],
+    csrScatter: [1, 11, 21, 22, 23],
+    gather: [1, 4, 5, 7, 9, 10, 11, 21, 22, 23],
   };
   const groups = Object.fromEntries(
     entries.map((name) => [
@@ -132,10 +129,17 @@ var<workgroup> scanValues:array<u32,256>;
       }),
     ]),
   );
+  const originals = { hash: base.pipelines.hash, gather: base.pipelines.gather };
+  const originalGroups = { hash: base.groups.hash, gather: base.groups.gather };
+  const apply = () => {
   base.pipelines.hash = pipelines.hash;
   base.groups.hash = groups.hash;
   base.pipelines.gather = pipelines.gather;
   base.groups.gather = groups.gather;
+  };
+  const configure = base.configure.bind(base);
+  base.configure = (...args) => { Object.assign(base.pipelines, originals); configure(...args); apply(); };
+  apply();
   const encode = base.encodeStep.bind(base);
   base.encodeStep = (encoder, snapshots) => {
     const phase = base.phase;
@@ -173,4 +177,6 @@ var<workgroup> scanValues:array<u32,256>;
     dispose();
     buffers.forEach((b) => b.destroy());
   };
+  const candidateEncode = base.encodeStep, candidateConfigure = base.configure;
+  return {bytes: data.size, apply() { base.encodeStep = candidateEncode; base.configure = candidateConfigure; apply(); }, restore() { base.encodeStep = encode; base.configure = configure; Object.assign(base.pipelines, originals); Object.assign(base.groups, originalGroups); renderer.updateGroups(); }};
 }

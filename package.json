@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "node scripts/prepare-models.mjs",
+    "prebuild": "node scripts/prepare-models.mjs",
+    "assets:models": "node scripts/prepare-models.mjs",
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1",

@@ -354,7 +354,7 @@ async function start(): Promise<void> {
     const request = ++targetRequest;
     targetPending = true;
     clearTimeout(idleTimer);
-    void renderer.prepareIntegrator(next.integrator).then(() => {
+    void renderer.prepareIntegrator(next.integrator, next.mode).then(() => {
       if (request !== targetRequest) return;
       renderer.setSettings(next);
       if (startupPending) renderer.setDebugView(selectInput("view").value as DebugView);

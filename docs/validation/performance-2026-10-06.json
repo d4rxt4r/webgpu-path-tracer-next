@@ -1,0 +1,5826 @@
+{
+  "date": "2026-10-06",
+  "adapter": "intel gen-12lp",
+  "baseline": "6a0c8be",
+  "screening": {
+    "adapter": "intel gen-12lp",
+    "baselineCommit": "6a0c8be",
+    "scope": "isolated connected Chrome, PT comparisons; SPPM baseline failure recorded separately",
+    "baseline": {
+      "screening": [
+        {
+          "mode": "rgb",
+          "integrator": "pt",
+          "results": [
+            {
+              "elapsedMs": 426.6999999284744,
+              "gpuMs": 403.83283200000005,
+              "completionMs": 422.9000002145767,
+              "bytes": 1365384
+            },
+            {
+              "elapsedMs": 409.7000000476837,
+              "gpuMs": 393.28153599999996,
+              "completionMs": 405.89999997615814,
+              "bytes": 1365384
+            },
+            {
+              "elapsedMs": 410.39999997615814,
+              "gpuMs": 393.674752,
+              "completionMs": 403.39999997615814,
+              "bytes": 1365384
+            },
+            {
+              "elapsedMs": 403,
+              "gpuMs": 384.303104,
+              "completionMs": 395.60000014305115,
+              "bytes": 1365384
+            },
+            {
+              "elapsedMs": 413.7999999523163,
+              "gpuMs": 393.01939200000004,
+              "completionMs": 403.39999997615814,
+              "bytes": 1365384
+            }
+          ]
+        },
+        {
+          "mode": "spectral",
+          "integrator": "pt",
+          "results": [
+            {
+              "elapsedMs": 393.40000009536743,
+              "gpuMs": 372.89984000000004,
+              "completionMs": 383.2999999523163,
+              "bytes": 1365384
+            },
+            {
+              "elapsedMs": 383.60000002384186,
+              "gpuMs": 368.96768000000003,
+              "completionMs": 381.9999998807907,
+              "bytes": 1365384
+            },
+            {
+              "elapsedMs": 395.8000000715256,
+              "gpuMs": 375.25913599999996,
+              "completionMs": 386.7999999523163,
+              "bytes": 1365384
+            },
+            {
+              "elapsedMs": 384.59999990463257,
+              "gpuMs": 368.443392,
+              "completionMs": 376.3000000715256,
+              "bytes": 1365384
+            },
+            {
+              "elapsedMs": 369.39999997615814,
+              "gpuMs": 358.28531200000003,
+              "completionMs": 368.8000000715256,
+              "bytes": 1365384
+            }
+          ]
+        }
+      ],
+      "timings": {
+        "scene": 105.90000009536743,
+        "display": 1.2000000476837158,
+        "pt": 7.100000023841858,
+        "pt-repair": 12.200000047683716,
+        "gpu-ready": 295.1999999284744,
+        "first-image": 406.60000002384186
+      },
+      "adapter": "intel gen-12lp"
+    },
+    "scheduler": [
+      {
+        "tile": 32,
+        "packetMs": 4,
+        "rows": [
+          {
+            "elapsedMs": 1104.8999999761581,
+            "gpuMs": 981.663744,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 998.5,
+            "gpuMs": 885.4568960000001,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 1024.2000000476837,
+            "gpuMs": 890.437632,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 1003.6000000238419,
+            "gpuMs": 887.35744,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 1050.8000000715256,
+            "gpuMs": 935.657472,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      },
+      {
+        "tile": 32,
+        "packetMs": 8,
+        "rows": [
+          {
+            "elapsedMs": 1017.2000000476837,
+            "gpuMs": 889.8478080000001,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 997.7999999523163,
+            "gpuMs": 878.1168640000002,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 1007.3999999761581,
+            "gpuMs": 891.092992,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 1010.2000000476837,
+            "gpuMs": 887.3574399999999,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 723.3999999761581,
+            "gpuMs": 624.88576,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      },
+      {
+        "tile": 32,
+        "packetMs": 16,
+        "rows": [
+          {
+            "elapsedMs": 355.89999997615814,
+            "gpuMs": 327.155712,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 376.39999997615814,
+            "gpuMs": 338.690048,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 373.60000002384186,
+            "gpuMs": 332.5952,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 369.09999990463257,
+            "gpuMs": 329.3184,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 359.5,
+            "gpuMs": 326.36928000000006,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      },
+      {
+        "tile": 64,
+        "packetMs": 4,
+        "rows": [
+          {
+            "elapsedMs": 218.69999992847443,
+            "gpuMs": 186.253312,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 225,
+            "gpuMs": 185.073664,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 227.20000004768372,
+            "gpuMs": 187.10528,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 225.5,
+            "gpuMs": 191.889408,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 225.69999992847443,
+            "gpuMs": 191.56172800000002,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      },
+      {
+        "tile": 64,
+        "packetMs": 8,
+        "rows": [
+          {
+            "elapsedMs": 225.90000009536743,
+            "gpuMs": 192.02047999999996,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 224,
+            "gpuMs": 187.301888,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 222.5,
+            "gpuMs": 183.304192,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 227.70000004768372,
+            "gpuMs": 194.576384,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 223.39999997615814,
+            "gpuMs": 178.651136,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      },
+      {
+        "tile": 64,
+        "packetMs": 16,
+        "rows": [
+          {
+            "elapsedMs": 216.30000007152557,
+            "gpuMs": 187.03974399999998,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 206.39999997615814,
+            "gpuMs": 182.19008,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 204.39999997615814,
+            "gpuMs": 187.17081600000003,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 205.5,
+            "gpuMs": 186.84313600000002,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 203.69999992847443,
+            "gpuMs": 184.48384,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      },
+      {
+        "tile": 128,
+        "packetMs": 4,
+        "rows": [
+          {
+            "elapsedMs": 184.89999997615814,
+            "gpuMs": 167.18233600000002,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 184.39999997615814,
+            "gpuMs": 168.689664,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 195.79999995231628,
+            "gpuMs": 174.85004800000002,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 183.90000009536743,
+            "gpuMs": 170.852352,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 193.10000002384186,
+            "gpuMs": 171.245568,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      },
+      {
+        "tile": 128,
+        "packetMs": 8,
+        "rows": [
+          {
+            "elapsedMs": 194.40000009536743,
+            "gpuMs": 172.949504,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 191.60000002384186,
+            "gpuMs": 175.83308799999998,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 183.30000007152557,
+            "gpuMs": 173.34272,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 196.60000002384186,
+            "gpuMs": 172.949504,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 191.20000004768372,
+            "gpuMs": 170.000384,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      },
+      {
+        "tile": 128,
+        "packetMs": 16,
+        "rows": [
+          {
+            "elapsedMs": 184.5,
+            "gpuMs": 172.294144,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 184,
+            "gpuMs": 168.16537599999998,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 192.90000009536743,
+            "gpuMs": 169.08288000000002,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 190.60000002384186,
+            "gpuMs": 173.99808,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 198.19999992847443,
+            "gpuMs": 173.86700800000003,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      },
+      {
+        "tile": 256,
+        "packetMs": 4,
+        "rows": [
+          {
+            "elapsedMs": 186.39999997615814,
+            "gpuMs": 172.68736,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 188.80000007152557,
+            "gpuMs": 171.311104,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 185.39999997615814,
+            "gpuMs": 168.03430400000002,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 188.60000002384186,
+            "gpuMs": 167.24787199999997,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 206.39999997615814,
+            "gpuMs": 190.51315200000002,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      },
+      {
+        "tile": 256,
+        "packetMs": 8,
+        "rows": [
+          {
+            "elapsedMs": 187.70000004768372,
+            "gpuMs": 169.148416,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 183.79999995231628,
+            "gpuMs": 164.102144,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 186.30000007152557,
+            "gpuMs": 164.364288,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 185.60000002384186,
+            "gpuMs": 164.49536,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 185.70000004768372,
+            "gpuMs": 165.085184,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      },
+      {
+        "tile": 256,
+        "packetMs": 16,
+        "rows": [
+          {
+            "elapsedMs": 193.80000007152557,
+            "gpuMs": 169.80377599999997,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 194.20000004768372,
+            "gpuMs": 173.277184,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 182.20000004768372,
+            "gpuMs": 168.951808,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 186.80000007152557,
+            "gpuMs": 164.560896,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "elapsedMs": 187.59999990463257,
+            "gpuMs": 171.835392,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      }
+    ],
+    "workgroups": [
+      {
+        "workgroup": [
+          8,
+          4
+        ],
+        "compileMs": 10060,
+        "results": [
+          {
+            "mode": "rgb",
+            "rows": [
+              {
+                "elapsedMs": 359.39999997615814,
+                "gpuMs": 343.27756800000003,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 346.39999997615814,
+                "gpuMs": 330.432512,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 341.10000002384186,
+                "gpuMs": 326.828032,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 352.2000000476837,
+                "gpuMs": 329.71161599999994,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 344.7999999523163,
+                "gpuMs": 330.62912,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              }
+            ]
+          },
+          {
+            "mode": "spectral",
+            "rows": [
+              {
+                "elapsedMs": 327.89999997615814,
+                "gpuMs": 307.29830400000003,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 330.10000002384186,
+                "gpuMs": 309.395456,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 331.2000000476837,
+                "gpuMs": 309.59206399999994,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 326.89999997615814,
+                "gpuMs": 304.021504,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 319.6999999284744,
+                "gpuMs": 297.402368,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "workgroup": [
+          8,
+          8
+        ],
+        "compileMs": 3209.600000023842,
+        "results": [
+          {
+            "mode": "rgb",
+            "rows": [
+              {
+                "elapsedMs": 352.2000000476837,
+                "gpuMs": 330.30144,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 16518.099999904633,
+                "gpuMs": 337.83808,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 332.1999999284744,
+                "gpuMs": 313.13100799999995,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 307,
+                "gpuMs": 294.45324800000003,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 317.8000000715256,
+                "gpuMs": 298.1888,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              }
+            ]
+          },
+          {
+            "mode": "spectral",
+            "rows": [
+              {
+                "elapsedMs": 309.5,
+                "gpuMs": 292.028416,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 311.89999997615814,
+                "gpuMs": 290.717696,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 306.8000000715256,
+                "gpuMs": 283.836416,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 295.60000002384186,
+                "gpuMs": 282.13248000000004,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 294.7000000476837,
+                "gpuMs": 281.608192,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "workgroup": [
+          16,
+          8
+        ],
+        "compileMs": 11786,
+        "results": [
+          {
+            "mode": "rgb",
+            "rows": [
+              {
+                "elapsedMs": 330.10000002384186,
+                "gpuMs": 301.4656,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 316.89999997615814,
+                "gpuMs": 299.04076799999996,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 320.3000000715256,
+                "gpuMs": 294.25664,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 307.6999999284744,
+                "gpuMs": 291.6352,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 312.3000000715256,
+                "gpuMs": 295.501824,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              }
+            ]
+          },
+          {
+            "mode": "spectral",
+            "rows": [
+              {
+                "elapsedMs": 296.59999990463257,
+                "gpuMs": 280.625152,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 295.1999999284744,
+                "gpuMs": 277.21728,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 296.10000002384186,
+                "gpuMs": 280.49408,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 297.6999999284744,
+                "gpuMs": 275.841024,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 292.39999997615814,
+                "gpuMs": 276.49638400000003,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "workgroup": [
+          16,
+          16
+        ],
+        "compileMs": 12986.099999904633,
+        "results": [
+          {
+            "mode": "rgb",
+            "rows": [
+              {
+                "elapsedMs": 335.2000000476837,
+                "gpuMs": 318.046208,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 321.5,
+                "gpuMs": 302.972928,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 315.2999999523163,
+                "gpuMs": 297.140224,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 321,
+                "gpuMs": 300.94131200000004,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 311.7000000476837,
+                "gpuMs": 293.60128,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              }
+            ]
+          },
+          {
+            "mode": "spectral",
+            "rows": [
+              {
+                "elapsedMs": 299.2999999523163,
+                "gpuMs": 280.887296,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 301.2999999523163,
+                "gpuMs": 283.77088,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 309.10000002384186,
+                "gpuMs": 290.12787199999997,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 297,
+                "gpuMs": 281.870336,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              },
+              {
+                "elapsedMs": 299,
+                "gpuMs": 278.20032000000003,
+                "diff": {
+                  "nrmse": 0,
+                  "max": 0,
+                  "different": 0,
+                  "relativeEnergy": 0
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "unified": {
+      "compileMs": 19142.100000023842,
+      "pipelineMs": [
+        8860.200000047684,
+        19096.699999928474
+      ],
+      "quality": [
+        {
+          "thin": false,
+          "wear": 0,
+          "mode": "rgb",
+          "seed": 17,
+          "ms": 509.60000002384186,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": false,
+          "wear": 0,
+          "mode": "rgb",
+          "seed": 29,
+          "ms": 505.1999999284744,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": false,
+          "wear": 0,
+          "mode": "rgb",
+          "seed": 83,
+          "ms": 480.10000002384186,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": false,
+          "wear": 0,
+          "mode": "spectral",
+          "seed": 17,
+          "ms": 451.2999999523163,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": false,
+          "wear": 0,
+          "mode": "spectral",
+          "seed": 29,
+          "ms": 442.60000002384186,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": false,
+          "wear": 0,
+          "mode": "spectral",
+          "seed": 83,
+          "ms": 437.7999999523163,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": false,
+          "wear": 0.5,
+          "mode": "rgb",
+          "seed": 17,
+          "ms": 715.3000000715256,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": false,
+          "wear": 0.5,
+          "mode": "rgb",
+          "seed": 29,
+          "ms": 781.5,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": false,
+          "wear": 0.5,
+          "mode": "rgb",
+          "seed": 83,
+          "ms": 763.3999999761581,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": false,
+          "wear": 0.5,
+          "mode": "spectral",
+          "seed": 17,
+          "ms": 665.8999999761581,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": false,
+          "wear": 0.5,
+          "mode": "spectral",
+          "seed": 29,
+          "ms": 731.5,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": false,
+          "wear": 0.5,
+          "mode": "spectral",
+          "seed": 83,
+          "ms": 681.8999999761581,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": true,
+          "wear": 0,
+          "mode": "rgb",
+          "seed": 17,
+          "ms": 458.60000002384186,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": true,
+          "wear": 0,
+          "mode": "rgb",
+          "seed": 29,
+          "ms": 445.7999999523163,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": true,
+          "wear": 0,
+          "mode": "rgb",
+          "seed": 83,
+          "ms": 460.60000002384186,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": true,
+          "wear": 0,
+          "mode": "spectral",
+          "seed": 17,
+          "ms": 447.40000009536743,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": true,
+          "wear": 0,
+          "mode": "spectral",
+          "seed": 29,
+          "ms": 467.8000000715256,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": true,
+          "wear": 0,
+          "mode": "spectral",
+          "seed": 83,
+          "ms": 430.89999997615814,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": true,
+          "wear": 0.5,
+          "mode": "rgb",
+          "seed": 17,
+          "ms": 581.4000000953674,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": true,
+          "wear": 0.5,
+          "mode": "rgb",
+          "seed": 29,
+          "ms": 560.7999999523163,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": true,
+          "wear": 0.5,
+          "mode": "rgb",
+          "seed": 83,
+          "ms": 643.1999999284744,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": true,
+          "wear": 0.5,
+          "mode": "spectral",
+          "seed": 17,
+          "ms": 507.60000002384186,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": true,
+          "wear": 0.5,
+          "mode": "spectral",
+          "seed": 29,
+          "ms": 503.8000000715256,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": true,
+          "wear": 0.5,
+          "mode": "spectral",
+          "seed": 83,
+          "ms": 585,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        }
+      ]
+    },
+    "specialized": [
+      {
+        "mode": "rgb",
+        "compileMs": 14778.100000023842,
+        "quality": [
+          {
+            "thin": false,
+            "wear": 0,
+            "seed": 17,
+            "ms": 481.10000002384186,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": false,
+            "wear": 0,
+            "seed": 29,
+            "ms": 426.7999999523163,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": false,
+            "wear": 0,
+            "seed": 83,
+            "ms": 445.2000000476837,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": false,
+            "wear": 0.5,
+            "seed": 17,
+            "ms": 673.6000000238419,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": false,
+            "wear": 0.5,
+            "seed": 29,
+            "ms": 700.8999999761581,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": false,
+            "wear": 0.5,
+            "seed": 83,
+            "ms": 690.8999999761581,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": true,
+            "wear": 0,
+            "seed": 17,
+            "ms": 426.40000009536743,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": true,
+            "wear": 0,
+            "seed": 29,
+            "ms": 432.2999999523163,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": true,
+            "wear": 0,
+            "seed": 83,
+            "ms": 424.8000000715256,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": true,
+            "wear": 0.5,
+            "seed": 17,
+            "ms": 591.5999999046326,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": true,
+            "wear": 0.5,
+            "seed": 29,
+            "ms": 546.7999999523163,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": true,
+            "wear": 0.5,
+            "seed": 83,
+            "ms": 535.8000000715256,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      },
+      {
+        "mode": "spectral",
+        "compileMs": 24173.5,
+        "quality": [
+          {
+            "thin": false,
+            "wear": 0,
+            "seed": 17,
+            "ms": 346.09999990463257,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": false,
+            "wear": 0,
+            "seed": 29,
+            "ms": 322.6999999284744,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": false,
+            "wear": 0,
+            "seed": 83,
+            "ms": 339.6999999284744,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": false,
+            "wear": 0.5,
+            "seed": 17,
+            "ms": 485.59999990463257,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": false,
+            "wear": 0.5,
+            "seed": 29,
+            "ms": 593.1000000238419,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": false,
+            "wear": 0.5,
+            "seed": 83,
+            "ms": 515.2000000476837,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": true,
+            "wear": 0,
+            "seed": 17,
+            "ms": 282.7999999523163,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": true,
+            "wear": 0,
+            "seed": 29,
+            "ms": 294.10000002384186,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": true,
+            "wear": 0,
+            "seed": 83,
+            "ms": 291.89999997615814,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": true,
+            "wear": 0.5,
+            "seed": 17,
+            "ms": 393.89999997615814,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": true,
+            "wear": 0.5,
+            "seed": 29,
+            "ms": 433.7999999523163,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "thin": true,
+            "wear": 0.5,
+            "seed": 83,
+            "ms": 400.5,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      }
+    ],
+    "originalRgb": {
+      "compileMs": 20625,
+      "quality": [
+        {
+          "thin": false,
+          "wear": 0,
+          "seed": 17,
+          "ms": 430.59999990463257,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": false,
+          "wear": 0,
+          "seed": 29,
+          "ms": 397.3000000715256,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": false,
+          "wear": 0,
+          "seed": 83,
+          "ms": 394.7000000476837,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": false,
+          "wear": 0.5,
+          "seed": 17,
+          "ms": 611.3000000715256,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": false,
+          "wear": 0.5,
+          "seed": 29,
+          "ms": 627.1000000238419,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": false,
+          "wear": 0.5,
+          "seed": 83,
+          "ms": 622.5,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": true,
+          "wear": 0,
+          "seed": 17,
+          "ms": 380.2000000476837,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": true,
+          "wear": 0,
+          "seed": 29,
+          "ms": 382.39999997615814,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": true,
+          "wear": 0,
+          "seed": 83,
+          "ms": 378.60000002384186,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": true,
+          "wear": 0.5,
+          "seed": 17,
+          "ms": 441.2999999523163,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": true,
+          "wear": 0.5,
+          "seed": 29,
+          "ms": 478.2000000476837,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "thin": true,
+          "wear": 0.5,
+          "seed": 83,
+          "ms": 504.8000000715256,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        }
+      ]
+    },
+    "paired": [
+      {
+        "wear": 0,
+        "mode": "rgb",
+        "runs": [
+          {
+            "variant": "original",
+            "ms": 165.79999995231628,
+            "gpuMs": 140.443648,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "unified",
+            "ms": 150.5,
+            "gpuMs": 127.13984,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "specialized",
+            "ms": 96.79999995231628,
+            "gpuMs": 81.985536,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 96.89999997615814,
+            "gpuMs": 81.52678399999999,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "unified",
+            "ms": 101.20000004768372,
+            "gpuMs": 84.279296,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "specialized",
+            "ms": 98.09999990463257,
+            "gpuMs": 82.444288,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 98.79999995231628,
+            "gpuMs": 79.757312,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "unified",
+            "ms": 99.09999990463257,
+            "gpuMs": 82.116608,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "specialized",
+            "ms": 99.19999992847443,
+            "gpuMs": 79.364096,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 101.69999992847443,
+            "gpuMs": 81.65785600000001,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "unified",
+            "ms": 99.29999995231628,
+            "gpuMs": 88.86681599999999,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "specialized",
+            "ms": 99.69999992847443,
+            "gpuMs": 81.068032,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 97.79999995231628,
+            "gpuMs": 84.01715200000001,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "unified",
+            "ms": 96.60000002384186,
+            "gpuMs": 84.67251200000001,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "specialized",
+            "ms": 97.79999995231628,
+            "gpuMs": 78.577664,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      },
+      {
+        "wear": 0,
+        "mode": "spectral",
+        "runs": [
+          {
+            "variant": "original",
+            "ms": 101.60000002384186,
+            "gpuMs": 87.81824,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "unified",
+            "ms": 100.29999995231628,
+            "gpuMs": 76.218368,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "specialized",
+            "ms": 101.39999997615814,
+            "gpuMs": 81.854464,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 98.60000002384186,
+            "gpuMs": 72.351744,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "unified",
+            "ms": 96.10000002384186,
+            "gpuMs": 80.674816,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "specialized",
+            "ms": 95.10000002384186,
+            "gpuMs": 74.907648,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 118.80000007152557,
+            "gpuMs": 74.121216,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "unified",
+            "ms": 99.80000007152557,
+            "gpuMs": 78.97088,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "specialized",
+            "ms": 98.40000009536743,
+            "gpuMs": 74.907648,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 97.80000007152557,
+            "gpuMs": 75.890688,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "unified",
+            "ms": 98.30000007152557,
+            "gpuMs": 77.922304,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "specialized",
+            "ms": 98.60000002384186,
+            "gpuMs": 77.398016,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 97.80000007152557,
+            "gpuMs": 75.497472,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "unified",
+            "ms": 97.79999995231628,
+            "gpuMs": 76.80819199999999,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "specialized",
+            "ms": 97.39999997615814,
+            "gpuMs": 75.03872,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      },
+      {
+        "wear": 0.5,
+        "mode": "rgb",
+        "runs": [
+          {
+            "variant": "original",
+            "ms": 163.29999995231628,
+            "gpuMs": 148.89779199999998,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "unified",
+            "ms": 162.80000007152557,
+            "gpuMs": 142.67187199999998,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "specialized",
+            "ms": 153,
+            "gpuMs": 140.443648,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 166.89999997615814,
+            "gpuMs": 139.59168,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "unified",
+            "ms": 163.79999995231628,
+            "gpuMs": 147.587072,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "specialized",
+            "ms": 152.80000007152557,
+            "gpuMs": 134.545408,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 162.29999995231628,
+            "gpuMs": 145.75206400000002,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "unified",
+            "ms": 165.70000004768372,
+            "gpuMs": 142.409728,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "specialized",
+            "ms": 154.89999997615814,
+            "gpuMs": 137.101312,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 151,
+            "gpuMs": 134.086656,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "unified",
+            "ms": 156.79999995231628,
+            "gpuMs": 141.099008,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "specialized",
+            "ms": 154.90000009536743,
+            "gpuMs": 131.923968,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 163.30000007152557,
+            "gpuMs": 140.312576,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "unified",
+            "ms": 164.20000004768372,
+            "gpuMs": 143.130624,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "specialized",
+            "ms": 163.59999990463257,
+            "gpuMs": 137.95328,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      },
+      {
+        "wear": 0.5,
+        "mode": "spectral",
+        "runs": [
+          {
+            "variant": "original",
+            "ms": 143.10000002384186,
+            "gpuMs": 125.108224,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "unified",
+            "ms": 142.70000004768372,
+            "gpuMs": 125.63251199999999,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "specialized",
+            "ms": 141.30000007152557,
+            "gpuMs": 127.92627199999998,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 145,
+            "gpuMs": 123.27321599999999,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "unified",
+            "ms": 150.20000004768372,
+            "gpuMs": 127.598592,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "specialized",
+            "ms": 140,
+            "gpuMs": 122.159104,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 153,
+            "gpuMs": 133.103616,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "unified",
+            "ms": 141.70000004768372,
+            "gpuMs": 125.30483199999999,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "specialized",
+            "ms": 147,
+            "gpuMs": 128.77824,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 142.69999992847443,
+            "gpuMs": 123.20768,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "unified",
+            "ms": 151.89999997615814,
+            "gpuMs": 132.317184,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "specialized",
+            "ms": 141.79999995231628,
+            "gpuMs": 126.877696,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 139.89999997615814,
+            "gpuMs": 115.146752,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "unified",
+            "ms": 164.90000009536743,
+            "gpuMs": 143.392768,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "specialized",
+            "ms": 152,
+            "gpuMs": 131.26860800000003,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      }
+    ],
+    "modelsQuality": [
+      {
+        "modelId": "suzanne",
+        "wear": 0,
+        "seed": 17,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 206.89999997615814,
+            "gpuMs": 186.253312,
+            "bytes": 1373108
+          },
+          {
+            "variant": "selected",
+            "ms": 129.10000002384186,
+            "gpuMs": 114.22924799999998,
+            "bytes": 1373108
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "suzanne",
+        "wear": 0,
+        "seed": 29,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 135.29999995231628,
+            "gpuMs": 115.34336000000002,
+            "bytes": 1373108
+          },
+          {
+            "variant": "selected",
+            "ms": 132.29999995231628,
+            "gpuMs": 104.595456,
+            "bytes": 1373108
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "suzanne",
+        "wear": 0,
+        "seed": 83,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 121.79999995231628,
+            "gpuMs": 107.872256,
+            "bytes": 1373108
+          },
+          {
+            "variant": "selected",
+            "ms": 129.70000004768372,
+            "gpuMs": 108.46208,
+            "bytes": 1373108
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "suzanne",
+        "wear": 0.5,
+        "seed": 17,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 185.19999992847443,
+            "gpuMs": 168.689664,
+            "bytes": 1373108
+          },
+          {
+            "variant": "selected",
+            "ms": 163.5,
+            "gpuMs": 145.358848,
+            "bytes": 1373108
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "suzanne",
+        "wear": 0.5,
+        "seed": 29,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 161.70000004768372,
+            "gpuMs": 144.703488,
+            "bytes": 1373108
+          },
+          {
+            "variant": "selected",
+            "ms": 183.10000002384186,
+            "gpuMs": 156.43443200000002,
+            "bytes": 1373108
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "suzanne",
+        "wear": 0.5,
+        "seed": 83,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 164.69999992847443,
+            "gpuMs": 145.096704,
+            "bytes": 1373108
+          },
+          {
+            "variant": "selected",
+            "ms": 159.60000002384186,
+            "gpuMs": 140.181504,
+            "bytes": 1373108
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "suzanne-high-poly",
+        "wear": 0,
+        "seed": 17,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 222.79999995231628,
+            "gpuMs": 201.392128,
+            "bytes": 30602036
+          },
+          {
+            "variant": "selected",
+            "ms": 188.39999997615814,
+            "gpuMs": 165.937152,
+            "bytes": 30602036
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "suzanne-high-poly",
+        "wear": 0,
+        "seed": 29,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 187.70000004768372,
+            "gpuMs": 166.920192,
+            "bytes": 30602036
+          },
+          {
+            "variant": "selected",
+            "ms": 182.09999990463257,
+            "gpuMs": 163.577856,
+            "bytes": 30602036
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "suzanne-high-poly",
+        "wear": 0,
+        "seed": 83,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 194,
+            "gpuMs": 173.408256,
+            "bytes": 30602036
+          },
+          {
+            "variant": "selected",
+            "ms": 194.79999995231628,
+            "gpuMs": 175.570944,
+            "bytes": 30602036
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "suzanne-high-poly",
+        "wear": 0.5,
+        "seed": 17,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 278.3000000715256,
+            "gpuMs": 255.91808,
+            "bytes": 30602036
+          },
+          {
+            "variant": "selected",
+            "ms": 254.69999992847443,
+            "gpuMs": 230.883328,
+            "bytes": 30602036
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "suzanne-high-poly",
+        "wear": 0.5,
+        "seed": 29,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 262.2999999523163,
+            "gpuMs": 245.170176,
+            "bytes": 30602036
+          },
+          {
+            "variant": "selected",
+            "ms": 258.3000000715256,
+            "gpuMs": 237.24032,
+            "bytes": 30602036
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "suzanne-high-poly",
+        "wear": 0.5,
+        "seed": 83,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 272.2000000476837,
+            "gpuMs": 250.740736,
+            "bytes": 30602036
+          },
+          {
+            "variant": "selected",
+            "ms": 260.1999999284744,
+            "gpuMs": 237.04371199999997,
+            "bytes": 30602036
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "rastagotchi",
+        "wear": 0,
+        "seed": 17,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 316,
+            "gpuMs": 297.664512,
+            "bytes": 23331636
+          },
+          {
+            "variant": "selected",
+            "ms": 261.89999997615814,
+            "gpuMs": 242.15551999999997,
+            "bytes": 23331636
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "rastagotchi",
+        "wear": 0,
+        "seed": 29,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 250.60000002384186,
+            "gpuMs": 232.521728,
+            "bytes": 23331636
+          },
+          {
+            "variant": "selected",
+            "ms": 249.19999992847443,
+            "gpuMs": 230.293504,
+            "bytes": 23331636
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "rastagotchi",
+        "wear": 0,
+        "seed": 83,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 238,
+            "gpuMs": 226.623488,
+            "bytes": 23331636
+          },
+          {
+            "variant": "selected",
+            "ms": 247.19999992847443,
+            "gpuMs": 228.72064,
+            "bytes": 23331636
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "rastagotchi",
+        "wear": 0.5,
+        "seed": 17,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 401.2000000476837,
+            "gpuMs": 386.99008000000003,
+            "bytes": 23331636
+          },
+          {
+            "variant": "selected",
+            "ms": 294.89999997615814,
+            "gpuMs": 281.47712,
+            "bytes": 23331636
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "rastagotchi",
+        "wear": 0.5,
+        "seed": 29,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 322.5,
+            "gpuMs": 297.730048,
+            "bytes": 23331636
+          },
+          {
+            "variant": "selected",
+            "ms": 310,
+            "gpuMs": 287.63750400000004,
+            "bytes": 23331636
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "rastagotchi",
+        "wear": 0.5,
+        "seed": 83,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 302.3000000715256,
+            "gpuMs": 289.538048,
+            "bytes": 23331636
+          },
+          {
+            "variant": "selected",
+            "ms": 311.39999997615814,
+            "gpuMs": 294.51878400000004,
+            "bytes": 23331636
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "buddha",
+        "wear": 0,
+        "seed": 17,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 248,
+            "gpuMs": 228.13081599999998,
+            "bytes": 128803252
+          },
+          {
+            "variant": "selected",
+            "ms": 220.89999997615814,
+            "gpuMs": 197.722112,
+            "bytes": 128803252
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "buddha",
+        "wear": 0,
+        "seed": 29,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 216.89999997615814,
+            "gpuMs": 203.1616,
+            "bytes": 128803252
+          },
+          {
+            "variant": "selected",
+            "ms": 219.29999995231628,
+            "gpuMs": 199.032832,
+            "bytes": 128803252
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "buddha",
+        "wear": 0,
+        "seed": 83,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 215.30000007152557,
+            "gpuMs": 199.294976,
+            "bytes": 128803252
+          },
+          {
+            "variant": "selected",
+            "ms": 230.19999992847443,
+            "gpuMs": 209.453056,
+            "bytes": 128803252
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "buddha",
+        "wear": 0.5,
+        "seed": 17,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 355.2999999523163,
+            "gpuMs": 332.00537599999996,
+            "bytes": 128803252
+          },
+          {
+            "variant": "selected",
+            "ms": 329.39999997615814,
+            "gpuMs": 305.463296,
+            "bytes": 128803252
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "buddha",
+        "wear": 0.5,
+        "seed": 29,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 325.39999997615814,
+            "gpuMs": 304.152576,
+            "bytes": 128803252
+          },
+          {
+            "variant": "selected",
+            "ms": 312.5,
+            "gpuMs": 294.191104,
+            "bytes": 128803252
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      },
+      {
+        "modelId": "buddha",
+        "wear": 0.5,
+        "seed": 83,
+        "times": [
+          {
+            "variant": "original",
+            "ms": 299.5,
+            "gpuMs": 283.37766400000004,
+            "bytes": 128803252
+          },
+          {
+            "variant": "selected",
+            "ms": 291.5,
+            "gpuMs": 277.086208,
+            "bytes": 128803252
+          }
+        ],
+        "diff": {
+          "nrmse": 0,
+          "max": 0,
+          "different": 0,
+          "relativeEnergy": 0
+        }
+      }
+    ],
+    "finalPairs": [
+      {
+        "modelId": "suzanne-high-poly",
+        "wear": 0,
+        "rows": [
+          {
+            "variant": "original",
+            "ms": 1904.6000000238419,
+            "gpuMs": 1783.300096,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 1857,
+            "gpuMs": 1730.4780800000005,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 1873.1999999284744,
+            "gpuMs": 1752.1704959999997,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 2018.1000000238419,
+            "gpuMs": 1898.57792,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 1955.5,
+            "gpuMs": 1848.7705600000002,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 1943.6000000238419,
+            "gpuMs": 1823.9979520000002,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 1931.3999999761581,
+            "gpuMs": 1821.7697280000004,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 1881.5,
+            "gpuMs": 1752.956928,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 1885.5999999046326,
+            "gpuMs": 1756.7580160000005,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 1884.8999999761581,
+            "gpuMs": 1763.9669759999995,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 1851.6999999284744,
+            "gpuMs": 1739.3909760000004,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 1879.7000000476837,
+            "gpuMs": 1766.9816320000002,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 1889.3000000715256,
+            "gpuMs": 1773.6007679999993,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 1846,
+            "gpuMs": 1729.6261120000004,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 1901.3999999761581,
+            "gpuMs": 1773.73184,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      },
+      {
+        "modelId": "suzanne-high-poly",
+        "wear": 0.5,
+        "rows": [
+          {
+            "variant": "original",
+            "ms": 2670.600000023842,
+            "gpuMs": 2545.41824,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 2624.9000000953674,
+            "gpuMs": 2509.7666559999993,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 2619.4000000953674,
+            "gpuMs": 2495.0210560000005,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 2538.600000023842,
+            "gpuMs": 2412.118016,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 2650.3000000715256,
+            "gpuMs": 2526.2161920000003,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 2504.600000023842,
+            "gpuMs": 2383.0200319999994,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 2560.2000000476837,
+            "gpuMs": 2439.5776,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 2631.5,
+            "gpuMs": 2502.49216,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 2516.0999999046326,
+            "gpuMs": 2389.5080960000005,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 2637.600000023842,
+            "gpuMs": 2501.1814399999994,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 2704.9000000953674,
+            "gpuMs": 2573.9919360000004,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 2558.899999976158,
+            "gpuMs": 2429.6161280000006,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 2512.7000000476837,
+            "gpuMs": 2397.5034880000003,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 2676.1999999284744,
+            "gpuMs": 2535.784448,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 2547.7000000476837,
+            "gpuMs": 2439.970816000001,
+            "width": 640,
+            "height": 480,
+            "bytes": 42122036,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      },
+      {
+        "modelId": "rastagotchi",
+        "wear": 0,
+        "rows": [
+          {
+            "variant": "original",
+            "ms": 2474,
+            "gpuMs": 2345.730048,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 2406.600000023842,
+            "gpuMs": 2274.295808,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 2413.899999976158,
+            "gpuMs": 2298.871808,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 2415.3000000715256,
+            "gpuMs": 2289.6312320000006,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 2426.7000000476837,
+            "gpuMs": 2303.3937920000003,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 2384.5,
+            "gpuMs": 2255.683584,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 2341.100000023842,
+            "gpuMs": 2216.7552,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 2502.7000000476837,
+            "gpuMs": 2376.9251839999997,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 2393.5,
+            "gpuMs": 2269.839360000001,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 2381.399999976158,
+            "gpuMs": 2248.9333759999995,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 2413.2000000476837,
+            "gpuMs": 2299.789312,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 2390.6999999284744,
+            "gpuMs": 2271.412224,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 2419.600000023842,
+            "gpuMs": 2296.1848320000004,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 2372.100000023842,
+            "gpuMs": 2257.05984,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 2377.3000000715256,
+            "gpuMs": 2249.9164159999996,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      },
+      {
+        "modelId": "rastagotchi",
+        "wear": 0.5,
+        "rows": [
+          {
+            "variant": "original",
+            "ms": 2916,
+            "gpuMs": 2783.96928,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 2828.399999976158,
+            "gpuMs": 2707.357696000001,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 2884.3000000715256,
+            "gpuMs": 2755.13344,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 2805.600000023842,
+            "gpuMs": 2679.242751999999,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 2848,
+            "gpuMs": 2727.8704639999996,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 2807.899999976158,
+            "gpuMs": 2695.1024639999996,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 2796,
+            "gpuMs": 2676.359168000001,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 2817.3000000715256,
+            "gpuMs": 2689.7940479999997,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 3041,
+            "gpuMs": 2908.880896,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 2829.5,
+            "gpuMs": 2704.0153600000003,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 2748.899999976158,
+            "gpuMs": 2639.593472,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 2778.899999976158,
+            "gpuMs": 2667.7084160000004,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 2873.600000023842,
+            "gpuMs": 2750.152704,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 3048.2000000476837,
+            "gpuMs": 2910.7814399999993,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 2852.100000023842,
+            "gpuMs": 2715.090944000001,
+            "width": 640,
+            "height": 480,
+            "bytes": 34851636,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      },
+      {
+        "modelId": "buddha",
+        "wear": 0,
+        "rows": [
+          {
+            "variant": "original",
+            "ms": 3220.100000023842,
+            "gpuMs": 3085.8936319999993,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 3248.100000023842,
+            "gpuMs": 3117.350912000001,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 2962.899999976158,
+            "gpuMs": 2844.327936,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 2910.100000023842,
+            "gpuMs": 2789.21216,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 3189.1999999284744,
+            "gpuMs": 3055.2883199999997,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 3174.6999999284744,
+            "gpuMs": 3049.717759999999,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 3163.0999999046326,
+            "gpuMs": 3043.4263040000005,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 3196.7999999523163,
+            "gpuMs": 3084.2552320000004,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 2955.2999999523163,
+            "gpuMs": 2842.820607999999,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 2970.7999999523163,
+            "gpuMs": 2845.3109759999993,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 3189.5,
+            "gpuMs": 3056.992256,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 3193.7000000476837,
+            "gpuMs": 3075.2112640000005,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 3290.7000000476837,
+            "gpuMs": 3164.0125439999997,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 3211.8000000715256,
+            "gpuMs": 3085.500416,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 3119.9000000953674,
+            "gpuMs": 2995.453952,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      },
+      {
+        "modelId": "buddha",
+        "wear": 0.5,
+        "rows": [
+          {
+            "variant": "original",
+            "ms": 5275.199999928474,
+            "gpuMs": 5152.964608000002,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 5601,
+            "gpuMs": 5485.1010559999995,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 5309.900000095367,
+            "gpuMs": 5192.417280000001,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 5258.200000047684,
+            "gpuMs": 5139.595264,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 5832.899999976158,
+            "gpuMs": 5711.855616000002,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 5233.799999952316,
+            "gpuMs": 5118.164991999999,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 5253.600000023842,
+            "gpuMs": 5117.771776,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 5642.5,
+            "gpuMs": 5527.0440960000005,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 5336.600000023842,
+            "gpuMs": 5224.0711679999995,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 5414.399999976158,
+            "gpuMs": 5287.182336000001,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 5654.799999952316,
+            "gpuMs": 5528.027135999999,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 5235.200000047684,
+            "gpuMs": 5111.218176,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "original",
+            "ms": 5143.899999976158,
+            "gpuMs": 5030.019072000001,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "rgb-original",
+            "ms": 5652.099999904633,
+            "gpuMs": 5524.881408000001,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          },
+          {
+            "variant": "selected",
+            "ms": 5288,
+            "gpuMs": 5167.5136,
+            "width": 640,
+            "height": 480,
+            "bytes": 140323252,
+            "diff": {
+              "nrmse": 0,
+              "max": 0,
+              "different": 0,
+              "relativeEnergy": 0
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "data": {
+    "csrValid": {
+      "extraBytes": 333824,
+      "rows": [
+        {
+          "baseline": 1013.7999999523163,
+          "candidate": 996.8999999761581,
+          "diff": {
+            "nrmse": 2.198246038184924e-9,
+            "max": 2.384185791015625e-7,
+            "different": 32,
+            "relativeEnergy": 4.2681843292200394e-11
+          },
+          "bytes": 5043636
+        },
+        {
+          "baseline": 1013.5,
+          "candidate": 1074.7000000476837,
+          "diff": {
+            "nrmse": 2.1195555411423787e-9,
+            "max": 2.384185791015625e-7,
+            "different": 22,
+            "relativeEnergy": 9.071256208902738e-11
+          },
+          "bytes": 5043636
+        },
+        {
+          "baseline": 1021,
+          "candidate": 1077.7999999523163,
+          "diff": {
+            "nrmse": 1.9197641867905027e-9,
+            "max": 2.384185791015625e-7,
+            "different": 25,
+            "relativeEnergy": 8.110641832777566e-11
+          },
+          "bytes": 5043636
+        },
+        {
+          "baseline": 1078.2000000476837,
+          "candidate": 1164.5,
+          "diff": {
+            "nrmse": 1.921236447675563e-9,
+            "max": 2.384185791015625e-7,
+            "different": 27,
+            "relativeEnergy": 8.776522252472854e-11
+          },
+          "bytes": 5043636
+        },
+        {
+          "baseline": 1097.4000000953674,
+          "candidate": 1116.6000000238419,
+          "diff": {
+            "nrmse": 2.2108496392761786e-9,
+            "max": 2.384185791015625e-7,
+            "different": 30,
+            "relativeEnergy": 5.0759736907858934e-11
+          },
+          "bytes": 5043636
+        }
+      ]
+    },
+    "owenReuse": {
+      "compileMs": 11.399999976158142,
+      "rows": [
+        {
+          "baseline": 286.59999990463257,
+          "candidate": 297.2999999523163,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "baseline": 296.60000002384186,
+          "candidate": 306.39999997615814,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "baseline": 295.3000000715256,
+          "candidate": 312.39999997615814,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "baseline": 285.89999997615814,
+          "candidate": 300.2000000476837,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "baseline": 287.5,
+          "candidate": 287.10000002384186,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        }
+      ]
+    },
+    "leafCandidates": [
+      {
+        "size": 2,
+        "preparationMs": 1635.9000000953674,
+        "nodeCount": 213675,
+        "bytes": 25026828,
+        "rows": [
+          {
+            "baseline": 2006.5,
+            "candidate": 1766.2000000476837,
+            "diff": {
+              "nrmse": 0.0005371591613820933,
+              "max": 0.07434692978858948,
+              "different": 435,
+              "relativeEnergy": 0.00002031786689706592
+            }
+          }
+        ]
+      },
+      {
+        "size": 8,
+        "preparationMs": 1689,
+        "nodeCount": 65827,
+        "bytes": 20295692,
+        "rows": [
+          {
+            "baseline": 2171.9000000953674,
+            "candidate": 2464.3000000715256,
+            "diff": {
+              "nrmse": 0.0002544119662745696,
+              "max": 0.0356115847826004,
+              "different": 660,
+              "relativeEnergy": 0.00001227947497691054
+            }
+          }
+        ]
+      },
+      {
+        "size": 16,
+        "preparationMs": 1624.1999999284744,
+        "nodeCount": 34503,
+        "bytes": 19293324,
+        "rows": [
+          {
+            "baseline": 2229.7000000476837,
+            "candidate": 3048.6999999284744,
+            "diff": {
+              "nrmse": 0.04047191273021309,
+              "max": 3.1651461124420166,
+              "different": 2786,
+              "relativeEnergy": 0.003347929696902389
+            }
+          }
+        ]
+      }
+    ],
+    "bvh8": {
+      "width": 8,
+      "error": "Error: {\"errors\":[\"GPU transport failed for 52 operations: medium; phase=PT, iteration=0, pixel=10311, depth=5, triangle=none, medium=none, seed=17, size=128x96.\"],\"latest\":{\"adapter\":\"intel gen-12lp\",\"width\":128,\"height\":96,\"frames\":0,\"bytes\":24187400,\"completionMs\":0,\"revision\":8,\"presentedRevision\":8,\"status\":\"error\",\"triangles\":189206,\"nodes\":122313,\"samples\":0,\"tile\":0,\"tiles\":1,\"integrator\":\"pt\",\"phase\":\"camera\",\"emittedPhotons\":0,\"batch\":0,\"packetSteps\":0,\"executedPhase\":\"pt\",\"packetCount\":1}}",
+      "compileMs": 20542.700000047684,
+      "nodeCount": 157697,
+      "baselineSucceeded": true
+    },
+    "soaPacking": {
+      "compileMs": 20217.700000047684,
+      "bytes": 22103244,
+      "rows": [
+        {
+          "baseline": 1401.8999999761581,
+          "candidate": 1737.7999999523163,
+          "diff": {
+            "nrmse": 0.11852080524806813,
+            "max": 4.395520433783531,
+            "different": 5627,
+            "relativeEnergy": 0.020327832160703434
+          }
+        }
+      ]
+    },
+    "wavePairs": {
+      "compileMs": 194.20000004768372,
+      "stateBytes": 416,
+      "extraBytes": 6946928,
+      "rows": [
+        {
+          "baseline": 362.1999999284744,
+          "candidate": 775.5999999046326,
+          "diff": {
+            "nrmse": 6.407843926449957e-7,
+            "max": 0.00006802380084991455,
+            "different": 5324,
+            "relativeEnergy": 3.9540321903220224e-8
+          }
+        },
+        {
+          "baseline": 355,
+          "candidate": 798,
+          "diff": {
+            "nrmse": 6.407843926449957e-7,
+            "max": 0.00006802380084991455,
+            "different": 5324,
+            "relativeEnergy": 3.9540321903220224e-8
+          }
+        },
+        {
+          "baseline": 362.7999999523163,
+          "candidate": 804.6999999284744,
+          "diff": {
+            "nrmse": 6.407843926449957e-7,
+            "max": 0.00006802380084991455,
+            "different": 5324,
+            "relativeEnergy": 3.9540321903220224e-8
+          }
+        },
+        {
+          "baseline": 371.39999997615814,
+          "candidate": 817.5,
+          "diff": {
+            "nrmse": 6.407843926449957e-7,
+            "max": 0.00006802380084991455,
+            "different": 5324,
+            "relativeEnergy": 3.9540321903220224e-8
+          }
+        },
+        {
+          "baseline": 368.89999997615814,
+          "candidate": 824.4000000953674,
+          "diff": {
+            "nrmse": 6.407843926449957e-7,
+            "max": 0.00006802380084991455,
+            "different": 5324,
+            "relativeEnergy": 3.9540321903220224e-8
+          }
+        }
+      ]
+    },
+    "hybrid": {
+      "compileMs": 29307.299999952316,
+      "baseline": 1951.2999999523163,
+      "candidate": 1208.1000000238419,
+      "diff": {
+        "nrmse": 0.00041338350449413177,
+        "max": 0.043111518025398254,
+        "different": 5096,
+        "relativeEnergy": 0.00003198499200531802
+      },
+      "extraBytes": 6946928,
+      "stateBytes": 416
+    },
+    "gatherHoist": {
+      "compileMs": 491.7000000476837,
+      "rows": [
+        {
+          "baseline": 1172,
+          "candidate": 1264.2999999523163,
+          "diff": {
+            "nrmse": 1.1847609827352902e-9,
+            "max": 2.384185791015625e-7,
+            "different": 4,
+            "relativeEnergy": 4.364053610564395e-11
+          }
+        },
+        {
+          "baseline": 1282,
+          "candidate": 1470.2999999523163,
+          "diff": {
+            "nrmse": 1.7695305548705028e-10,
+            "max": 2.9802322387695312e-8,
+            "different": 5,
+            "relativeEnergy": 8.728107221086891e-13
+          }
+        },
+        {
+          "baseline": 1198.1999999284744,
+          "candidate": 1155.6000000238419,
+          "diff": {
+            "nrmse": 1.1847609827445027e-9,
+            "max": 2.384185791015625e-7,
+            "different": 4,
+            "relativeEnergy": 4.7131778995926073e-11
+          }
+        },
+        {
+          "baseline": 1155.1000000238419,
+          "candidate": 1148.6000000238419,
+          "diff": {
+            "nrmse": 2.1211472456550707e-9,
+            "max": 4.76837158203125e-7,
+            "different": 6,
+            "relativeEnergy": 6.720642560688577e-11
+          }
+        },
+        {
+          "baseline": 1170.7000000476837,
+          "candidate": 1246.3999999761581,
+          "diff": {
+            "nrmse": 1.2970084150471608e-9,
+            "max": 2.384185791015625e-7,
+            "different": 7,
+            "relativeEnergy": 2.0947457330699954e-11
+          }
+        }
+      ]
+    },
+    "materialCache": [
+      {
+        "ms": 1464.1000000238419,
+        "exact": true
+      },
+      {
+        "ms": 774.3999999761581,
+        "exact": true
+      },
+      {
+        "ms": 821.3000000715256,
+        "exact": true
+      },
+      {
+        "ms": 761.8999999761581,
+        "exact": true
+      },
+      {
+        "ms": 862,
+        "exact": true
+      },
+      {
+        "ms": 750.7000000476837,
+        "exact": true
+      }
+    ],
+    "unpackModels": [
+      {
+        "id": "suzanne",
+        "triangles": 1014,
+        "exact": true
+      },
+      {
+        "id": "suzanne-high-poly",
+        "triangles": 252580,
+        "exact": true
+      },
+      {
+        "id": "rastagotchi",
+        "triangles": 189206,
+        "exact": true
+      },
+      {
+        "id": "buddha",
+        "triangles": 1087436,
+        "exact": true
+      }
+    ],
+    "startupRows": [
+      {
+        "variant": "old",
+        "index": 0,
+        "result": {
+          "dataset": {
+            "frames": "1",
+            "samples": "1",
+            "tile": "0",
+            "revision": "10",
+            "presentedRevision": "10",
+            "phase": "camera",
+            "integrator": "pt",
+            "interacting": "false",
+            "startupTimings": "{\"environment\":1750.2999999523163,\"model\":5244.799999952316,\"scene\":2720.2999999523163,\"gpu\":29950.600000023842,\"first-preview\":30564.5,\"first-target\":31106,\"display\":1,\"pt\":16777.600000023842,\"pt-repair\":29686.299999952316,\"gpu-ready\":29953.600000023842,\"first-image\":30563.800000071526}"
+          },
+          "resources": [
+            "http://127.0.0.1:5173/test-results/performance/original-builtin.ts?baseline=1791247360431",
+            "http://127.0.0.1:5173/test-results/performance/original-renderer.ts?baseline=1791247360431",
+            "http://127.0.0.1:5173/test-results/performance/original-prepare.ts?baseline=1791247360431"
+          ]
+        }
+      },
+      {
+        "variant": "new",
+        "index": 0,
+        "result": {
+          "dataset": {
+            "frames": "1",
+            "samples": "1",
+            "tile": "0",
+            "revision": "10",
+            "presentedRevision": "10",
+            "phase": "camera",
+            "integrator": "pt",
+            "interacting": "false",
+            "startupTimings": "{\"model\":179.79999995231628,\"gpu\":345.60000002384186,\"scene\":304.7000000476837,\"environment\":2238.899999976158,\"first-preview\":2928.100000023842,\"first-target\":3548.3000000715256,\"display\":1.7999999523162842,\"pt\":9.600000023841858,\"pt-repair\":17.299999952316284,\"gpu-ready\":350.5,\"first-image\":915.1000000238419}"
+          },
+          "body": "intel gen-12lp · 297 × 258 · 189196 треугольников · 43.12 MiB · 1 spp · 0/9 tiles · завершение 344.0 мс · GPU 338.43 мс"
+        }
+      },
+      {
+        "variant": "old",
+        "index": 1,
+        "result": {
+          "body": "WebGPU Path Tracer\nWebGPU · Cornell / Suzanne / Buddha\nСброс камеры\nПауза\nPreview\nReference\nQuality\nRastagotchi / Диэлектрик\nPreview / подготовка выбранного режима…\n0 spp\n[Buffer \"World-space triangles\"] used in submit while destroyed.\n - While calling [Queue].Submit([[CommandBuffer]])\n\nЗакрыть\nЛКМ — вращение · Зажатое колесо — перемещение · Колесо — приближение · Настройки применяются автоматически\nНАСТРОЙКИ\nВид\nИзображение\nНормали\nГлубина\nОбход BVH\nДлина волны\nДлина PT-пути\nПлотность фотонов\nМатериалы\ni\nРендер\nРежим\nPreview\nReference\nQuality\nReference Full HD\nReference QHD\nReference 4K\nQuality Full HD\nQuality QHD\nQuality 4K\nВручную\ni\nПеренос\nRGB\nСпектральный\ni\nИнтегратор\nPath tracing\nSPPM\ni\nПиксельный бюджет\n160 × 120\n320 × 240\n640 × 480\n960 × 720\n1920 × 1080\n2560 × 1440\n3840 × 2160\ni\nГлубина пути\ni\nСемплирование\nMIS\nLight only\nBSDF only\ni\nSeed\ni\nЦель samples / iter.\ni\nPreview при движении камеры\ni\nКамера\nСцена и свет\nОкружение\nМатериал\nТип\nДиффузный\nДиэлектрик\nТекстурный\ni\nМодель поверхности\nАвто\nОбъёмный\nТонкий\ni\nIOR при 587,6 нм\ni\nДисперсия (Cauchy)\ni\nЦвет пропускания\ni\nЭталонная глубина, м\ni\nШероховатость\ni\nЦарапины\ni\nПотёртости\ni\nОтпечатки пальцев\ni\nВариант рисунка\ni\nSPPM / Фотоны\nОтображение\nЭкспозиция, EV\ni\nTone mapping\nReinhard\nACES fit\nLinear / clamp\ni\nDenoiser à-trous\ni\nПроходы фильтра\ni\nСила фильтра\ni\nФильтровать стекло\ni\nПамять и экспорт\nОшибка GPU\n\nintel gen-12lp · 297 × 258 · 189196 треугольников · 42.68 MiB · 0 spp · 0/1 tiles · завершение 0.0 мс · GPU timestamp: недоступен\n\n00:00"
+        }
+      },
+      {
+        "variant": "new",
+        "index": 1,
+        "result": {
+          "dataset": {
+            "frames": "1",
+            "samples": "1",
+            "tile": "0",
+            "revision": "10",
+            "presentedRevision": "10",
+            "phase": "camera",
+            "integrator": "pt",
+            "interacting": "false",
+            "startupTimings": "{\"model\":136.19999992847443,\"gpu\":212.10000002384186,\"scene\":222.20000004768372,\"environment\":1119.9000000953674,\"first-preview\":1697.2999999523163,\"first-target\":2232.399999976158,\"display\":1.7999999523162842,\"pt\":7.800000071525574,\"pt-repair\":14.900000095367432,\"gpu-ready\":215,\"first-image\":716.3999999761581}"
+          },
+          "error": "Закрыть"
+        }
+      },
+      {
+        "variant": "new",
+        "index": 2,
+        "result": {
+          "dataset": {
+            "frames": "1",
+            "samples": "1",
+            "tile": "0",
+            "revision": "10",
+            "presentedRevision": "10",
+            "phase": "camera",
+            "integrator": "pt",
+            "interacting": "false",
+            "startupTimings": "{\"model\":103.89999997615814,\"gpu\":266,\"scene\":183.5,\"environment\":1273.7000000476837,\"first-preview\":1926.6999999284744,\"first-target\":2448.0999999046326,\"display\":1.100000023841858,\"pt\":6.299999952316284,\"pt-repair\":9.600000023841858,\"gpu-ready\":268.39999997615814,\"first-image\":628.0999999046326}"
+          },
+          "stats": "intel gen-12lp · 297 × 258 · 189196 треугольников · 43.12 MiB · 1 spp · 0/9 tiles · завершение 300.6 мс · GPU 295.63 мс"
+        }
+      },
+      {
+        "variant": "new",
+        "index": 3,
+        "result": {
+          "dataset": {
+            "frames": "1",
+            "samples": "1",
+            "tile": "0",
+            "revision": "10",
+            "presentedRevision": "10",
+            "phase": "camera",
+            "integrator": "pt",
+            "interacting": "false",
+            "startupTimings": "{\"model\":123.69999992847443,\"gpu\":256.7000000476837,\"scene\":215.60000002384186,\"environment\":1623.8999999761581,\"first-preview\":2218.100000023842,\"first-target\":2743.7000000476837,\"display\":1.399999976158142,\"pt\":7.799999952316284,\"pt-repair\":21.200000047683716,\"gpu-ready\":262.2999999523163,\"first-image\":702.2999999523163}"
+          },
+          "stats": "intel gen-12lp · 297 × 258 · 189196 треугольников · 43.12 MiB · 1 spp · 0/9 tiles · завершение 295.0 мс · GPU 290.52 мс"
+        }
+      },
+      {
+        "variant": "new",
+        "index": 4,
+        "result": {
+          "dataset": {
+            "frames": "1",
+            "samples": "1",
+            "tile": "0",
+            "revision": "10",
+            "presentedRevision": "10",
+            "phase": "camera",
+            "integrator": "pt",
+            "interacting": "false",
+            "startupTimings": "{\"model\":136.19999992847443,\"gpu\":216.89999997615814,\"scene\":196.70000004768372,\"environment\":1493.3000000715256,\"first-preview\":2071,\"first-target\":2601.6999999284744,\"display\":1.5,\"pt\":10.400000095367432,\"pt-repair\":12.899999976158142,\"gpu-ready\":220.5,\"first-image\":674.8000000715256}"
+          },
+          "stats": "intel gen-12lp · 297 × 258 · 189196 треугольников · 43.12 MiB · 1 spp · 0/9 tiles · завершение 301.5 мс · GPU 299.11 мс"
+        }
+      }
+    ],
+    "appRawComparison": {
+      "bytesEqual": false,
+      "length": 229878,
+      "nrmse": 0.5513971228358566,
+      "max": 196.01147409924306,
+      "different": 818,
+      "relativeEnergy": 0.0036533050783149924
+    },
+    "newRepeatDiff": {
+      "nrmse": 0.4760134315204517,
+      "max": 196.01147409924306,
+      "different": 156
+    },
+    "uiLifecycle": {
+      "before": "1",
+      "after": "2",
+      "pauseText": "Продолжить",
+      "png": {
+        "bytes": 121535,
+        "width": 297,
+        "height": 258
+      },
+      "mode": "rgb",
+      "dataset": {
+        "frames": "0",
+        "samples": "0",
+        "tile": "4",
+        "revision": "14",
+        "presentedRevision": "10",
+        "phase": "camera",
+        "integrator": "pt",
+        "interacting": "false",
+        "startupTimings": "{\"model\":136.19999992847443,\"gpu\":216.89999997615814,\"scene\":196.70000004768372,\"environment\":1493.3000000715256,\"first-preview\":2071,\"first-target\":2601.6999999284744,\"display\":1.5,\"pt\":10.400000095367432,\"pt-repair\":12.899999976158142,\"gpu-ready\":220.5,\"first-image\":674.8000000715256,\"png\":1.7999999523162842,\"pt-generic\":28.600000023841858}"
+      },
+      "errorVisible": false,
+      "error": "Закрыть"
+    },
+    "uiRecovery": {
+      "switched": {
+        "frames": "2",
+        "samples": "2",
+        "tile": "0",
+        "revision": "14",
+        "presentedRevision": "14",
+        "phase": "camera",
+        "integrator": "pt",
+        "interacting": "false",
+        "startupTimings": "{\"model\":136.19999992847443,\"gpu\":216.89999997615814,\"scene\":196.70000004768372,\"environment\":1493.3000000715256,\"first-preview\":2071,\"first-target\":2601.6999999284744,\"display\":1.5,\"pt\":10.400000095367432,\"pt-repair\":12.899999976158142,\"gpu-ready\":220.5,\"first-image\":674.8000000715256,\"png\":1.7999999523162842,\"pt-generic\":28.600000023841858}"
+      },
+      "devices": 2,
+      "errorVisible": false,
+      "stats": "intel gen-12lp · 297 × 258 · 189196 треугольников · 42.53 MiB · 0 spp · 4/9 tiles · завершение 124.1 мс · GPU 94.24 мс",
+      "pause": "Продолжить"
+    },
+    "recoveryRender": {
+      "samples": "2",
+      "error": false,
+      "stats": "intel gen-12lp · 297 × 258 · 189196 треугольников · 43.12 MiB · 2 spp · 0/9 tiles · завершение 394.6 мс · GPU 391.25 мс"
+    },
+    "browserCacheValidation": {
+      "geometryExact": true,
+      "transportExact": true,
+      "corruptRejected": true,
+      "blockedFallback": true
+    },
+    "actualQualityStartup": {
+      "failed": "GPU transport failed for 97 operations: intersection; phase=camera, iteration=0, pixel=93383, depth=2, triangle=none, medium=none, seed=1, size=520x452.\nЗакрыть",
+      "dataset": {
+        "frames": "0",
+        "samples": "0",
+        "tile": "68",
+        "revision": "10",
+        "presentedRevision": "7",
+        "phase": "camera",
+        "integrator": "sppm",
+        "interacting": "false",
+        "startupTimings": "{\"model\":100.30000007152557,\"gpu\":200,\"scene\":177.29999995231628,\"environment\":1315.6000000238419,\"first-preview\":1968.8000000715256,\"display\":1.1999999284744263,\"pt\":5.5,\"pt-repair\":10.800000071525574,\"gpu-ready\":201.5,\"first-image\":640.3999999761581,\"hashMain\":1.1999999284744263,\"updateMain\":1.399999976158142,\"gatherMain\":2.0999999046325684,\"photonMain\":5.799999952316284,\"cameraMain\":6,\"photonRepairMain\":7.899999976158142,\"cameraRepairMain\":8.199999928474426,\"sppm\":71.5}"
+      }
+    },
+    "baselineQualityControl": {
+      "failed": "GPU transport failed for 99 operations: intersection; phase=camera, iteration=0, pixel=78272, depth=3, triangle=none, medium=none, seed=1, size=520x452.\nЗакрыть",
+      "dataset": {
+        "frames": "0",
+        "samples": "0",
+        "tile": "68",
+        "revision": "9",
+        "presentedRevision": "6",
+        "phase": "camera",
+        "integrator": "sppm",
+        "interacting": "false",
+        "startupTimings": "{\"environment\":1830.9000000953674,\"model\":4980.399999976158,\"scene\":1931.3000000715256,\"gpu\":26682.299999952316,\"first-preview\":27304.300000071526,\"display\":1.5,\"pt-repair\":6181,\"pt\":11478.300000071526,\"gpu-ready\":26686,\"first-image\":27303.5,\"hashMain\":4.399999976158142,\"gatherMain\":4.600000023841858,\"updateMain\":4.600000023841858,\"cameraMain\":8,\"photonMain\":7.800000071525574,\"photonRepairMain\":8.600000023841858,\"cameraRepairMain\":9.700000047683716,\"sppm\":24.700000047683716}"
+      }
+    },
+    "errorEscape": {
+      "hidden": true
+    },
+    "displayUpperBound": {
+      "upperBoundOnly": true,
+      "rows": [
+        {
+          "baseMs": 14060.699999928474,
+          "withoutDisplayMs": 11932.200000047684,
+          "diff": {
+            "nrmse": 0.045055927328088365,
+            "max": 3.931589812040329,
+            "different": 49506,
+            "relativeEnergy": 0.0025970407455228163
+          }
+        },
+        {
+          "baseMs": 2928.5,
+          "withoutDisplayMs": 2851.5,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "baseMs": 2983.7999999523163,
+          "withoutDisplayMs": 3035.5,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "baseMs": 2962.5999999046326,
+          "withoutDisplayMs": 3183.600000023842,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        },
+        {
+          "baseMs": 2811.2999999523163,
+          "withoutDisplayMs": 2921.0999999046326,
+          "diff": {
+            "nrmse": 0,
+            "max": 0,
+            "different": 0,
+            "relativeEnergy": 0
+          }
+        }
+      ]
+    },
+    "sppmBatch": [
+      {
+        "batch": 4096,
+        "rows": [
+          {
+            "baseMs": 1148.6000000238419,
+            "candidateMs": 497.7000000476837,
+            "baseBytes": 4709812,
+            "candidateBytes": 9674164,
+            "emittedPhotons": 32768,
+            "diff": {
+              "nrmse": 7.750984539794395e-9,
+              "max": 4.76837158203125e-7,
+              "different": 1636,
+              "relativeEnergy": 3.4653313202612854e-11
+            }
+          },
+          {
+            "baseMs": 1269.8999999761581,
+            "candidateMs": 505.7999999523163,
+            "baseBytes": 4709812,
+            "candidateBytes": 9674164,
+            "emittedPhotons": 32768,
+            "diff": {
+              "nrmse": 7.841512322304244e-9,
+              "max": 4.76837158203125e-7,
+              "different": 1639,
+              "relativeEnergy": 3.7135368692218136e-11
+            }
+          },
+          {
+            "baseMs": 1243.7000000476837,
+            "candidateMs": 484.10000002384186,
+            "baseBytes": 4709812,
+            "candidateBytes": 9674164,
+            "emittedPhotons": 32768,
+            "diff": {
+              "nrmse": 7.390189278963909e-9,
+              "max": 4.76837158203125e-7,
+              "different": 1638,
+              "relativeEnergy": 5.328236705643749e-11
+            }
+          },
+          {
+            "baseMs": 1197.5,
+            "candidateMs": 534.5,
+            "baseBytes": 4709812,
+            "candidateBytes": 9674164,
+            "emittedPhotons": 32768,
+            "diff": {
+              "nrmse": 7.480207349019246e-9,
+              "max": 4.76837158203125e-7,
+              "different": 1633,
+              "relativeEnergy": 1.7060722083748066e-11
+            }
+          },
+          {
+            "baseMs": 1162.6000000238419,
+            "candidateMs": 486,
+            "baseBytes": 4709812,
+            "candidateBytes": 9674164,
+            "emittedPhotons": 32768,
+            "diff": {
+              "nrmse": 7.534590458307084e-9,
+              "max": 4.76837158203125e-7,
+              "different": 1635,
+              "relativeEnergy": 6.15058805763882e-12
+            }
+          }
+        ]
+      },
+      {
+        "batch": 8192,
+        "rows": [
+          {
+            "baseMs": 1204.7999999523163,
+            "candidateMs": 369.5,
+            "baseBytes": 4709812,
+            "candidateBytes": 16293300,
+            "emittedPhotons": 32768,
+            "diff": {
+              "nrmse": 8.747470196590317e-9,
+              "max": 4.76837158203125e-7,
+              "different": 2372,
+              "relativeEnergy": 2.77076491269812e-10
+            }
+          },
+          {
+            "baseMs": 1169.5,
+            "candidateMs": 366.5,
+            "baseBytes": 4709812,
+            "candidateBytes": 16293300,
+            "emittedPhotons": 32768,
+            "diff": {
+              "nrmse": 8.467451237942463e-9,
+              "max": 4.76837158203125e-7,
+              "different": 2372,
+              "relativeEnergy": 2.2110750372365533e-10
+            }
+          },
+          {
+            "baseMs": 1179.2000000476837,
+            "candidateMs": 379.6999999284744,
+            "baseBytes": 4709812,
+            "candidateBytes": 16293300,
+            "emittedPhotons": 32768,
+            "diff": {
+              "nrmse": 8.664638409757226e-9,
+              "max": 4.76837158203125e-7,
+              "different": 2371,
+              "relativeEnergy": 3.1013419736677654e-10
+            }
+          },
+          {
+            "baseMs": 1192.8999999761581,
+            "candidateMs": 348.2000000476837,
+            "baseBytes": 4709812,
+            "candidateBytes": 16293300,
+            "emittedPhotons": 32768,
+            "diff": {
+              "nrmse": 8.64541968700021e-9,
+              "max": 4.76837158203125e-7,
+              "different": 2365,
+              "relativeEnergy": 3.0631565045755107e-10
+            }
+          },
+          {
+            "baseMs": 1189.6000000238419,
+            "candidateMs": 372.1999999284744,
+            "baseBytes": 4709812,
+            "candidateBytes": 16293300,
+            "emittedPhotons": 32768,
+            "diff": {
+              "nrmse": 8.553277998370626e-9,
+              "max": 4.76837158203125e-7,
+              "different": 2370,
+              "relativeEnergy": 1.9088643246000978e-10
+            }
+          }
+        ]
+      }
+    ],
+    "control-rough-dielectric": [
+      {
+        "thin": false,
+        "roughness": 0.6,
+        "incidence": 0,
+        "energy": 0.982970143119644,
+        "accepted": 0.98712158203125,
+        "pdfIntegral": 0.9870976500173565,
+        "quadratureEnergy": 0.9831738843613211,
+        "reciprocity": 0.000009466511073696893,
+        "mismatch": 0,
+        "invalid": 0
+      },
+      {
+        "thin": false,
+        "roughness": 0.6,
+        "incidence": 1,
+        "energy": 0.9331720174202331,
+        "accepted": 0.9759521484375,
+        "pdfIntegral": 0.9758535759411198,
+        "quadratureEnergy": 0.933008717274454,
+        "reciprocity": 0.00007547662971774116,
+        "mismatch": 0,
+        "invalid": 0
+      },
+      {
+        "thin": false,
+        "roughness": 0.6,
+        "incidence": 2,
+        "energy": 0.7399692795305439,
+        "accepted": 0.888275146484375,
+        "pdfIntegral": 0.8894456467625671,
+        "quadratureEnergy": 0.7403663418395737,
+        "reciprocity": 0.00005352254811441526,
+        "mismatch": 0,
+        "invalid": 0
+      },
+      {
+        "thin": false,
+        "roughness": 1,
+        "incidence": 0,
+        "energy": 0.8948809484865592,
+        "accepted": 0.93133544921875,
+        "pdfIntegral": 0.9295510792062733,
+        "quadratureEnergy": 0.8933404588784553,
+        "reciprocity": 0.0000923707484616898,
+        "mismatch": 0,
+        "invalid": 0
+      },
+      {
+        "thin": false,
+        "roughness": 1,
+        "incidence": 1,
+        "energy": 0.7428053928690304,
+        "accepted": 0.960296630859375,
+        "pdfIntegral": 0.9589434760584583,
+        "quadratureEnergy": 0.7418272574311061,
+        "reciprocity": 0.00015815846563782543,
+        "mismatch": 0,
+        "invalid": 0
+      },
+      {
+        "thin": false,
+        "roughness": 1,
+        "incidence": 2,
+        "energy": 0.5134455799057998,
+        "accepted": 0.780853271484375,
+        "pdfIntegral": 0.7802298733476396,
+        "quadratureEnergy": 0.5127865014089924,
+        "reciprocity": 0.00020163624139968306,
+        "mismatch": 0,
+        "invalid": 0
+      },
+      {
+        "thin": true,
+        "roughness": 0.6,
+        "incidence": 0,
+        "energy": 0.8245187202537636,
+        "accepted": 0.88671875,
+        "pdfIntegral": 0.8852694959757628,
+        "quadratureEnergy": 0.8245270545542691,
+        "reciprocity": 5.444647968033678e-7,
+        "mismatch": 0,
+        "invalid": 0
+      },
+      {
+        "thin": true,
+        "roughness": 0.6,
+        "incidence": 1,
+        "energy": 0.7821247896742509,
+        "accepted": 0.88922119140625,
+        "pdfIntegral": 0.8891009832072996,
+        "quadratureEnergy": 0.7821338632795312,
+        "reciprocity": 0.0000017093356063924148,
+        "mismatch": 0,
+        "invalid": 0
+      },
+      {
+        "thin": true,
+        "roughness": 0.6,
+        "incidence": 2,
+        "energy": 0.7821247893355201,
+        "accepted": 0.88922119140625,
+        "pdfIntegral": 0.8890403539239173,
+        "quadratureEnergy": 0.782146059139427,
+        "reciprocity": 0.00031028781086206436,
+        "mismatch": 0,
+        "invalid": 0
+      },
+      {
+        "thin": true,
+        "roughness": 1,
+        "incidence": 0,
+        "energy": 0.3068557854507503,
+        "accepted": 0.5,
+        "pdfIntegral": 0.5000000009561063,
+        "quadratureEnergy": 0.306852852122694,
+        "reciprocity": 5.631272301798163e-7,
+        "mismatch": 0,
+        "invalid": 0
+      },
+      {
+        "thin": true,
+        "roughness": 1,
+        "incidence": 1,
+        "energy": 0.45069555422033236,
+        "accepted": 0.66668701171875,
+        "pdfIntegral": 0.6666625487177953,
+        "quadratureEnergy": 0.4506938105347762,
+        "reciprocity": 0.000001462848331357236,
+        "mismatch": 0,
+        "invalid": 0
+      },
+      {
+        "thin": true,
+        "roughness": 1,
+        "incidence": 2,
+        "energy": 0.4506955538101809,
+        "accepted": 0.66668701171875,
+        "pdfIntegral": 0.6666920012428363,
+        "quadratureEnergy": 0.45070641959801583,
+        "reciprocity": 0.00007180465036071837,
+        "mismatch": 0,
+        "invalid": 0
+      },
+      {
+        "thin": false,
+        "roughness": 0.01,
+        "incidence": 0,
+        "energy": 0.9999999943611328,
+        "accepted": 1,
+        "pdfIntegral": 0.00010772044627480886,
+        "quadratureEnergy": 0.0001077204486133962,
+        "reciprocity": 0.0000011438169167377055,
+        "mismatch": 0,
+        "invalid": 0
+      },
+      {
+        "thin": false,
+        "roughness": 0.01,
+        "incidence": 1,
+        "energy": 0.9999999192586984,
+        "accepted": 1,
+        "pdfIntegral": 0.00018531969832347796,
+        "quadratureEnergy": 0.0001853196965248625,
+        "reciprocity": 0.0008222575415857136,
+        "mismatch": 0,
+        "invalid": 0
+      },
+      {
+        "thin": true,
+        "roughness": 0.01,
+        "incidence": 0,
+        "energy": 0.9999999738320184,
+        "accepted": 1,
+        "pdfIntegral": 0.0016151497033317784,
+        "quadratureEnergy": 0.0016151497670749923,
+        "reciprocity": 4.646749118819571e-7,
+        "mismatch": 0,
+        "invalid": 0
+      },
+      {
+        "thin": true,
+        "roughness": 0.01,
+        "incidence": 1,
+        "energy": 0.9999999894498615,
+        "accepted": 1,
+        "pdfIntegral": 0.0009604875151566804,
+        "quadratureEnergy": 0.0009604875122814139,
+        "reciprocity": 0.0000012822022199543426,
+        "mismatch": 0,
+        "invalid": 0
+      }
+    ],
+    "control-surface-wear": {
+      "name": "intel gen-12lp",
+      "compileMs": 655.3999999761581,
+      "gpuMs": {
+        "clean": 0.08192,
+        "worn": 0.180224
+      },
+      "results": [
+        {
+          "wear": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "thin": false,
+          "invalid": 0,
+          "mismatch": 0,
+          "min": 0.029999999329447746,
+          "max": 0.029999999329447746,
+          "changed": 0,
+          "sideDifference": 0,
+          "inwardDifference": 0,
+          "energy": 1.0000000087929948
+        },
+        {
+          "wear": [
+            0,
+            0,
+            0,
+            37
+          ],
+          "thin": false,
+          "invalid": 0,
+          "mismatch": 0,
+          "min": 0.029999999329447746,
+          "max": 0.029999999329447746,
+          "changed": 0,
+          "sideDifference": 0,
+          "inwardDifference": 0,
+          "energy": 1.0000000087929948
+        },
+        {
+          "wear": [
+            1,
+            0,
+            0,
+            1
+          ],
+          "thin": false,
+          "invalid": 0,
+          "mismatch": 0,
+          "min": 0.029999999329447746,
+          "max": 0.37999898195266724,
+          "changed": 381,
+          "sideDifference": 0.005378014901680217,
+          "inwardDifference": 0,
+          "energy": 0.9999992698139977
+        },
+        {
+          "wear": [
+            0,
+            1,
+            0,
+            1
+          ],
+          "thin": false,
+          "invalid": 0,
+          "mismatch": 0,
+          "min": 0.029999999329447746,
+          "max": 0.3287976086139679,
+          "changed": 10160,
+          "sideDifference": 0.0993987365400244,
+          "inwardDifference": 0,
+          "energy": 0.9999240533979901
+        },
+        {
+          "wear": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "thin": false,
+          "invalid": 0,
+          "mismatch": 0,
+          "min": 0.029999999329447746,
+          "max": 0.2849999964237213,
+          "changed": 917,
+          "sideDifference": 0.007976610824925956,
+          "inwardDifference": 0,
+          "energy": 0.999938919871056
+        },
+        {
+          "wear": [
+            0.5,
+            0.5,
+            0.5,
+            1
+          ],
+          "thin": false,
+          "invalid": 0,
+          "mismatch": 0,
+          "min": 0.029999999329447746,
+          "max": 0.4492897391319275,
+          "changed": 10210,
+          "sideDifference": 0.05377518744921872,
+          "inwardDifference": 0,
+          "energy": 0.999936406253255
+        },
+        {
+          "wear": [
+            0.5,
+            0.5,
+            0.5,
+            2
+          ],
+          "thin": false,
+          "invalid": 0,
+          "mismatch": 0,
+          "min": 0.029999999329447746,
+          "max": 0.4122634828090668,
+          "changed": 11639,
+          "sideDifference": 0.058160393401522015,
+          "inwardDifference": 0,
+          "energy": 0.9999971950928739
+        },
+        {
+          "wear": [
+            1,
+            1,
+            1,
+            65535
+          ],
+          "thin": false,
+          "invalid": 0,
+          "mismatch": 0,
+          "min": 0.029999999329447746,
+          "max": 0.5825980305671692,
+          "changed": 6512,
+          "sideDifference": 0.09353967802667285,
+          "inwardDifference": 0,
+          "energy": 0.9999935496307444
+        },
+        {
+          "wear": [
+            0.5,
+            0.5,
+            0.5,
+            1
+          ],
+          "thin": true,
+          "invalid": 0,
+          "mismatch": 0,
+          "min": 0.029999999329447746,
+          "max": 0.4492897391319275,
+          "changed": 10210,
+          "sideDifference": 0.05377518744921872,
+          "inwardDifference": 0,
+          "energy": 0.9997533444657165
+        },
+        {
+          "wear": [
+            0.5,
+            0.5,
+            0.5,
+            1
+          ],
+          "thin": false,
+          "invalid": 0,
+          "mismatch": 0,
+          "min": 0.029999999329447746,
+          "max": 0.44928911328315735,
+          "changed": 10210,
+          "sideDifference": 0,
+          "inwardDifference": 0,
+          "energy": 0.999936421521852
+        }
+      ],
+      "cleanDifference": 0,
+      "seedDifference": 0.054563363801889864,
+      "transformRoughness": 0.00001574307680130005,
+      "transformNormal": 4.851953338547155e-7
+    },
+    "control-transport-queue": [
+      {
+        "total": 512,
+        "stride": 2,
+        "count": 256,
+        "dense": 0,
+        "dispatch": 4,
+        "missed": 0,
+        "duplicated": 0,
+        "unexpected": 0
+      },
+      {
+        "total": 70001,
+        "stride": 1,
+        "count": 70001,
+        "dense": 1,
+        "dispatch": 1094,
+        "missed": 0,
+        "duplicated": 0,
+        "unexpected": 0
+      }
+    ],
+    "control-sppm": {
+      "counts": [
+        3,
+        3,
+        1,
+        0
+      ],
+      "maxError": 0.000014926429159345389,
+      "errors": 0,
+      "invalidLinks": 3,
+      "adapter": "intel gen-12lp"
+    },
+    "plate-false": {
+      "mean": [
+        0.7553253683281582,
+        0.5593013014349708,
+        0.33911330459704914
+      ],
+      "reference": [
+        0.7553523865911527,
+        0.5593078685769787,
+        0.33911112290338813
+      ],
+      "errors": 0
+    },
+    "plate-true": {
+      "mean": [
+        1.9565551558371226,
+        1.6831979608505208,
+        1.3103819164880406
+      ],
+      "reference": [
+        1.9565472434990057,
+        1.6832004351709868,
+        1.310389972176144
+      ],
+      "errors": 0
+    }
+  }
+}
