@@ -1,0 +1,303 @@
+﻿{
+    "adapter":  "intel gen-12lp",
+    "width":  320,
+    "height":  240,
+    "iterations":  128,
+    "repeats":  1,
+    "mode":  "rgb",
+    "settings":  {
+                     "maxDepth":  8,
+                     "seed":  1,
+                     "photonsPerIteration":  16384,
+                     "photonBatchSize":  16384,
+                     "initialRadius":  0.03
+                 },
+    "sampler":  "specialized",
+    "packetSteps":  "production budget",
+    "uniforms":  "immutable snapshots",
+    "camera":  {
+                   "position":  [
+                                    0,
+                                    1,
+                                    3.7
+                                ],
+                   "target":  [
+                                  0,
+                                  1,
+                                  0
+                              ],
+                   "up":  [
+                              0,
+                              1,
+                              0
+                          ],
+                   "verticalFov":  40
+               },
+    "triangles":  972,
+    "shells":  1,
+    "cameraShells":  0,
+    "sceneHashes":  {
+                        "triangles":  "b2e4e8355591af3911b02a79659cd0a2a6dc4ef77dab082eb658471cd7eec7fc",
+                        "materials":  "973aed14acd63744beb372baf425517cf58ff0a97338fbc35b1bf063911d7078"
+                    },
+    "preparationMs":  10.600000023841858,
+    "compilation":  {
+                        "reference-precise":  17184.100000023842,
+                        "pointer32":  15829
+                    },
+    "rows":  [
+                 {
+                     "name":  "reference-precise",
+                     "round":  0,
+                     "warmup":  true,
+                     "phases":  {
+                                    "camera":  {
+                                                   "gpuMs":  599.9820799999998,
+                                                   "completionMs":  843.3999999761581,
+                                                   "steps":  160,
+                                                   "retries":  0
+                                               },
+                                    "photon":  {
+                                                   "gpuMs":  1899.757568,
+                                                   "completionMs":  1920.5000001192093,
+                                                   "steps":  8,
+                                                   "retries":  0
+                                               },
+                                    "gather":  {
+                                                   "gpuMs":  61.80044800000001,
+                                                   "completionMs":  97.50000023841858,
+                                                   "steps":  160,
+                                                   "retries":  0
+                                               },
+                                    "update":  {
+                                                   "gpuMs":  11.730944000000001,
+                                                   "completionMs":  37.199999928474426,
+                                                   "steps":  8,
+                                                   "retries":  0
+                                               }
+                                },
+                     "elapsedMs":  2899.600000023842,
+                     "gpuMs":  2573.2710399999996,
+                     "bytes":  28620792,
+                     "errors":  0
+                 },
+                 {
+                     "name":  "pointer32",
+                     "round":  0,
+                     "warmup":  true,
+                     "phases":  {
+                                    "camera":  {
+                                                   "gpuMs":  303.43168,
+                                                   "completionMs":  430.89999997615814,
+                                                   "steps":  160,
+                                                   "retries":  307
+                                               },
+                                    "photon":  {
+                                                   "gpuMs":  1282.0807679999998,
+                                                   "completionMs":  1304.3999998569489,
+                                                   "steps":  8,
+                                                   "retries":  121
+                                               },
+                                    "gather":  {
+                                                   "gpuMs":  61.734912,
+                                                   "completionMs":  95.19999992847443,
+                                                   "steps":  160,
+                                                   "retries":  0
+                                               },
+                                    "update":  {
+                                                   "gpuMs":  10.878976,
+                                                   "completionMs":  36.80000019073486,
+                                                   "steps":  8,
+                                                   "retries":  0
+                                               }
+                                },
+                     "elapsedMs":  1868.2000000476837,
+                     "gpuMs":  1658.1263359999996,
+                     "bytes":  28620792,
+                     "errors":  0
+                 },
+                 {
+                     "name":  "pointer32",
+                     "round":  1,
+                     "warmup":  false,
+                     "phases":  {
+                                    "camera":  {
+                                                   "gpuMs":  5591.13830399998,
+                                                   "completionMs":  8713.500000238419,
+                                                   "steps":  2560,
+                                                   "retries":  4744
+                                               },
+                                    "photon":  {
+                                                   "gpuMs":  21512.84736,
+                                                   "completionMs":  21878.099999666214,
+                                                   "steps":  128,
+                                                   "retries":  1914
+                                               },
+                                    "gather":  {
+                                                   "gpuMs":  647.5612160000002,
+                                                   "completionMs":  1098.8000000715256,
+                                                   "steps":  2560,
+                                                   "retries":  0
+                                               },
+                                    "update":  {
+                                                   "gpuMs":  194.90406399999998,
+                                                   "completionMs":  598.6000003814697,
+                                                   "steps":  128,
+                                                   "retries":  0
+                                               }
+                                },
+                     "elapsedMs":  32332.399999976158,
+                     "gpuMs":  27946.45094399998,
+                     "bytes":  28620792,
+                     "errors":  0
+                 },
+                 {
+                     "name":  "reference-precise",
+                     "round":  1,
+                     "warmup":  false,
+                     "phases":  {
+                                    "camera":  {
+                                                   "gpuMs":  9268.690943999989,
+                                                   "completionMs":  12401.099999666214,
+                                                   "steps":  2560,
+                                                   "retries":  0
+                                               },
+                                    "photon":  {
+                                                   "gpuMs":  12289.835008000004,
+                                                   "completionMs":  12653.100000619888,
+                                                   "steps":  128,
+                                                   "retries":  0
+                                               },
+                                    "gather":  {
+                                                   "gpuMs":  551.4854399999998,
+                                                   "completionMs":  1036.8000004291534,
+                                                   "steps":  2560,
+                                                   "retries":  0
+                                               },
+                                    "update":  {
+                                                   "gpuMs":  177.40595199999996,
+                                                   "completionMs":  587.3000003099442,
+                                                   "steps":  128,
+                                                   "retries":  0
+                                               }
+                                },
+                     "elapsedMs":  26720.800000071526,
+                     "gpuMs":  22287.417343999994,
+                     "bytes":  28620792,
+                     "errors":  0
+                 }
+             ],
+    "convergence":  [
+                        {
+                            "name":  "pointer32",
+                            "round":  1,
+                            "iterations":  8,
+                            "meanY":  0.2189468922739763,
+                            "floorMeanY":  0.13388031536162937,
+                            "emittedPhotons":  131072
+                        },
+                        {
+                            "name":  "pointer32",
+                            "round":  1,
+                            "iterations":  32,
+                            "meanY":  0.21897129953999908,
+                            "floorMeanY":  0.13399369590484175,
+                            "emittedPhotons":  524288
+                        },
+                        {
+                            "name":  "pointer32",
+                            "round":  1,
+                            "iterations":  128,
+                            "meanY":  0.21899930224628955,
+                            "floorMeanY":  0.13387696229453458,
+                            "emittedPhotons":  2097152
+                        },
+                        {
+                            "name":  "reference-precise",
+                            "round":  1,
+                            "iterations":  8,
+                            "meanY":  0.2189469279496194,
+                            "floorMeanY":  0.1338803243691145,
+                            "emittedPhotons":  131072
+                        },
+                        {
+                            "name":  "reference-precise",
+                            "round":  1,
+                            "iterations":  32,
+                            "meanY":  0.21897126807085035,
+                            "floorMeanY":  0.13399384158407898,
+                            "emittedPhotons":  524288
+                        },
+                        {
+                            "name":  "reference-precise",
+                            "round":  1,
+                            "iterations":  128,
+                            "meanY":  0.2189993143558901,
+                            "floorMeanY":  0.13387694278553275,
+                            "emittedPhotons":  2097152
+                        }
+                    ],
+    "sourceHashes":  {
+                         "reference-precise":  {
+                                                   "precise":  "d8be93672321f0c5530de4e8a1d6874efc34bb740a527f677f35442207b0a478",
+                                                   "common":  "d8be93672321f0c5530de4e8a1d6874efc34bb740a527f677f35442207b0a478"
+                                               },
+                         "pointer32":  {
+                                           "precise":  "eb4a227ba1dafa08c963ba97fd5b5619a70dfd4fa1344b851d10bab3c98a35e0",
+                                           "common":  "264defa80429ac511cfecdc418dbf03d6b6f143cc55c81330a77e19a30c75ede"
+                                       }
+                     },
+    "medians":  {
+                    "reference-precise":  {
+                                              "gpuMs":  22287.417343999994,
+                                              "completionMs":  26720.800000071526,
+                                              "phases":  {
+                                                             "camera":  9268.690943999989,
+                                                             "photon":  12289.835008000004,
+                                                             "gather":  551.4854399999998,
+                                                             "update":  177.40595199999996
+                                                         },
+                                              "bytes":  28620792,
+                                              "errors":  [
+                                                             0,
+                                                             0
+                                                         ]
+                                          },
+                    "pointer32":  {
+                                      "gpuMs":  27946.45094399998,
+                                      "completionMs":  32332.399999976158,
+                                      "phases":  {
+                                                     "camera":  5591.13830399998,
+                                                     "photon":  21512.84736,
+                                                     "gather":  647.5612160000002,
+                                                     "update":  194.90406399999998
+                                                 },
+                                      "bytes":  28620792,
+                                      "errors":  [
+                                                     0,
+                                                     0
+                                                 ]
+                                  }
+                },
+    "quality":  {
+                    "reference-precise":  {
+                                              "normalizedRmse":  0,
+                                              "maxAbsolute":  0,
+                                              "floorRoiRmse":  0,
+                                              "filteredRmse":  0,
+                                              "errors":  0,
+                                              "countsComplete":  true,
+                                              "emittedPhotons":  2097152
+                                          },
+                    "pointer32":  {
+                                      "normalizedRmse":  0.00002942337900593983,
+                                      "maxAbsolute":  0.003913804888725281,
+                                      "floorRoiRmse":  0.00014773293911963696,
+                                      "filteredRmse":  0.0000127769293226434,
+                                      "errors":  0,
+                                      "countsComplete":  true,
+                                      "emittedPhotons":  2097152
+                                  }
+                },
+    "pngTransform":  "Linear RGB, exposure 1, Reinhard, sRGB transfer; negative display values clamped only in PNG"
+}

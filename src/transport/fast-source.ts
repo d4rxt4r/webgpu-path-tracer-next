@@ -7,6 +7,17 @@ import threadedBvh from "./threaded-bvh.wgsl?raw";
 export function fastTransportShader(source: string, threadedTraversal = false): string {
   let fast = source.replace(/override PRECISE_TRANSPORT: bool = true;[\s\S]*?(?=const NO_HIT:)/,
     'const PRECISE_TRANSPORT: bool = false;\n');
+  // Remove the precise transaction before WGSL compilation, so the ordinary
+  // module has no journal storage and does not depend on dead code elimination.
+  fast = fast.replace(/^[ \t]*if\(PRECISE_TRANSPORT\) \{\r?\n[ \t]*beginMediumAtSurface[^\r\n]+\r?\n[ \t]*change\.medium[^\r\n]+\r?\n[ \t]*}/gm, "")
+    .replaceAll("finishMediumAtSurface(&media,change,&journal,true);", "applyMediumChange(&media,change);")
+    .replaceAll("finishMediumAtSurface(&media,change,&journal,event.transmitted!=0u);", "if(event.transmitted!=0u) {applyMediumChange(&media,change);}")
+    .replace(/^[ \t]*var journal:MediumJournal;\r?\n/gm, "")
+    .replace(/^struct MediumJournal[^\r\n]+\r?\n/m, "");
+  fast = fast.replace(/^struct MediumUndo[^\r\n]+\r?\n/m, "");
+  for (const name of ["undoMediumChange", "journalMediumChange", "beginMediumAtSurface", "finishMediumAtSurface"]) {
+    fast = fast.replace(new RegExp(`^fn ${name}\\([\\s\\S]*?^}\\r?\\n`, "m"), "");
+  }
   fast = fast
     .replace(/^  if\(PRECISE_TRANSPORT\) \{[\s\S]*?\r?\n  }/gm, '')
     .replace(/    if\(PRECISE_TRANSPORT\) \{return preciseTriangleHit[^\r\n]+[\r\n]+/, '')
@@ -20,7 +31,7 @@ export function fastTransportShader(source: string, threadedTraversal = false): 
     .replaceAll('traceBvh(ray, true,vec3f(0))', 'traceBvh(ray, true)')
     .replace(/var originLow\s*=\s*vec3f\(0\);/g, '')
     .replaceAll('closestHitWithOrigin(ray,originLow)', 'closestHit(ray)')
-    .replaceAll('changeMediumAtSurface(media,ray,originLow,hit)', 'changeMediumAtSurface(media,ray,hit)')
+    .replaceAll('beginMediumAtSurface(&media,ray,originLow,hit,&journal)', 'beginMediumAtSurface(&media,ray,hit,&journal)')
     .replaceAll('originLow=vec3f(0);', '')
     .replace(/let origin=transportOrigin\(ray,originLow,triangle,hit,event.direction\);\s*ray\s*=\s*Ray\(origin.position,\s*0.0,\s*event.direction,\s*1e20\);originLow=origin.residual;/g,
       'ray=Ray(offsetSurface(triangle,hit,event.direction),0.0,event.direction,1e20);')

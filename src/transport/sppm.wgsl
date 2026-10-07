@@ -17,7 +17,9 @@ fn iterationWavelength() -> WavelengthSample {
 }
 fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
   var point: SppmPoint; var ray=initial; var originLow=vec3f(0);var beta=vec3f(1); var etaScale=1.0;
-  var media=cameraMedia(params);var medium=activeMedium(media); var previous=initial.origin;
+  var media=cameraMedia(params);var medium=activeMedium(&media); var previous=initial.origin;
+  var journal:MediumJournal;
+  if(!PRECISE_TRANSPORT && media.error==5u) {point.valid=2u;return point;}
   if(media.error!=0u) {reportTransportError(2u,1u,pixel,0u,NO_HIT,NO_HIT);return point;}
   var crossings=0u;var spawnedTriangle=NO_HIT;
   for(var depth=0u;depth<=params.maxDepth;) {
@@ -90,11 +92,15 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
     }
     if(!PRECISE_TRANSPORT && needsPreciseOrigin(ray,triangle,hit)) {point.valid=2u;break;}
     let entering=dot(ng,ray.direction)<0.0;
-    let nextMedia=changeMediumAtSurface(media,ray,originLow,hit);
-    if(nextMedia.error!=0u) {if(!PRECISE_TRANSPORT) {point.valid=2u;break;} reportTransportError(2u,1u,pixel,depth,hit.triangle,medium);break;}
-    let eta=mediumIor(nextMedia,wavelength)/mediumIor(media,wavelength);
+    var change=previewMediumChange(&media,hit.triangle,entering);
+      if(PRECISE_TRANSPORT) {
+        beginMediumAtSurface(&media,ray,originLow,hit,&journal);
+        change.medium=activeMedium(&media);change.error=journal.error;
+      }
+    if(change.error!=0u) {if(!PRECISE_TRANSPORT) {point.valid=2u;break;} reportTransportError(2u,1u,pixel,depth,hit.triangle,medium);break;}
+    let eta=mediumIor(change.medium,wavelength)/mediumIor(medium,wavelength);
     if(eta==1.0) {
-      media=nextMedia;medium=activeMedium(media);previous=position;spawnedTriangle=hit.triangle;
+      finishMediumAtSurface(&media,change,&journal,true);medium=activeMedium(&media);previous=position;spawnedTriangle=hit.triangle;
       let event=DielectricSample(ray.direction,1.0,1u);
       let origin=transportOrigin(ray,originLow,triangle,hit,event.direction);
       ray=Ray(origin.position,0.0,event.direction,1e20);originLow=origin.residual;continue;
@@ -105,7 +111,8 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
     // narrow GGX lobe instead loses transmission and has extreme variance.
     let event=sampleEditedDielectric(material,ray.direction,n,select(-ns,ns,entering),eta,wavelength,vec2f(sample1D(params.frame,dimension+3u,pixel,params.seed),sample1D(params.frame,dimension+4u,pixel,params.seed)),sample1D(params.frame,dimension+5u,pixel,params.seed),false);
     if(all(event.weight==vec3f(0))) {break;} beta*=event.weight;
-    if(event.transmitted!=0u) {media=nextMedia;medium=activeMedium(media);etaScale*=eta*eta;}
+    finishMediumAtSurface(&media,change,&journal,event.transmitted!=0u);
+    if(event.transmitted!=0u) {medium=activeMedium(&media);etaScale*=eta*eta;}
     previous=position;spawnedTriangle=hit.triangle;
     if(depth>=4u) {beta=rouletteWeight(beta,etaScale,sample1D(params.frame,dimension+6u,pixel,params.seed));if(all(beta==vec3f(0))) {break;}}
     let origin=transportOrigin(ray,originLow,triangle,hit,event.direction);
@@ -162,6 +169,7 @@ fn tracePhoton(id:vec3u) {
   }
   var originLow=vec3f(0);
   var media:MediumSet;var medium=NO_HIT;var previous=ray.origin;
+  var journal:MediumJournal;
   var crossings=0u;var spawnedTriangle=NO_HIT;
   for(var depth=0u;depth<=params.maxDepth;) {
     crossings++;
@@ -210,11 +218,15 @@ fn tracePhoton(id:vec3u) {
     } else {
       if(!PRECISE_TRANSPORT && needsPreciseOrigin(ray,triangle,hit)) {photons[first].padding=1u;break;}
       let entering=dot(ng,ray.direction)<0.0;
-      let nextMedia=changeMediumAtSurface(media,ray,originLow,hit);
-      if(nextMedia.error!=0u) {if(!PRECISE_TRANSPORT) {photons[first].padding=1u;break;} reportTransportError(2u,2u,index,depth,hit.triangle,medium);break;}
-      let eta=mediumIor(nextMedia,wavelength)/mediumIor(media,wavelength);
+      var change=previewMediumChange(&media,hit.triangle,entering);
+      if(PRECISE_TRANSPORT) {
+        beginMediumAtSurface(&media,ray,originLow,hit,&journal);
+        change.medium=activeMedium(&media);change.error=journal.error;
+      }
+      if(change.error!=0u) {if(!PRECISE_TRANSPORT) {photons[first].padding=1u;break;} reportTransportError(2u,2u,index,depth,hit.triangle,medium);break;}
+      let eta=mediumIor(change.medium,wavelength)/mediumIor(medium,wavelength);
       if(eta==1.0) {
-        media=nextMedia;medium=activeMedium(media);previous=position;spawnedTriangle=hit.triangle;
+        finishMediumAtSurface(&media,change,&journal,true);medium=activeMedium(&media);previous=position;spawnedTriangle=hit.triangle;
         let event=DielectricSample(ray.direction,1.0,1u);
         let origin=transportOrigin(ray,originLow,triangle,hit,event.direction);
         ray=Ray(origin.position,0.0,event.direction,1e20);originLow=origin.residual;continue;
@@ -224,7 +236,8 @@ fn tracePhoton(id:vec3u) {
       let ns=surface.normal;
       let event=sampleEditedDielectric(material,ray.direction,n,select(-ns,ns,entering),eta,wavelength,vec2f(sample1D(index,dimension+3u,stream,seed),sample1D(index,dimension+4u,stream,seed)),sample1D(index,dimension+5u,stream,seed),true);
       if(all(event.weight==vec3f(0))) {break;}beta*=event.weight;wi=event.direction;
-      if(event.transmitted!=0u) {media=nextMedia;medium=activeMedium(media);}
+      finishMediumAtSurface(&media,change,&journal,event.transmitted!=0u);
+      if(event.transmitted!=0u) {medium=activeMedium(&media);}
     }
     // Importance transport has no radiance eta compression to compensate.
     if(depth>=4u) {beta=rouletteWeight(beta,1.0,sample1D(index,dimension+6u,stream,seed));if(all(beta==vec3f(0))) {break;}}

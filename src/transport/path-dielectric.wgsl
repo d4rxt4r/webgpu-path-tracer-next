@@ -1,16 +1,20 @@
     if (material.kind == 2u || material.kind == 5u) {
       if(!PRECISE_TRANSPORT && needsPreciseOrigin(ray,triangle,hit)) {return PathResult(vec3f(0),5u,interactions);}
-      var nextMedia=media;
+      var change:MediumChange;
       var eta=materialIor(material,wavelength);
       let ns=surface.normal;
       var orientedShading=select(ns,-ns,dot(ns,n)<0.0);
       if(material.kind==2u) {
         let entering=dot(ng,ray.direction)<0.0;
-        nextMedia=changeMediumAtSurface(media,ray,originLow,hit);
-        if(nextMedia.error!=0u) {return PathResult(vec3f(0),4u,interactions);}
-        eta=mediumIor(nextMedia,wavelength)/mediumIor(media,wavelength);
+        change=previewMediumChange(&media,hit.triangle,entering);
+        if(PRECISE_TRANSPORT) {
+          beginMediumAtSurface(&media,ray,originLow,hit,&journal);
+          change.medium=activeMedium(&media);change.error=journal.error;
+        }
+        if(change.error!=0u) {return PathResult(vec3f(0),change.error,interactions);}
+        eta=mediumIor(change.medium,wavelength)/mediumIor(medium,wavelength);
         if(eta==1.0) {
-          media=nextMedia;medium=activeMedium(media);previousPosition=position;
+          finishMediumAtSurface(&media,change,&journal,true);medium=activeMedium(&media);previousPosition=position;
           let event=DielectricSample(ray.direction,1.0,1u);
           let origin=transportOrigin(ray,originLow,triangle,hit,event.direction);
           ray=Ray(origin.position,0.0,event.direction,1e20);originLow=origin.residual;spawnedTriangle=hit.triangle;
@@ -27,8 +31,9 @@
       }
       let event=sampleEditedDielectric(material,ray.direction,n,orientedShading,eta,wavelength,vec2f(sample1D(sampleIndex,dimension+3u,pixel,seed),sample1D(sampleIndex,dimension+4u,pixel,seed)),sample1D(sampleIndex,dimension+5u,pixel,seed),false);
       if(all(event.weight==vec3f(0))) {break;} beta*=event.weight;
-      if(material.kind==2u && event.transmitted!=0u) {
-        media=nextMedia;medium=activeMedium(media);etaScale*=eta*eta;
+      if(material.kind==2u) {
+        finishMediumAtSurface(&media,change,&journal,event.transmitted!=0u);
+        if(event.transmitted!=0u) {medium=activeMedium(&media);etaScale*=eta*eta;}
       }
       previousPosition=position;lightPosition=position;previousPdf=event.pdf;previousDelta=material.textureParams.x==0.0;
       if(depth>=4u) {

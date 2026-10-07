@@ -12,7 +12,8 @@ import { buildBvh } from "../src/accel/bvh";
 import { packTransport } from "../src/accel/materials";
 import { definitions } from "../src/accel/pack";
 
-const bytes = readFileSync(new URL("../assets/Buddha.obj", import.meta.url));
+// Source provenance uses Git's canonical LF bytes, including on CRLF checkouts.
+const bytes = Buffer.from(readFileSync(new URL("../assets/Buddha.obj", import.meta.url), "utf8").replace(/\r\n/g, "\n"));
 it("ships the full original Buddha as OBJ with its source geometry intact", () => {
   expect(createHash("sha256").update(bytes).digest("hex")).toBe(metadata.objSha256);
   const text = bytes.toString("utf8");

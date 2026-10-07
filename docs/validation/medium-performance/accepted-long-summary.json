@@ -1,0 +1,202 @@
+﻿{
+    "reference":  "Original d19b2f9 always-precise module; numerical reference, not performance baseline",
+    "cases":  [
+                  {
+                      "report":  "accepted-long-control-rgb-1-report.json",
+                      "mode":  "rgb",
+                      "seed":  1,
+                      "quality":  {
+                                      "normalizedRmse":  0.00002942337900593983,
+                                      "maxAbsolute":  0.003913804888725281,
+                                      "floorRoiRmse":  0.00014773293911963696,
+                                      "filteredRmse":  0.0000127769293226434,
+                                      "errors":  0,
+                                      "countsComplete":  true,
+                                      "emittedPhotons":  2097152
+                                  },
+                      "maxCheckpointMeanDifference":  1.6294196696018094E-07,
+                      "maxCheckpointFloorMeanDifference":  1.0872084530734843E-06
+                  },
+                  {
+                      "report":  "accepted-long-control-rgb-17-report.json",
+                      "mode":  "rgb",
+                      "seed":  17,
+                      "quality":  {
+                                      "normalizedRmse":  0.000025394701792221637,
+                                      "maxAbsolute":  0.004295423626899719,
+                                      "floorRoiRmse":  0.00018825474101362194,
+                                      "filteredRmse":  0.000015830862761865855,
+                                      "errors":  0,
+                                      "countsComplete":  true,
+                                      "emittedPhotons":  2097152
+                                  },
+                      "maxCheckpointMeanDifference":  5.8706416325863334E-07,
+                      "maxCheckpointFloorMeanDifference":  7.2304227258838488E-06
+                  },
+                  {
+                      "report":  "accepted-long-control-rgb-29-report.json",
+                      "mode":  "rgb",
+                      "seed":  29,
+                      "quality":  {
+                                      "normalizedRmse":  0.00003658203205408945,
+                                      "maxAbsolute":  0.006087750196456909,
+                                      "floorRoiRmse":  0.0002637450576401424,
+                                      "filteredRmse":  0.00002008209946703305,
+                                      "errors":  0,
+                                      "countsComplete":  true,
+                                      "emittedPhotons":  2097152
+                                  },
+                      "maxCheckpointMeanDifference":  1.252999478321793E-06,
+                      "maxCheckpointFloorMeanDifference":  2.4268045058871975E-06
+                  },
+                  {
+                      "report":  "accepted-long-control-spectral-1-report.json",
+                      "mode":  "spectral",
+                      "seed":  1,
+                      "quality":  {
+                                      "normalizedRmse":  0.00005196751323830162,
+                                      "maxAbsolute":  0.014127880334854126,
+                                      "floorRoiRmse":  0.00036406166332191806,
+                                      "filteredRmse":  0.000015205022750083507,
+                                      "errors":  0,
+                                      "countsComplete":  true,
+                                      "emittedPhotons":  2097152
+                                  },
+                      "maxCheckpointMeanDifference":  5.6409556977508274E-07,
+                      "maxCheckpointFloorMeanDifference":  3.1440441334194522E-06
+                  },
+                  {
+                      "report":  "accepted-long-control-spectral-17-report.json",
+                      "mode":  "spectral",
+                      "seed":  17,
+                      "quality":  {
+                                      "normalizedRmse":  0.00005988011976405125,
+                                      "maxAbsolute":  0.017906181514263153,
+                                      "floorRoiRmse":  0.0007108627219368508,
+                                      "filteredRmse":  0.000013955456515441781,
+                                      "errors":  0,
+                                      "countsComplete":  true,
+                                      "emittedPhotons":  2097152
+                                  },
+                      "maxCheckpointMeanDifference":  7.0884356843868023E-07,
+                      "maxCheckpointFloorMeanDifference":  6.9384121468099957E-06
+                  },
+                  {
+                      "report":  "accepted-long-control-spectral-29-report.json",
+                      "mode":  "spectral",
+                      "seed":  29,
+                      "quality":  {
+                                      "normalizedRmse":  0.00007904653025254368,
+                                      "maxAbsolute":  0.024692773818969727,
+                                      "floorRoiRmse":  0.0007270644944595576,
+                                      "filteredRmse":  0.000022848403731119898,
+                                      "errors":  0,
+                                      "countsComplete":  true,
+                                      "emittedPhotons":  2097152
+                                  },
+                      "maxCheckpointMeanDifference":  7.1759787666532155E-07,
+                      "maxCheckpointFloorMeanDifference":  8.9386925998031041E-07
+                  },
+                  {
+                      "report":  "accepted-long-rastagotchi-rgb-1-report.json",
+                      "mode":  "rgb",
+                      "seed":  1,
+                      "quality":  {
+                                      "normalizedRmse":  0.0002863771425360434,
+                                      "maxAbsolute":  0.09364540874958038,
+                                      "floorRoiRmse":  0.0009317496462245593,
+                                      "filteredRmse":  0.00016827119182061235,
+                                      "errors":  0,
+                                      "countsComplete":  true,
+                                      "emittedPhotons":  2097152
+                                  },
+                      "maxCheckpointMeanDifference":  2.0812252938290677E-05,
+                      "maxCheckpointFloorMeanDifference":  2.0871029789657436E-05
+                  },
+                  {
+                      "report":  "accepted-long-rastagotchi-rgb-17-report.json",
+                      "mode":  "rgb",
+                      "seed":  17,
+                      "quality":  {
+                                      "normalizedRmse":  0.0001513022978730229,
+                                      "maxAbsolute":  0.026317346841096878,
+                                      "floorRoiRmse":  0.001754523690607714,
+                                      "filteredRmse":  0.00004675311044570757,
+                                      "errors":  0,
+                                      "countsComplete":  true,
+                                      "emittedPhotons":  2097152
+                                  },
+                      "maxCheckpointMeanDifference":  3.9391630403163559E-06,
+                      "maxCheckpointFloorMeanDifference":  1.6354995469812382E-05
+                  },
+                  {
+                      "report":  "accepted-long-rastagotchi-rgb-29-report.json",
+                      "mode":  "rgb",
+                      "seed":  29,
+                      "quality":  {
+                                      "normalizedRmse":  0.00011452570633587279,
+                                      "maxAbsolute":  0.015489161014556885,
+                                      "floorRoiRmse":  0.001002572598997029,
+                                      "filteredRmse":  0.00004110786029313984,
+                                      "errors":  0,
+                                      "countsComplete":  true,
+                                      "emittedPhotons":  2097152
+                                  },
+                      "maxCheckpointMeanDifference":  3.4450086059067617E-06,
+                      "maxCheckpointFloorMeanDifference":  9.1223592540972079E-06
+                  },
+                  {
+                      "report":  "accepted-long-rastagotchi-spectral-1-report.json",
+                      "mode":  "spectral",
+                      "seed":  1,
+                      "quality":  {
+                                      "normalizedRmse":  0.0008890794011581996,
+                                      "maxAbsolute":  0.48394347727298737,
+                                      "floorRoiRmse":  0.00260917158341664,
+                                      "filteredRmse":  0.00010203672615542547,
+                                      "errors":  0,
+                                      "countsComplete":  true,
+                                      "emittedPhotons":  2097152
+                                  },
+                      "maxCheckpointMeanDifference":  2.4241598314988449E-06,
+                      "maxCheckpointFloorMeanDifference":  6.3595454327744773E-06
+                  },
+                  {
+                      "report":  "accepted-long-rastagotchi-spectral-17-report.json",
+                      "mode":  "spectral",
+                      "seed":  17,
+                      "quality":  {
+                                      "normalizedRmse":  0.00021923289289141654,
+                                      "maxAbsolute":  0.03383443132042885,
+                                      "floorRoiRmse":  0.0021359051157619877,
+                                      "filteredRmse":  0.00004494645894595603,
+                                      "errors":  0,
+                                      "countsComplete":  true,
+                                      "emittedPhotons":  2097152
+                                  },
+                      "maxCheckpointMeanDifference":  5.7925445172646483E-06,
+                      "maxCheckpointFloorMeanDifference":  1.5208839803364808E-05
+                  },
+                  {
+                      "report":  "accepted-long-rastagotchi-spectral-29-report.json",
+                      "mode":  "spectral",
+                      "seed":  29,
+                      "quality":  {
+                                      "normalizedRmse":  0.00033147064563350445,
+                                      "maxAbsolute":  0.08987371623516083,
+                                      "floorRoiRmse":  0.002274758093057372,
+                                      "filteredRmse":  0.00007554260655210119,
+                                      "errors":  0,
+                                      "countsComplete":  true,
+                                      "emittedPhotons":  2097152
+                                  },
+                      "maxCheckpointMeanDifference":  2.3111703499341303E-06,
+                      "maxCheckpointFloorMeanDifference":  4.7843360471900556E-06
+                  }
+              ],
+    "maxNormalizedRmse":  0.00088907940115819963,
+    "maxFloorRoiRmse":  0.00260917158341664,
+    "maxFilteredRmse":  0.00016827119182061235,
+    "maxCheckpointMeanDifference":  2.0812252938290677E-05,
+    "maxCheckpointFloorMeanDifference":  2.0871029789657436E-05
+}

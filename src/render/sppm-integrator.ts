@@ -6,6 +6,7 @@ import {
   specializedSppmShader,
 } from "../transport/sppm-shader";
 import { fastTransportShader } from "../transport/fast-source";
+import { COMMON_MEDIUM_CAPACITY, mediumCapacityShader, type CommonMediumCapacity } from "../transport/medium-source";
 import { checkedShader } from "../gpu/device";
 import type { GpuScene } from "../gpu/scene";
 import type { PacketUniforms } from "./compute-packets";
@@ -70,13 +71,16 @@ export class SppmIntegrator {
     specializeSampler = false,
     preciseTransport = false,
     timing?: (entry: string, milliseconds: number) => void,
+    mediumCapacity: CommonMediumCapacity = COMMON_MEDIUM_CAPACITY,
   ): Promise<SppmIntegrator> {
     const module = await checkedShader(
       device,
       specializeSampler ? specializedSppmShader : sppmShader,
       "RGB / spectral SPPM",
     );
-    const fastModule = preciseTransport ? module : await checkedShader(device,fastTransportShader(specializeSampler ? specializedSppmShader : sppmShader),"SPPM common transport");
+    const fastModule = preciseTransport ? module : await checkedShader(device,
+      fastTransportShader(mediumCapacityShader(specializeSampler ? specializedSppmShader : sppmShader, mediumCapacity)),
+      "SPPM common transport");
     const entries = [
       "camera",
       "photon",

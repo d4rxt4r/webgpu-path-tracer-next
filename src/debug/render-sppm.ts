@@ -1,6 +1,6 @@
 import { cameraShells } from "../accel/camera-media";
 import { makeStructuredView } from "webgpu-utils";
-import { createDevice } from "../gpu/device";
+import { createDevice, type DeviceInfo } from "../gpu/device";
 import { GpuScene } from "../gpu/scene";
 import { bakeTriangles } from "../accel/geometry";
 import { buildBvh } from "../accel/bvh";
@@ -12,6 +12,7 @@ import type { SceneDescription } from "../scene/types";
 import { TRANSPORT_QUEUE_BYTES } from "../render/transport-diagnostics";
 import { SppmIntegrator } from "../render/sppm-integrator";
 import { sppmDefinitions } from "../transport/sppm-shader";
+import type { CommonMediumCapacity } from "../transport/medium-source";
 import { Denoiser, type DenoiseSettings } from "../render/denoiser";
 
 /** Numerical acceptance runner; production rendering retains its RAF job budget. */
@@ -31,10 +32,12 @@ export async function renderSppm(
     checkpoints?: number[];
     specializeSampler?: boolean;
     preciseTransport?: boolean;
+    mediumCapacity?: CommonMediumCapacity;
     debugPixel?: number;
+    gpu?: DeviceInfo;
   },
 ) {
-  const { device, name } = await createDevice();
+  const { device, name } = options.gpu ?? await createDevice();
   device.pushErrorScope("validation");
   const buffers: GPUBuffer[] = [];
   let gpu: GpuScene | undefined,
@@ -84,7 +87,7 @@ export async function renderSppm(
       GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
     );
     const readback = create(
-      accumulation.size + 4,
+      accumulation.size + 128,
       GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
     );
     image = device.createTexture({
@@ -92,7 +95,7 @@ export async function renderSppm(
       format: "rgba16float",
       usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
     });
-    integrator = await SppmIntegrator.create(device,options.specializeSampler ?? false,options.preciseTransport ?? false);
+    integrator = await SppmIntegrator.create(device,options.specializeSampler ?? false,options.preciseTransport ?? false,undefined,options.mediumCapacity);
     integrator.configure(width, height, settings, {
       scene: gpu,
       camera,
@@ -180,7 +183,7 @@ export async function renderSppm(
     }
     const encoder = device.createCommandEncoder();
     encoder.copyBufferToBuffer(accumulation, 0, readback, 0, accumulation.size);
-    encoder.copyBufferToBuffer(errors, 0, readback, accumulation.size, 4);
+    encoder.copyBufferToBuffer(errors, 0, readback, accumulation.size, 128);
     device.queue.submit([encoder.finish()]);
     await readback.mapAsync(GPUMapMode.READ);
     const raw = readback.getMappedRange().slice(0);
@@ -272,6 +275,7 @@ export async function renderSppm(
       convergence,
       counts,
       errors: new Uint32Array(raw, accumulation.size, 1)[0]!,
+      diagnostic: Array.from(new Uint32Array(raw, accumulation.size, 32)),
       emittedPhotons: integrator.emittedPhotons,
       adapter: name,
     };
@@ -281,6 +285,6 @@ export async function renderSppm(
     image?.destroy();
     gpu?.dispose();
     buffers.forEach((buffer) => buffer.destroy());
-    device.destroy();
+    if (!options.gpu) device.destroy();
   }
 }

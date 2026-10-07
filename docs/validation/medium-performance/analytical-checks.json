@@ -1,0 +1,227 @@
+{
+  "plateOutside": {
+    "mean": [
+      0.7553253683281582,
+      0.5593013014349708,
+      0.33911330459704914
+    ],
+    "reference": [
+      0.7553523865911527,
+      0.5593078685769787,
+      0.33911112290338813
+    ],
+    "errors": 0
+  },
+  "plateInside": {
+    "mean": [
+      1.9565551558371226,
+      1.6831979608505208,
+      1.3103819164880406
+    ],
+    "reference": [
+      1.9565472434990057,
+      1.6832004351709868,
+      1.310389972176144
+    ],
+    "errors": 0
+  },
+  "shells": [
+    {
+      "kind": "reference",
+      "inside": false,
+      "errors": 0,
+      "retryable": 0,
+      "mean": [
+        0.5053997033974156,
+        0.20548022171715274,
+        0.04584883552524843
+      ]
+    },
+    {
+      "kind": "overlap",
+      "inside": false,
+      "errors": 0,
+      "retryable": 0,
+      "mean": [
+        0.5053997582872398,
+        0.20548020799469668,
+        0.04584883209463442
+      ],
+      "difference": 5.960464477539063e-8
+    },
+    {
+      "kind": "nested",
+      "inside": false,
+      "errors": 0,
+      "retryable": 0,
+      "mean": [
+        0.5053997582872398,
+        0.20548020799469668,
+        0.04584883209463442
+      ],
+      "difference": 5.960464477539063e-8
+    },
+    {
+      "kind": "touching",
+      "inside": false,
+      "errors": 0,
+      "retryable": 0,
+      "mean": [
+        0.5053997033974156,
+        0.20548020799469668,
+        0.0458488286640204
+      ],
+      "difference": 1.4901161193847656e-8
+    },
+    {
+      "kind": "disjoint",
+      "inside": false,
+      "errors": 0,
+      "retryable": 0,
+      "mean": [
+        0.5698320874944329,
+        0.31248865692759864,
+        0.11488975475731422
+      ]
+    },
+    {
+      "kind": "reference",
+      "inside": true,
+      "errors": 0,
+      "retryable": 0,
+      "mean": [
+        1.6005923252087086,
+        1.0203218952083262,
+        0.481942721016253
+      ]
+    },
+    {
+      "kind": "overlap",
+      "inside": true,
+      "errors": 0,
+      "retryable": 0,
+      "mean": [
+        1.6005924397613853,
+        1.0203218952083262,
+        0.48194272101613933
+      ],
+      "difference": 1.1920928955078125e-7
+    },
+    {
+      "kind": "nested",
+      "inside": true,
+      "errors": 0,
+      "retryable": 0,
+      "mean": [
+        1.6005924397613853,
+        1.0203218952083262,
+        0.48194272101613933
+      ],
+      "difference": 1.1920928955078125e-7
+    },
+    {
+      "kind": "touching",
+      "inside": true,
+      "errors": 0,
+      "retryable": 0,
+      "mean": [
+        1.6005923252087086,
+        1.0203218952046882,
+        0.48194272101602564
+      ],
+      "difference": 3.725290298461914e-9
+    }
+  ],
+  "thin": [
+    0.07692308723926544,
+    1,
+    0,
+    0,
+    0.6000000238418579,
+    -0.800000011920929,
+    0,
+    1,
+    0.6000000238418579,
+    0.800000011920929,
+    0,
+    1,
+    0.07689999788999557,
+    1,
+    0.9968411326408386,
+    0.08409801870584488
+  ],
+  "prism": {
+    "wavelengths": [
+      409.9371643066406,
+      790.0404052734375
+    ],
+    "results": [
+      {
+        "dispersive": true,
+        "matchedPaths": 452,
+        "meanFootprintSpread": 0.08909458602697569
+      },
+      {
+        "dispersive": false,
+        "matchedPaths": 468,
+        "meanFootprintSpread": 0
+      }
+    ],
+    "maxPositionError": 0.00004163540491930462,
+    "maxFluxRelativeError": 0.000005328390693004614,
+    "errors": 0,
+    "adapter": "intel gen-12lp"
+  },
+  "hash": {
+    "counts": [
+      3,
+      3,
+      1,
+      0
+    ],
+    "maxError": 3.4962031847385333e-7,
+    "errors": 0,
+    "invalidLinks": 3,
+    "adapter": "intel gen-12lp"
+  },
+  "queue": [
+    {
+      "total": 512,
+      "stride": 2,
+      "count": 256,
+      "dense": 0,
+      "dispatch": 4,
+      "missed": 0,
+      "duplicated": 0,
+      "unexpected": 0
+    },
+    {
+      "total": 70001,
+      "stride": 1,
+      "count": 70001,
+      "dense": 1,
+      "dispatch": 1094,
+      "missed": 0,
+      "duplicated": 0,
+      "unexpected": 0
+    }
+  ],
+  "forcedReplay": {
+    "forcedModules": 2,
+    "pt": {
+      "normalizedRmse": 0,
+      "nonFinite": 0,
+      "energy": 236558.4804226675,
+      "countsComplete": true,
+      "partialCounts": true
+    },
+    "sppm": {
+      "normalizedRmse": 9.238931048025208e-10,
+      "nonFinite": 0,
+      "energy": 235485.35414515706,
+      "countsComplete": true,
+      "errors": 0,
+      "emittedPhotons": 512
+    }
+  }
+}
