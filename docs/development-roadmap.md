@@ -38,7 +38,7 @@
 | OBJ и ремонт | Worker, нормали, триангуляция, закрытие отверстий, откат | `src/assets/obj.ts`, `mesh-repair.ts`, `builtin-obj.ts`; obj/repair/worker tests | Нет MTL/UV; ремонт не булево объединение и не полная проверка самопересечений | P0-E, P2-S |
 | Редактор и процедурные материалы | diffuse/dielectric/textured, marble/lava | `src/app/material-editor.ts`, `src/scene/textured-materials.ts`, `textures.wgsl` | Художественная дисперсия; фиксированные индексы Cornell | P2-M, P2-S |
 | HDR/Open | Декодирование, importance sampling, MIS и фотоны окружения | `src/assets/hdr.ts`, `src/gpu/environment.ts`, `environment.wgsl`, environment tests и verify-environment | Доступная GPU-диагностика ещё не автоматическая приёмка | P0-E, P1-R |
-| Фильтрация | GPU à-trous и guide, сохранение raw | `src/render/denoiser.ts`, `guide.wgsl`, `atrous.wgsl`; browser editor | Локальная дисперсия не оценка ошибки сходимости | P1-F |
+| Фильтрация | GPU à-trous/bilateral/NLM, отдельное стекло, сравнение, сохранение raw | `src/render/denoiser.ts`, `guide.wgsl`, `atrous.wgsl`; [локальная матрица](validation/denoise-2026-10-08/README.md) | Локальная дисперсия не оценка сходимости; сравнение с 32 samples не независимый эталон | P1-F |
 | Экспорт и ссылки | PNG/PFM/JSON, настройки в URL, PBRT debug export | `src/app/export.ts`, `settings-link.ts`, `src/debug/export-pbrt.ts` | Локальные OBJ/HDR не передаются ссылкой; PBRT не универсальный экспортёр | P0-Q |
 | Ресурсы и восстановление | Пиксельный/памятный бюджет, лимиты устройства, восстановление окружения | `src/render/size.ts`, `settings-limits.ts`, renderer и lifecycle tests | Нужны проверки пиков, readback и отмены устаревших операций | P1-R |
 

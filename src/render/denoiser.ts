@@ -9,6 +9,29 @@ export interface DenoiseSettings {
   passes: number;
   strength: number;
   filterGlass: boolean;
+  algorithm?: "atrous" | "bilateral" | "nlm";
+  glassMode?: "off" | "surface" | "image";
+  glassStrength?: number;
+  blend?: number;
+  normalPower?: number;
+  depthScale?: number;
+  radius?: number;
+  compare?: boolean;
+  split?: number;
+}
+export const denoiseDefaults = { algorithm: "atrous", glassStrength: 1, blend: 1,
+  normalPower: 32, depthScale: 0.015, radius: 2, compare: false, split: 0.5 } as const;
+export function resolveDenoise(settings: DenoiseSettings) {
+  const next = { ...denoiseDefaults, radius: settings.algorithm === "nlm" ? 3 : 2,
+    ...settings, glassMode: settings.glassMode ?? (settings.filterGlass ? "surface" : "off") };
+  if ([next.enabled, next.filterGlass, next.compare].some(value => typeof value !== "boolean")) throw new Error("Invalid denoiser settings");
+  if (!["atrous", "bilateral", "nlm"].includes(next.algorithm) || !["off", "surface", "image"].includes(next.glassMode)) throw new Error("Invalid denoiser mode");
+  for (const [value, min, max, integer] of [
+    [next.passes, 1, 5, true], [next.strength, .1, 10, false], [next.glassStrength, .1, 5, false],
+    [next.blend, 0, 1, false], [next.normalPower, 0, 128, false], [next.depthScale, .001, .1, false],
+    [next.radius, 1, 5, true], [next.split, 0, 1, false],
+  ] as const) if (!Number.isFinite(value) || value < min || value > max || (integer && !Number.isInteger(value))) throw new Error("Invalid denoiser settings");
+  return next;
 }
 export class Denoiser {
   private guides?: GPUTexture;
@@ -44,7 +67,7 @@ export class Denoiser {
     return new Denoiser(device, gp, fp);
   }
   get bytes(): number {
-    return this.width * this.height * 32 + this.uniforms.length * 16;
+    return this.width * this.height * 32 + this.uniforms.length * 64;
   }
   configure(
     raw: GPUTexture,
@@ -65,7 +88,7 @@ export class Denoiser {
       });
       this.images = Array.from({ length: 2 }, () =>
         this.device.createTexture({
-          label: "Display-only à-trous",
+          label: "Display-only denoising",
           size: [this.width, this.height],
           format: "rgba16float",
           usage:
@@ -76,7 +99,7 @@ export class Denoiser {
       );
       this.uniforms = Array.from({ length: 5 }, () =>
         this.device.createBuffer({
-          size: 16,
+          size: 64,
           usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         }),
       );
@@ -113,6 +136,7 @@ export class Denoiser {
     spectral: boolean,
     refreshGuides: boolean,
   ): GPUTexture {
+    const config = resolveDenoise(settings);
     if (refreshGuides) {
       const pass = encoder.beginComputePass();
       pass.setPipeline(this.guidePipeline);
@@ -123,13 +147,23 @@ export class Denoiser {
       );
       pass.end();
     }
-    for (let i = 0; i < settings.passes; i++) {
-      const data = new ArrayBuffer(16),
+    const passes = config.algorithm === "atrous" ? config.passes : 1;
+    for (let i = 0; i < passes; i++) {
+      const data = new ArrayBuffer(64),
         view = new DataView(data);
       view.setUint32(0, 2 ** i, true);
       view.setFloat32(4, settings.strength, true);
-      view.setUint32(8, Number(settings.filterGlass), true);
+      view.setUint32(8, ["off", "surface", "image"].indexOf(config.glassMode), true);
       view.setUint32(12, Number(spectral), true);
+      view.setUint32(16, ["atrous", "bilateral", "nlm"].indexOf(config.algorithm), true);
+      view.setUint32(20, config.radius, true);
+      view.setFloat32(24, config.normalPower, true);
+      view.setFloat32(28, config.depthScale, true);
+      view.setFloat32(32, config.glassStrength, true);
+      view.setFloat32(36, config.blend, true);
+      view.setUint32(40, Number(i === passes - 1), true);
+      view.setUint32(44, Number(config.compare), true);
+      view.setFloat32(48, config.split, true);
       this.device.queue.writeBuffer(this.uniforms[i]!, 0, data);
       const pass = encoder.beginComputePass();
       pass.setPipeline(this.filterPipeline);
@@ -140,7 +174,7 @@ export class Denoiser {
       );
       pass.end();
     }
-    return this.images[(settings.passes - 1) % 2]!;
+    return this.images[(passes - 1) % 2]!;
   }
   dispose(): void {
     this.guides?.destroy();

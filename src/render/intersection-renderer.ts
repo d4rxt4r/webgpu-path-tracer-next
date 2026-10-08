@@ -18,7 +18,7 @@ import { makeStructuredView } from "webgpu-utils";
 import { GpuScene } from "../gpu/scene";
 import { loadSobol } from "../assets/sobol";
 import { xyzToLinearRgb } from "../transport/spectrum";
-import { Denoiser } from "./denoiser";
+import { Denoiser, resolveDenoise } from "./denoiser";
 import type { DenoiseSettings } from "./denoiser";
 import { SppmIntegrator, SPPM_POINT_BYTES } from "./sppm-integrator";
 import { PacketBudget, PacketUniforms, TileBudget } from "./compute-packets";
@@ -447,29 +447,16 @@ export class IntersectionRenderer {
   ): void {
     const { toneMapper, ...filter } = settings;
     const next = { ...this.denoise, ...filter };
-    if (
-      !Number.isInteger(next.passes) ||
-      next.passes < 1 ||
-      next.passes > 5 ||
-      !Number.isFinite(next.strength) ||
-      next.strength < 0.1 ||
-      next.strength > 10
-    )
-      throw new Error("Invalid denoiser settings");
+    if (filter.filterGlass !== undefined && filter.glassMode === undefined) next.glassMode = filter.filterGlass ? "surface" : "off";
+    resolveDenoise(next);
     if (toneMapper !== undefined) {
       if (!["reinhard", "aces", "linear"].includes(toneMapper))
         throw new Error("Invalid tone mapper");
       this.toneMapper = { reinhard: 0, aces: 1, linear: 2 }[toneMapper];
     }
-    if (
-      next.enabled !== this.denoise.enabled ||
-      next.passes !== this.denoise.passes ||
-      next.strength !== this.denoise.strength ||
-      next.filterGlass !== this.denoise.filterGlass
-    )
-      this.filterDirty = true;
+    if (JSON.stringify(next) !== JSON.stringify(this.denoise)) this.filterDirty = true;
     this.denoise = next;
-    this.prepareDenoiser();
+    void this.prepareDenoiser().catch(() => {}); // Preparation reports failures to the app.
     this.displayOnly = !this.needsClear;
     this.schedule(true);
   }
@@ -667,10 +654,12 @@ export class IntersectionRenderer {
     });
   }
 
-  private prepareDenoiser(): void {
-    if (!this.denoise.enabled || this.booting || !this.device || this.preparationJobs.has("denoiser")) return;
+  private prepareDenoiser(): Promise<void> {
+    if (!this.denoise.enabled || this.booting || !this.device) return Promise.resolve();
+    const pending = this.preparationJobs.get("denoiser");
+    if (pending) return pending;
     const generation = this.generation;
-    void this.prepareOnce("denoiser", async device => {
+    return this.prepareOnce("denoiser", async device => {
       const denoiser = await Denoiser.create(device, (entry, ms) => {
         if (generation === this.generation) this.startupTimings[entry] = ms;
       });
@@ -682,6 +671,7 @@ export class IntersectionRenderer {
     }).catch(error => {
       if (!this.disposed && generation === this.generation)
         this.error(error instanceof Error ? error : new Error(String(error)));
+      throw error;
     });
   }
 
@@ -1049,14 +1039,20 @@ export class IntersectionRenderer {
 
   pause(): void {
     this.paused = true;
+    this.filterDirty = true;
     this.redrawSweep = false;
     this.cancelScheduled();
     this.stats.status = "paused";
     this.report({ ...this.stats });
+    this.displayOnly = !this.needsClear;
+    this.schedule(true);
+    this.redrawSweep = false;
   }
   resume(): void {
     if (this.disposed || this.stats.status === "error") return;
     this.paused = false;
+    this.filterDirty = true;
+    this.filtered = undefined;
     this.stats.status = "ready";
     this.report({ ...this.stats });
     this.schedule();
@@ -1353,7 +1349,7 @@ export class IntersectionRenderer {
         this.startupTimings["first-image"] = performance.now() - this.startedAt;
       }
       this.report({ ...this.stats });
-      this.prepareDenoiser();
+      void this.prepareDenoiser().catch(() => {}); // Preparation reports failures to the app.
     } catch (error) {
       if (generation === this.generation && !this.disposed) this.fail(error);
     } finally {
@@ -1375,7 +1371,7 @@ export class IntersectionRenderer {
           [this.stats.width, this.stats.height],
         );
       let source = this.complete!;
-      if (this.view === 3 && this.denoise.enabled && this.denoiser) {
+      if (this.view === 3 && this.denoise.enabled && this.denoiser && (this.denoise.algorithm !== "nlm" || this.paused)) {
         if (commit || this.filterDirty || this.guidesDirty || !this.filtered) {
           this.filtered = this.denoiser!.encode(
             encoder,
@@ -1485,6 +1481,13 @@ export class IntersectionRenderer {
     this.readback!.unmap();
     if (errors) throw new Error("GPU display guides failed");
   }
+  async applyNlm(): Promise<void> {
+    this.pause();
+    await this.activeFrame;
+    if (!this.samples) throw new Error("Wait for a complete frame before denoising");
+    this.setDisplay({ enabled: true, algorithm: "nlm" });
+    await this.prepareDenoiser();
+  }
   async capturePng(): Promise<Blob> {
     await this.prepareOnce("png", async device => {
       const generation = this.generation;
@@ -1496,6 +1499,7 @@ export class IntersectionRenderer {
       });
       if (generation === this.generation && !this.disposed) this.pngPipeline = pipeline;
     });
+    await this.prepareDenoiser();
     await this.activeFrame;
     if (!this.device || !this.front || this.presentedRevision !== this.revision)
       throw new Error("Wait for a complete displayed frame before PNG export");

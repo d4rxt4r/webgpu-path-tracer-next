@@ -38,6 +38,14 @@ export function restoreSettingsLink(root: ParentNode, query: URLSearchParams, in
         && (input.step !== "1" || Number.isInteger(value))) input.value = raw;
     }
   }
+  if (!query.has("glass-mode") && query.has("filter-glass")) {
+    const glass = fields.find(field => field.id === "glass-mode");
+    if (glass) glass.value = query.get("filter-glass") === "1" ? "surface" : "off";
+  }
+  if (query.get("denoise-algorithm") === "nlm" && !query.has("denoise-radius")) {
+    const radius = fields.find(field => field.id === "denoise-radius");
+    if (radius) radius.value = "3";
+  }
   const read = (id: string) => Number(fields.find(field => field.id === id)!.value);
   const camera = structuredClone(initial);
   camera.verticalFov = read("fov");

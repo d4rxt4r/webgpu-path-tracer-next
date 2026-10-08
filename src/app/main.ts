@@ -191,9 +191,18 @@ function syncSettings(): void {
         target.integrator !== "sppm";
     input("repair-obj").disabled = !(selectInput("scene").value === "uploaded" || isBuiltinModel(selectInput("scene").value));
     syncMaterialEditor(currentModelIsSolid());
-    for (const id of ["denoise-passes", "denoise-strength"])
+    for (const id of ["denoise-passes", "denoise-strength", "denoise-blend", "denoise-radius", "glass-strength", "denoise-normal", "denoise-depth", "denoise-split"])
       input(id).disabled = input(`${id}-value`).disabled = !input("denoiser").checked;
-    input("filter-glass").disabled = !input("denoiser").checked;
+    for (const id of ["denoise-algorithm", "glass-mode"]) selectInput(id).disabled = !input("denoiser").checked;
+    input("denoise-compare").disabled = !input("denoiser").checked;
+    const algorithm = selectInput("denoise-algorithm").value;
+    input("denoise-passes").closest<HTMLElement>(".setting-row")!.hidden = algorithm !== "atrous";
+    input("denoise-radius").closest<HTMLElement>(".setting-row")!.hidden = algorithm === "atrous";
+    input("glass-strength").closest<HTMLElement>(".setting-row")!.hidden = selectInput("glass-mode").value === "off";
+    input("denoise-split").closest<HTMLElement>(".setting-row")!.hidden = !input("denoise-compare").checked;
+    button("apply-nlm").hidden = algorithm !== "nlm";
+    button("apply-nlm").disabled = !input("denoiser").checked || lastSamples === 0 || scenePending;
+    document.querySelector("#denoise-status")!.textContent = algorithm === "nlm" ? "NLM применяется на паузе или после достижения цели. При накоплении показан оригинал." : "";
     button("export-png").disabled = button("export-pfm").disabled =
       lastSamples === 0 ||
       selectInput("view").value !== "beauty" ||
@@ -309,6 +318,7 @@ async function start(): Promise<void> {
       canvas.dataset.integrator = info.integrator;
       canvas.dataset.interacting = String(interacting);
       lastSamples = info.samples;
+      if (ready) button("apply-nlm").disabled = !input("denoiser").checked || lastSamples === 0 || scenePending || targetPending || startupPending;
       if (ready && startupPending && !promotionStarted && info.samples > 0 && info.presentedRevision === info.revision) {
         promotionStarted = true;
         startupTimings["first-preview"] = performance.now() - startupAt;
@@ -369,12 +379,20 @@ async function start(): Promise<void> {
     });
     syncSettings();
   };
+  const denoiseControls = () => ({
+    algorithm: selectInput("denoise-algorithm").value as "atrous" | "bilateral" | "nlm",
+    glassMode: selectInput("glass-mode").value as "off" | "surface" | "image",
+    filterGlass: selectInput("glass-mode").value !== "off",
+    glassStrength: value("glass-strength"), blend: value("denoise-blend") / 100,
+    normalPower: value("denoise-normal"), depthScale: value("denoise-depth"),
+    radius: value("denoise-radius"), compare: input("denoise-compare").checked, split: value("denoise-split") / 100,
+  });
   const applyDisplay = (): void => {
     renderer.setDisplay({
       enabled: input("denoiser").checked,
       passes: value("denoise-passes"),
       strength: value("denoise-strength"),
-      filterGlass: input("filter-glass").checked,
+      ...denoiseControls(),
       toneMapper: selectInput("tone-mapper").value as
         | "reinhard"
         | "aces"
@@ -644,11 +662,20 @@ async function start(): Promise<void> {
   input("exposure").addEventListener("input", () =>
     renderer.setExposure(value("exposure")),
   );
-  for (const id of ["denoiser", "filter-glass"])
+  for (const id of ["denoiser", "denoise-compare"])
     input(id).addEventListener("change", applyDisplay);
-  for (const id of ["denoise-passes", "denoise-strength"])
+  for (const id of ["denoise-passes", "denoise-strength", "denoise-blend", "denoise-radius", "glass-strength", "denoise-normal", "denoise-depth", "denoise-split"])
     input(id).addEventListener("input", applyDisplay);
-  selectInput("tone-mapper").addEventListener("change", applyDisplay);
+  for (const id of ["tone-mapper", "denoise-algorithm", "glass-mode"]) selectInput(id).addEventListener("change", () => {
+    if (id === "denoise-algorithm") input("denoise-radius").value = input("denoise-radius-value").value = selectInput(id).value === "nlm" ? "3" : "2";
+    applyDisplay();
+  });
+  button("apply-nlm").addEventListener("click", () => {
+    userPaused = true;
+    button("pause").textContent = "Продолжить";
+    applyDisplay();
+    void renderer.applyNlm().catch(showError);
+  });
   selectInput("view").addEventListener("change", () => {
     settle();
     renderer.setDebugView(selectInput("view").value as DebugView);
@@ -749,7 +776,7 @@ async function start(): Promise<void> {
                     denoiser: input("denoiser").checked,
                     passes: value("denoise-passes"),
                     strength: value("denoise-strength"),
-                    filterGlass: input("filter-glass").checked,
+                    ...denoiseControls(),
                     toneMapper: selectInput("tone-mapper").value,
                   },
                   sampleCountRange: [minCount, maxCount],

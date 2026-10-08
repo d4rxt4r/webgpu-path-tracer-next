@@ -1,0 +1,179 @@
+{
+  "options": {
+    "integrator": "pt",
+    "mode": "spectral",
+    "roughness": 0,
+    "dispersion": true,
+    "low": 4,
+    "reference": 32
+  },
+  "adapter": "intel gen-12lp",
+  "width": 160,
+  "height": 120,
+  "rawPreserved": true,
+  "samples": 4,
+  "referenceSamples": 32,
+  "denoiserBytes": 614720,
+  "errors": [],
+  "sceneSha256": "b64b895c126348373a4f9156f072fe66ee8c10b66bf569661afa298f350543ba",
+  "sceneMaterial": {
+    "type": "dielectric",
+    "ior": 1.5167984379050088,
+    "iorModel": "nbk7",
+    "absorption": [
+      0.20020026706730792,
+      0.20020026706730792,
+      0.3004509020298724
+    ],
+    "absorptionSpectrum": [
+      [
+        350,
+        3.3556783528842753
+      ],
+      [
+        365,
+        1.2072581234269248
+      ],
+      [
+        370,
+        0.9040744652149071
+      ],
+      [
+        380,
+        0.7024614936964466
+      ],
+      [
+        390,
+        0.4008021397538822
+      ],
+      [
+        400,
+        0.3004509020298724
+      ],
+      [
+        405,
+        0.3004509020298724
+      ],
+      [
+        420,
+        0.3004509020298724
+      ],
+      [
+        436,
+        0.3004509020298724
+      ],
+      [
+        460,
+        0.3004509020298724
+      ],
+      [
+        500,
+        0.20020026706730792
+      ],
+      [
+        546,
+        0.20020026706730792
+      ],
+      [
+        580,
+        0.20020026706730792
+      ],
+      [
+        620,
+        0.20020026706730792
+      ],
+      [
+        660,
+        0.20020026706730792
+      ],
+      [
+        700,
+        0.20020026706730792
+      ],
+      [
+        1060,
+        0.10005003335835344
+      ]
+    ],
+    "roughness": 0
+  },
+  "rows": [
+    {
+      "name": "raw",
+      "gpuMs": null,
+      "completionMs": 0,
+      "mse": 1.9379536903381591,
+      "centralGlassMse": 0.09805160658436532
+    },
+    {
+      "name": "atrous-off",
+      "gpuMs": 0.262144,
+      "completionMs": 6.700000002980232,
+      "mse": 0.2054645187378488,
+      "centralGlassMse": 0.09751660754849237
+    },
+    {
+      "name": "atrous-surface",
+      "gpuMs": 0.262144,
+      "completionMs": 8.100000008940697,
+      "mse": 0.1754102031289246,
+      "centralGlassMse": 0.0577004478989618
+    },
+    {
+      "name": "atrous-image",
+      "gpuMs": 0.32768,
+      "completionMs": 7.399999991059303,
+      "mse": 0.19590755990628983,
+      "centralGlassMse": 0.07020193308157414
+    },
+    {
+      "name": "bilateral-off",
+      "gpuMs": 0.131072,
+      "completionMs": 8.5,
+      "mse": 1.0642661815976464,
+      "centralGlassMse": 0.09765471162814475
+    },
+    {
+      "name": "bilateral-surface",
+      "gpuMs": 0.131072,
+      "completionMs": 8.799999997019768,
+      "mse": 1.061902499336103,
+      "centralGlassMse": 0.08560434679302223
+    },
+    {
+      "name": "bilateral-image",
+      "gpuMs": 0.196608,
+      "completionMs": 9.200000002980232,
+      "mse": 1.0594542873291906,
+      "centralGlassMse": 0.08293353156770783
+    },
+    {
+      "name": "nlm-off",
+      "gpuMs": 1.048576,
+      "completionMs": 10.200000002980232,
+      "mse": 0.6180193825310062,
+      "centralGlassMse": 0.09758632604412441
+    },
+    {
+      "name": "nlm-surface",
+      "gpuMs": 1.441792,
+      "completionMs": 7.5,
+      "mse": 0.5982046802422153,
+      "centralGlassMse": 0.07534600957327352
+    },
+    {
+      "name": "nlm-image",
+      "gpuMs": 1.441792,
+      "completionMs": 9.100000008940697,
+      "mse": 0.5859418648087128,
+      "centralGlassMse": 0.06937811334476329
+    },
+    {
+      "name": "reference",
+      "gpuMs": null,
+      "completionMs": 0,
+      "mse": 0,
+      "centralGlassMse": 0
+    }
+  ]
+}

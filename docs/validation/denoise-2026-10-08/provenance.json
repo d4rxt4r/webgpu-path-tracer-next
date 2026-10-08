@@ -1,0 +1,42 @@
+{
+  "baseCommit": "c330babf5f8c4f9a6f4d32883f237bd2f2ada1fd",
+  "sourceSha256": {
+    "src/render/atrous.wgsl": "9dc4934fa266c7504e3cd80c38bdbe5455a68954c393755f8f00196aad847b8f",
+    "src/render/denoiser.ts": "e4ff12dc681f1d2435ffd9b1077614582b6ef11d300cd7f0641683d583f8099e",
+    "src/render/guide.wgsl": "bd9d04584603ad8516f30d16ef4fc9e6adf696d30174e6ce286d407406281433",
+    "src/render/intersection-renderer.ts": "48311b278190786814e6cae56f6d689993c54132d18c213e8719d3d8590beb00",
+    "src/debug/compare-denoise.ts": "ee76cd84ccb89344a53def3d67779fceac83539bde22d4ece5f755e6b0d51df2",
+    "src/scene/cornell.ts": "f245c85a3f2b50442028259bea354375be84d542b6b4d4601495c007c2a6f5b2"
+  },
+  "settings": {
+    "width": 160,
+    "height": 120,
+    "seed": 17,
+    "maxDepth": 12,
+    "photonsPerIteration": 4096,
+    "photonBatchSize": 1024,
+    "passes": 3,
+    "strength": 2,
+    "glassStrength": 1,
+    "radius": {
+      "atrous": 2,
+      "bilateral": 2,
+      "nlm": 3
+    },
+    "blend": 1,
+    "normalPower": 32,
+    "depthScale": 0.015
+  },
+  "timing": "One warmup per setting, then one measured filter encode. GPU timestamps exclude refreshed guides. Completion includes submission and mapped image/timestamp readbacks. Not a throughput benchmark.",
+  "comparisonRunnerRevisions": {
+    "baseEightCases": "7ea8dddbbc993d7c18661e408c21aee862871f04291f2521acf846c055df857b",
+    "extraN_BK7Cases": "ee76cd84ccb89344a53def3d67779fceac83539bde22d4ece5f755e6b0d51df2"
+  },
+  "finalRendererSha256": "c1760ba5504199ea4017362b2b3ac6fc0a503fa00ed64f677bba66fb794e8fa2",
+  "finalRendererDifference": "PNG export now waits for denoiser preparation; manual NLM also awaits preparation, with handled errors. Matrix filtering shader and settings unchanged.",
+  "finalUiSha256": {
+    "src\\app\\main.ts": "9c92f422f72894d69a6d85aa8bfc9fecf604e98f65a932d801dff5eb838113e8",
+    "src\\app\\editor-ui.ts": "df1e0cd807c2c2302ba2ff6d49f8aca43254bd9516a30844743806524abf3595",
+    "src\\app\\settings-link.ts": "0355fc76ffb7ea8a2ddb70c63adf992a865071a33895fa3fd58021bbd1fafa2e"
+  }
+}

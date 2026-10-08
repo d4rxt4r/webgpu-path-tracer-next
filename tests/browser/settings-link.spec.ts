@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("the copy icon produces a URL that restores all controls and the camera", async ({ page, context }) => {
   test.setTimeout(300000);
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.goto("/?settings=1&scene=control&material=dielectric&profile=custom&mode=rgb&integrator=pt&resolution=19200&max-depth=8&sample-limit=2&roughness=.08&ior=1.45&dispersion=1&abbe=52&transmission-color=%23ddffee&repair-obj=0&object-rotation=27&object-x=.12&object-y=.7&light-power=9&fov=48&camera-position=1.2,1.3,3.2&camera-target=.1,.8,0&camera-up=0,1,0&denoiser=0&exposure=1.5&tone-mapper=aces");
+  await page.goto("/?settings=1&scene=control&material=dielectric&profile=custom&mode=rgb&integrator=pt&resolution=19200&max-depth=8&sample-limit=2&roughness=.08&ior=1.45&dispersion=1&abbe=52&transmission-color=%23ddffee&repair-obj=0&object-rotation=27&object-x=.12&object-y=.7&light-power=9&fov=48&camera-position=1.2,1.3,3.2&camera-target=.1,.8,0&camera-up=0,1,0&denoiser=0&denoise-algorithm=nlm&denoise-radius=4&denoise-blend=65&glass-mode=image&glass-strength=1.4&denoise-normal=24&denoise-depth=.02&denoise-compare=1&denoise-split=37&exposure=1.5&tone-mapper=aces");
   const copy = page.getByRole("button", { name: "Скопировать ссылку" });
   await expect(copy).toBeEnabled({ timeout: 120000 });
   await expect(copy).toHaveText("");

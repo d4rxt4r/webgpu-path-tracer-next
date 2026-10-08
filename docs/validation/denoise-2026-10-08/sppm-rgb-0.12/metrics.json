@@ -1,0 +1,129 @@
+{
+  "options": {
+    "integrator": "sppm",
+    "mode": "rgb",
+    "roughness": 0.12,
+    "low": 4,
+    "reference": 32
+  },
+  "adapter": "intel gen-12lp",
+  "width": 160,
+  "height": 120,
+  "rawPreserved": true,
+  "samples": 4,
+  "referenceSamples": 32,
+  "denoiserBytes": 614720,
+  "errors": [],
+  "sceneSha256": "ed0b28659307bf26994b6ce0e9ce0a37aae41a1d60752728239a90316781be8e",
+  "sceneMaterial": {
+    "type": "dielectric",
+    "ior": 1.5,
+    "absorption": [
+      0.15,
+      0.03,
+      0.01
+    ],
+    "absorptionSpectrum": [
+      [
+        360,
+        0.01
+      ],
+      [
+        450,
+        0.01
+      ],
+      [
+        550,
+        0.03
+      ],
+      [
+        650,
+        0.15
+      ],
+      [
+        830,
+        0.15
+      ]
+    ],
+    "roughness": 0.12
+  },
+  "rows": [
+    {
+      "name": "raw",
+      "gpuMs": null,
+      "completionMs": 0,
+      "mse": 0.00854202662521199,
+      "centralGlassMse": 0.00473775655448936
+    },
+    {
+      "name": "atrous-off",
+      "gpuMs": 0.32768,
+      "completionMs": 6.299999997019768,
+      "mse": 0.039519900271534424,
+      "centralGlassMse": 0.004722176690898667
+    },
+    {
+      "name": "atrous-surface",
+      "gpuMs": 0.262144,
+      "completionMs": 4.9000000059604645,
+      "mse": 0.03806071988202575,
+      "centralGlassMse": 0.0020465812604418955
+    },
+    {
+      "name": "atrous-image",
+      "gpuMs": 0.262144,
+      "completionMs": 6.800000011920929,
+      "mse": 0.03771935200652424,
+      "centralGlassMse": 0.001844848269666041
+    },
+    {
+      "name": "bilateral-off",
+      "gpuMs": 0.131072,
+      "completionMs": 7.5,
+      "mse": 0.01287406522634701,
+      "centralGlassMse": 0.004714985558387111
+    },
+    {
+      "name": "bilateral-surface",
+      "gpuMs": 0.131072,
+      "completionMs": 7,
+      "mse": 0.012207194500775977,
+      "centralGlassMse": 0.0029599551406120556
+    },
+    {
+      "name": "bilateral-image",
+      "gpuMs": 0.131072,
+      "completionMs": 4.5999999940395355,
+      "mse": 0.0118894748617916,
+      "centralGlassMse": 0.002755868004814
+    },
+    {
+      "name": "nlm-off",
+      "gpuMs": 1.048576,
+      "completionMs": 6.100000008940697,
+      "mse": 0.032487027794330575,
+      "centralGlassMse": 0.004723430868737794
+    },
+    {
+      "name": "nlm-surface",
+      "gpuMs": 1.114112,
+      "completionMs": 5.5,
+      "mse": 0.030798861339333024,
+      "centralGlassMse": 0.002073008359002438
+    },
+    {
+      "name": "nlm-image",
+      "gpuMs": 1.048576,
+      "completionMs": 7.0999999940395355,
+      "mse": 0.03058855656105829,
+      "centralGlassMse": 0.0019029864859660313
+    },
+    {
+      "name": "reference",
+      "gpuMs": null,
+      "completionMs": 0,
+      "mse": 0,
+      "centralGlassMse": 0
+    }
+  ]
+}
