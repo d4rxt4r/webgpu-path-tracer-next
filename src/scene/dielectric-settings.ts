@@ -49,7 +49,7 @@ export function dielectricMaterial(settings: DielectricSettings, solid: boolean)
     iorModel: settings.dispersion ? "cauchy" : "constant",
     cauchy: cauchyCoefficients(settings.ior, settings.abbe),
     roughness: settings.roughness, transmission: settings.transmission,
-    surfaceWear: settings.surfaceWear ? { ...settings.surfaceWear } : undefined,
+    surfaceWear: settings.surfaceWear ? structuredClone(settings.surfaceWear) : undefined,
     transmissionSpectrum: transmissionSpectrum(settings.transmission),
     absorption: thin ? [0, 0, 0] : absorption,
     absorptionSpectrum: transmissionSpectrum(absorption),

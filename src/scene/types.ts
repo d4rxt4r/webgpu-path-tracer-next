@@ -20,12 +20,23 @@ export interface SceneObject {
   transform: number[];
 }
 export type SpectrumTable = [number, number][];
-export interface SurfaceWear {
+export interface LegacySurfaceWear {
   scratches: number;
   scuffs: number;
   fingerprints: number;
   seed: number;
 }
+export interface WearEffect {
+  enabled: boolean; intensity: number; scale: number; space: "model" | "scene"; seed: number;
+  roughness: number; coverage: number; length: number; width: number; variation: number;
+  direction: number; spread: number; relief: number; grainScale: number; grainContrast: number;
+  softness: number; abrasionScale: number; count: number; aspect: number;
+  ridgeSpacing: number; ridgeWidth: number; rubbed: number; contrast: number;
+}
+export interface SurfaceWearV2 {
+  version: 2; scratches: WearEffect; scuffs: WearEffect; fingerprints: WearEffect;
+}
+export type SurfaceWear = LegacySurfaceWear | SurfaceWearV2;
 interface TextureParameters {
   reflectance: Vec3;
   spectrum: SpectrumTable;

@@ -1,3 +1,4 @@
+import { wearEffects, wearCommonFields, wearDetailFields } from "../scene/surface-wear";
 export const settingHelp: Record<string, string> = {
   'scene-layout': 'Cornell — комната со стенами. Открытая сцена показывает окружение, сохраняет модель и камеру; при первом включении выбирается студийный HDR.',
   ground: 'Нейтральный пол 10×10 м на высоте Y=0. По умолчанию в открытой сцене выключен.',
@@ -86,6 +87,13 @@ export const settingHelp: Record<string, string> = {
   "export-pfm": "Экспорт линейного RGB в Raw PFM и параметров в JSON после полного прохода. Сохраняет отрицательные компоненты; экранный фильтр и tone mapping не применяются.",
   restart: "Начать накопление заново с текущими настройками сцены и камеры.",
 };
+
+for (const name of wearEffects) {
+  for (const f of [...wearCommonFields, ...wearDetailFields[name]]) settingHelp[`wear-${name}-${f.key}`] = f.help;
+  settingHelp[`wear-${name}-enabled`] = "Включить эффект. При отключении настройки сохраняются, расчёт рисунка пропускается.";
+  settingHelp[`wear-${name}-scale`] = "Больше — крупнее следы. В режиме модели 1 означает исходный рисунок; в режиме сцены размер не зависит от масштаба объекта.";
+  settingHelp[`wear-${name}-space`] = "Относительный размер следует за моделью. Физический размер задаётся в единицах сцены и учитывает растяжение объекта.";
+}
 
 export function attachSettingsHelp(): void {
   const tooltip = document.createElement("div");

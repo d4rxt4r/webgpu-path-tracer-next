@@ -1,4 +1,4 @@
-import { cleanSurface, rastagotchiWear, wearControlIds } from "../scene/surface-wear";
+import { cleanSurface, rastagotchiWear, wearControlIds, wearEffects } from "../scene/surface-wear";
 import { applyArrangement, setupEnvironment } from './environment-ui';
 import { applyMaterialEditor, baseMaterial, initializeMaterialEditor, materialControlIds, materialMetadata, syncMaterialEditor, textureMemory } from "./material-editor";
 import { builtinModels, isBuiltinModel, loadBuiltinObj, type BuiltinObj } from "../assets/builtin-obj";
@@ -91,9 +91,11 @@ initializeMaterialEditor(initialMaterial);
 if (initialScene === "rastagotchi" && !requestedMaterial) applyRastagotchiPreset();
 function applyWearPreset(rastagotchi: boolean): void {
   const wear = rastagotchi ? rastagotchiWear : cleanSurface;
-  for (const [id, value] of wearControlIds.map((id, i) => [id, [wear.scratches, wear.scuffs, wear.fingerprints, wear.seed][i]!] as const)) {
-    input(id).value = String(value);
-    const number = document.getElementById(`${id}-value`) as HTMLInputElement | null;
+  for (const name of wearEffects) for (const [key, value] of Object.entries(wear[name])) {
+    const control = document.getElementById(`wear-${name}-${key}`) as HTMLInputElement | null;
+    if (!control) continue;
+    if (typeof value === "boolean") control.checked = value; else control.value = String(value);
+    const number = document.getElementById(`${control.id}-value`) as HTMLInputElement | null;
     if (number) number.value = String(value);
   }
 }
@@ -151,7 +153,7 @@ let profile: Profile = controlScene ? "custom" : "quality";
 
 function syncRanges(): void {
   for (const slider of document.querySelectorAll<HTMLInputElement>(
-    "input[type=range]",
+    "input[type=range]:not([data-log-for])",
   ))
     input(`${slider.id}-value`).value = slider.value;
 }
@@ -682,7 +684,7 @@ async function start(): Promise<void> {
     syncSettings();
   });
   for (const slider of document.querySelectorAll<HTMLInputElement>(
-    "input[type=range]",
+    "input[type=range]:not([data-log-for])",
   )) {
     slider.addEventListener("input", () => {
       input(`${slider.id}-value`).value = slider.value;
@@ -700,6 +702,31 @@ async function start(): Promise<void> {
       }
       slider.value = number.value;
       slider.dispatchEvent(new Event("input"));
+    });
+  }
+  for (const slider of document.querySelectorAll<HTMLInputElement>("[data-log-for]")) {
+    const scale = input(slider.dataset.logFor!);
+    slider.addEventListener("input", () => {
+      scale.value = String(Number((Number(scale.min) * (Number(scale.max)/Number(scale.min)) ** (Number(slider.value)/1000)).toPrecision(6)));
+      scale.dispatchEvent(new Event("input"));
+    });
+    scale.addEventListener("change", () => {
+      if (!scale.value || !Number.isFinite(Number(scale.value))) scale.value = "1";
+      scale.value = String(Math.min(Number(scale.max), Math.max(Number(scale.min), Number(scale.value))));
+      scale.dispatchEvent(new Event("input"));
+    });
+  }
+  for (const name of wearEffects) {
+    for (const key of ["enabled", "space"]) input(`wear-${name}-${key}`).addEventListener("change", () => {
+      syncSettings();
+      const scale = input(`wear-${name}-scale`);
+      scale.value = String(Math.max(Number(scale.min), Math.min(Number(scale.max), Number(scale.value))));
+      syncSettings(); queueScene();
+    });
+    document.querySelector<HTMLButtonElement>(`[data-wear-seed="${name}"]`)!.addEventListener("click", () => {
+      const seed = input(`wear-${name}-seed`), previous = Number(seed.value);
+      seed.value = input(`${seed.id}-value`).value = String((previous + 1 + crypto.getRandomValues(new Uint32Array(1))[0]! % 65534 - 1) % 65535 + 1);
+      seed.dispatchEvent(new Event("input"));
     });
   }
   attachMiddleReset(controlScene);

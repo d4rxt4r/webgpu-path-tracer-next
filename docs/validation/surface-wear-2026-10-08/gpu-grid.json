@@ -1,0 +1,395 @@
+{
+  "name": "intel gen-12lp",
+  "compileMs": 1914.6000000089407,
+  "gpuMs": {
+    "clean": 0.147456,
+    "worn": 0.393216,
+    "specializedClean": 0.032768
+  },
+  "results": [
+    {
+      "wear": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "thin": false,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.029999999329447746,
+      "changed": 0,
+      "sideDifference": 0,
+      "inwardDifference": 0,
+      "energy": 1.0000000093386916
+    },
+    {
+      "wear": [
+        0,
+        0,
+        0,
+        37
+      ],
+      "thin": false,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.029999999329447746,
+      "changed": 0,
+      "sideDifference": 0,
+      "inwardDifference": 0,
+      "energy": 1.0000000093386916
+    },
+    {
+      "wear": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "thin": false,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.37999898195266724,
+      "changed": 381,
+      "sideDifference": 0.005378014903158146,
+      "inwardDifference": 0,
+      "energy": 0.9999995818689058
+    },
+    {
+      "wear": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "thin": false,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.3287976086139679,
+      "changed": 10160,
+      "sideDifference": 0.09939873654229814,
+      "inwardDifference": 0,
+      "energy": 0.9998035265052749
+    },
+    {
+      "wear": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "thin": false,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.2849999964237213,
+      "changed": 917,
+      "sideDifference": 0.007976611039566706,
+      "inwardDifference": 0,
+      "energy": 0.9999389150361822
+    },
+    {
+      "wear": [
+        0.5,
+        0.5,
+        0.5,
+        1
+      ],
+      "thin": false,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.4492897391319275,
+      "changed": 10210,
+      "sideDifference": 0.05377518750958643,
+      "inwardDifference": 0,
+      "energy": 0.9999362429043686
+    },
+    {
+      "wear": [
+        0.5,
+        0.5,
+        0.5,
+        2
+      ],
+      "thin": false,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.4122634828090668,
+      "changed": 11639,
+      "sideDifference": 0.05816039279909546,
+      "inwardDifference": 0,
+      "energy": 0.9999971417964844
+    },
+    {
+      "wear": [
+        1,
+        1,
+        1,
+        65535
+      ],
+      "thin": false,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.5825984477996826,
+      "changed": 6512,
+      "sideDifference": 0.09353967787183137,
+      "inwardDifference": 0,
+      "energy": 0.9999339563619287
+    },
+    {
+      "wear": [
+        0.5,
+        0.5,
+        0.5,
+        1
+      ],
+      "thin": true,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.4492897391319275,
+      "changed": 10210,
+      "sideDifference": 0.05377518750958643,
+      "inwardDifference": 0,
+      "energy": 0.999752796793473
+    },
+    {
+      "wear": [
+        0.5,
+        0.5,
+        0.5,
+        1
+      ],
+      "thin": false,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.44928911328315735,
+      "changed": 10210,
+      "sideDifference": 0,
+      "inwardDifference": 0,
+      "energy": 0.9999362549970101
+    },
+    {
+      "wear": [
+        1,
+        0,
+        0,
+        37
+      ],
+      "thin": false,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.37999042868614197,
+      "changed": 404,
+      "sideDifference": 0.005931832219516764,
+      "inwardDifference": 0,
+      "energy": 0.9999996459955582
+    },
+    {
+      "wear": [
+        0,
+        1,
+        0,
+        37
+      ],
+      "thin": false,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.32734712958335876,
+      "changed": 7012,
+      "sideDifference": 0.061875869509322,
+      "inwardDifference": 0,
+      "energy": 0.9998723886455991
+    },
+    {
+      "wear": [
+        0,
+        0,
+        1,
+        37
+      ],
+      "thin": false,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.2849999964237213,
+      "changed": 935,
+      "sideDifference": 0.007793121322947627,
+      "inwardDifference": 0,
+      "energy": 0.9999388325122709
+    },
+    {
+      "wear": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "thin": false,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.37999898195266724,
+      "changed": 381,
+      "sideDifference": 0.005378014903158146,
+      "inwardDifference": 0,
+      "energy": 0.9999995818689058
+    },
+    {
+      "wear": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "thin": false,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.3287976086139679,
+      "changed": 10160,
+      "sideDifference": 0.09939873654229814,
+      "inwardDifference": 0,
+      "energy": 0.9998035265052749
+    },
+    {
+      "wear": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "thin": false,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.2849999964237213,
+      "changed": 917,
+      "sideDifference": 0.007976611039566706,
+      "inwardDifference": 0,
+      "energy": 0.9999389150361822
+    },
+    {
+      "wear": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "thin": false,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.3799964487552643,
+      "changed": 284,
+      "sideDifference": 0.004666081189157012,
+      "inwardDifference": 0,
+      "energy": 0.999999917428795
+    },
+    {
+      "wear": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "thin": false,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.326956182718277,
+      "changed": 10453,
+      "sideDifference": 0.07959696422369689,
+      "inwardDifference": 0,
+      "energy": 0.9998557682520186
+    },
+    {
+      "wear": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "thin": false,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.5399999618530273,
+      "changed": 3419,
+      "sideDifference": 0.029717996953536385,
+      "inwardDifference": 0,
+      "energy": 0.9999385184637504
+    },
+    {
+      "wear": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "thin": false,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.3287976086139679,
+      "changed": 10160,
+      "sideDifference": 0.09939873654229814,
+      "inwardDifference": 0,
+      "energy": 0.9998035265052749
+    },
+    {
+      "wear": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "thin": false,
+      "invalid": 0,
+      "mismatch": 0,
+      "min": 0.029999999329447746,
+      "max": 0.32879751920700073,
+      "changed": 10160,
+      "sideDifference": 0,
+      "inwardDifference": 0,
+      "energy": 0.9998035425051057
+    }
+  ],
+  "cleanDifference": 0,
+  "seedDifference": 0.05456336327324607,
+  "transformRoughness": 0.00001574307680130005,
+  "transformNormal": 4.851953338547155e-7,
+  "seedChanges": [
+    0.005667936600172417,
+    0.09992282555452585,
+    0.00790670291405604
+  ],
+  "unrelatedSeedDifferences": [
+    0,
+    0,
+    0
+  ],
+  "scaleChanges": [
+    0.005025739753246706,
+    0.10082573632150166,
+    0.017409283624147065
+  ],
+  "variantDifferences": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "physicalRoughness": 0.000002562999725341797,
+  "physicalNormal": 4.6663075170538804e-7
+}

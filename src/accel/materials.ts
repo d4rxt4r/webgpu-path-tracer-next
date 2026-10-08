@@ -1,10 +1,11 @@
+import { wearMetric } from "../scene/wear-space";
 import { makeStructuredView } from "webgpu-utils";
 import { mat4 } from "gl-matrix";
 import { definitions } from "./pack";
 import type { Bvh } from "./bvh";
 import type { SceneDescription } from "../scene/types";
 import { bakeSpectrum, cie, constantSpectrum } from "../transport/spectrum";
-import { hasSurfaceWear, validateSurfaceWear } from "../scene/surface-wear";
+import { hasSurfaceWear, validateSurfaceWear, normalizeSurfaceWear, wearEffects, packWearEffect, effectActive } from "../scene/surface-wear";
 
 export interface PackedTransport {
   materials: ArrayBuffer;
@@ -168,7 +169,9 @@ export function packTransport(
       spectra.set(bakeSpectrum(material.transmissionSpectrum ?? constantSpectrum(transmission[0]), true), spectrumOffset);
       if (material.thin && !material.transmissionSpectrum && transmission.some(v => v !== transmission[0])) spectralReady = false;
       const worldToTexture = mat4.create();
-      const wearBounds = [0, 0, 0, 0];
+      const wearBounds = [0, 0, 0, 2];
+      const wear = normalizeSurfaceWear(material.surfaceWear);
+      let wearPhysical: number[] = Array.from(mat4.create());
       if (hasSurfaceWear(material.surfaceWear)) {
         const objects = description.objects.filter(object => object.material === i);
         if (objects.some(object => object.mesh !== objects[0]!.mesh || object.transform.some((value, axis) => value !== objects[0]!.transform[axis])))
@@ -183,6 +186,7 @@ export function packTransport(
           const extent = Math.max(...high.map((value, axis) => value - low[axis]!));
           if (!Number.isFinite(extent) || extent <= 0 || !mat4.invert(worldToTexture, objects[0].transform))
             throw new Error("Invalid surface wear transform or bounds");
+          wearPhysical = wearMetric(Array.from(objects[0].transform), extent);
           const normalize = mat4.create();
           mat4.scale(normalize, normalize, [1 / extent, 1 / extent, 1 / extent]);
           mat4.translate(normalize, normalize, low.map((value, axis) => -(value + high[axis]!) * 0.5) as [number, number, number]);
@@ -200,7 +204,8 @@ export function packTransport(
         iorModel: material.iorModel === "cauchy" ? 2 : Number(material.iorModel === "nbk7"),
         textureParams: [roughness, ...(material.cauchy ?? [0, 0]), 0],
         worldToTexture,
-        wearParams: material.surfaceWear ? [material.surfaceWear.scratches, material.surfaceWear.scuffs, material.surfaceWear.fingerprints, material.surfaceWear.seed] : [0, 0, 0, 1],
+        wearParams: [...wearEffects.map(name => effectActive(name, wear[name]) ? wear[name].intensity : 0), 1],
+        wearEffects: wearEffects.map(name => packWearEffect(name, wear[name])), wearPhysical,
         wearBounds,
       });
       return;

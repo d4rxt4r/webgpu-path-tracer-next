@@ -30,13 +30,13 @@ export function attachMiddleReset(controlScene: boolean): void {
       if (event.button !== 1) return;
       event.preventDefault();
       if (field.disabled) return;
-      const id = field.id.replace(/-value$/, "");
+      const id = (field.dataset.logFor ?? field.id).replace(/-value$/, "");
       const primary = document.getElementById(id) as HTMLInputElement;
       const initial = numericDefault(id, controlScene);
       if (!Number.isFinite(initial) || Number(primary.value) === initial) return;
       primary.value = String(initial);
       primary.dispatchEvent(new Event(primary.type === "range" ? "input" : "change", { bubbles: true }));
-      field.value = primary.value;
+      if (!field.dataset.logFor) field.value = primary.value;
     });
   }
 }

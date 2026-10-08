@@ -1,3 +1,4 @@
+import { wearEffects, wearCommonFields, wearDetailFields, defaultWearEffect } from "../scene/surface-wear";
 import { arrangementEditor, environmentEditor } from './environment-ui';
 import { profileLabels } from "./profiles";
 import { settingsLimits } from "../render/settings-limits";
@@ -15,11 +16,18 @@ const select = (id: string, label: string, options: string): string =>
   `<label class="field"><span>${label}</span><select id="${id}" disabled>${options}</select></label>`;
 const group = (label: string, body: string, open = false): string =>
   `<details ${open ? "open" : ""}><summary>${label}</summary><div class="group">${body}</div></details>`;
-const surfaceWearEditor = (): string =>
-  range("wear-scratches", "Царапины", 0, 1, 0.01, 0) +
-  range("wear-scuffs", "Потёртости", 0, 1, 0.01, 0) +
-  range("wear-fingerprints", "Отпечатки пальцев", 0, 1, 0.01, 0) +
-  '<label class="field"><span>Вариант рисунка</span><input id="wear-seed" type="number" min="1" max="65535" step="1" value="1" data-default="1" disabled></label>';
+const surfaceWearEditor = (): string => wearEffects.map(name => {
+  const id = `wear-${name}`, defaults = defaultWearEffect(name);
+  const label = {scratches: "Царапины", scuffs: "Потёртости", fingerprints: "Отпечатки пальцев"}[name];
+  const fields = (advanced: boolean) => (advanced ? wearDetailFields[name] : wearCommonFields).map(f =>
+    range(`${id}-${f.key}`, f.label, f.min, f.max, f.step, Number(defaults[f.key]))).join("");
+  return `<label class="check"><input id="${id}-enabled" type="checkbox" disabled>${label}</label>
+    <div id="${id}-settings" class="wear-settings" hidden>` +
+    select(`${id}-space`, "Размер рисунка", '<option value="model">Относительно модели</option><option value="scene">В единицах сцены (м)</option>') +
+    `<label class="range"><span class="field"><span>Масштаб рисунка</span><input id="${id}-scale" type="number" min="0.05" max="20" step="any" value="1" data-default="1" disabled></span><input type="range" data-log-for="${id}-scale" aria-label="Масштаб рисунка" min="0" max="1000" step="1" value="500" disabled></label>` +
+    fields(false) + `<button type="button" data-wear-seed="${name}" disabled>Новый seed</button>` +
+    group("Подробные настройки", fields(true)) + '</div>';
+}).join("");
 function denoiseEditor(): string {
   return '<label class="check"><input id="denoiser" type="checkbox" disabled>Подавление шума</label>' +
     select("denoise-algorithm", "Фильтр", '<option value="atrous">À-trous</option><option value="bilateral">Bilateral</option><option value="nlm">NLM — готовый кадр</option>') +

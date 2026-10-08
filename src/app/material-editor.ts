@@ -1,9 +1,9 @@
 import type { SphereMaterial } from "../scene/cornell";
-import type { SceneDescription } from "../scene/types";
+import type { SceneDescription, SurfaceWearV2 } from "../scene/types";
 import { defaultDielectric, dielectricMaterial, hexToLinear, linearToHex, type DielectricSettings } from "../scene/dielectric-settings";
 import { textureControlIds, type TextureControls } from "../scene/editor";
 import { nbk7Ior } from "../transport/spectrum";
-import { wearControlIds } from "../scene/surface-wear";
+import { wearControlIds, wearEffects, wearCommonFields, wearDetailFields, defaultWearEffect } from "../scene/surface-wear";
 
 export const materialControlIds = ["dielectric-mode", "dispersion", "abbe", "transmission-color", "transmission-depth", "roughness", "texture-kind", ...wearControlIds];
 const field = (id: string) => document.getElementById(id) as HTMLInputElement;
@@ -18,8 +18,11 @@ export function readDielectric(): DielectricSettings {
     ior: Number(field("ior").value), dispersion: field("dispersion").checked,
     abbe: Number(field("abbe").value), roughness: Number(field("roughness").value),
     depth: Number(field("transmission-depth").value),
-    surfaceWear: { scratches: Number(field("wear-scratches").value), scuffs: Number(field("wear-scuffs").value),
-      fingerprints: Number(field("wear-fingerprints").value), seed: Number(field("wear-seed").value) },
+    surfaceWear: { version: 2, ...Object.fromEntries(wearEffects.map(name => [name, {
+      ...defaultWearEffect(name), enabled: field(`wear-${name}-enabled`).checked,
+      space: field(`wear-${name}-space`).value, scale: Number(field(`wear-${name}-scale`).value),
+      ...Object.fromEntries([...wearCommonFields, ...wearDetailFields[name]].map(f => [f.key, Number(field(`wear-${name}-${f.key}`).value)])),
+    }])) } as SurfaceWearV2,
     transmission: color === linearToHex(defaultDielectric.transmission) ? [...defaultDielectric.transmission] : hexToLinear(color),
   };
 }
@@ -48,6 +51,17 @@ export function syncMaterialEditor(solid: boolean, ready = true): void {
     field(id).disabled = !ready || disabled;
     const number = document.getElementById(`${id}-value`) as HTMLInputElement | null;
     if (number) number.disabled = !ready || disabled;
+  }
+  for (const name of wearEffects) {
+    const id = `wear-${name}`, enabled = field(`${id}-enabled`).checked;
+    document.getElementById(`${id}-settings`)!.hidden = !enabled;
+    const scale = field(`${id}-scale`), physical = field(`${id}-space`).value === "scene";
+    scale.min = physical ? "0.00001" : "0.05"; scale.max = physical ? "1000" : "20";
+    const slider = document.querySelector<HTMLInputElement>(`[data-log-for="${id}-scale"]`)!;
+    slider.value = String(1000 * Math.log(Number(scale.value)/Number(scale.min)) / Math.log(Number(scale.max)/Number(scale.min)));
+    slider.setAttribute("aria-valuetext", scale.value);
+    for (const control of document.getElementById(`${id}-settings`)!.querySelectorAll<HTMLInputElement | HTMLButtonElement | HTMLSelectElement>("input, select, button"))
+      control.disabled = !ready || type !== "dielectric" || !enabled;
   }
 }
 export function initializeMaterialEditor(material: SphereMaterial): void {

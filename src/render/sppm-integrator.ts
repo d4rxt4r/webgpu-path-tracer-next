@@ -1,3 +1,5 @@
+import { specializeSurfaceWear } from "../transport/wear-source";
+import { pipelineVariant } from "./pipeline-variants";
 import { checkPhotonLimits } from "./settings-limits";
 import { makeStructuredView } from "webgpu-utils";
 import {
@@ -66,47 +68,65 @@ export class SppmIntegrator {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
   }
+  private wearRevision = 0;
+  private wearOptions: [boolean, boolean, CommonMediumCapacity] = [false, false, COMMON_MEDIUM_CAPACITY];
+  private wearMask = -1;
   static async create(
     device: GPUDevice,
     specializeSampler = false,
     preciseTransport = false,
     timing?: (entry: string, milliseconds: number) => void,
     mediumCapacity: CommonMediumCapacity = COMMON_MEDIUM_CAPACITY,
+    wearMask = 7,
   ): Promise<SppmIntegrator> {
-    const module = await checkedShader(
-      device,
-      specializeSampler ? specializedSppmShader : sppmShader,
-      "RGB / spectral SPPM",
-    );
-    const fastModule = preciseTransport ? module : await checkedShader(device,
-      fastTransportShader(mediumCapacityShader(specializeSampler ? specializedSppmShader : sppmShader, mediumCapacity)),
-      "SPPM common transport");
-    const entries = [
-      "camera",
-      "photon",
-      "cameraRepair",
-      "photonRepair",
-      "hash",
-      "gather",
-      "update",
-    ] as const;
-    const pipelines = await Promise.all(
-      entries.map(async (entry) => {
-        const started = performance.now();
-        const pipeline = await device.createComputePipelineAsync({
-          layout: "auto",
-          compute: { module: (entry === "camera" || entry === "photon") ? fastModule : module, entryPoint: entry + "Main" },
-        });
-        timing?.(entry + "Main", performance.now() - started);
-        return pipeline;
-      }),
-    );
-    return new SppmIntegrator(
-      device,
-      Object.fromEntries(
-        entries.map((entry, i) => [entry, pipelines[i]!]),
-      ) as Record<(typeof entries)[number], GPUComputePipeline>,
-    );
+    const pipelines = await this.compilePipelines(device, specializeSampler, preciseTransport, timing, mediumCapacity, wearMask);
+    const integrator = new SppmIntegrator(device, pipelines);
+    integrator.wearOptions = [specializeSampler, preciseTransport, mediumCapacity];
+    integrator.wearMask = wearMask;
+    return integrator;
+  }
+  private static compilePipelines(device: GPUDevice, specializeSampler: boolean, preciseTransport: boolean, timing: ((entry: string, milliseconds: number) => void) | undefined, mediumCapacity: CommonMediumCapacity, wearMask: number) {
+    return pipelineVariant(device, `sppm-${specializeSampler}-${preciseTransport}-${mediumCapacity}`, wearMask, async () => {
+      const source = specializeSurfaceWear(specializeSampler ? specializedSppmShader : sppmShader, wearMask);
+      const module = await checkedShader(
+        device,
+        source,
+        "RGB / spectral SPPM",
+      );
+      const fastModule = preciseTransport ? module : await checkedShader(device,
+        fastTransportShader(mediumCapacityShader(source, mediumCapacity)),
+        "SPPM common transport");
+      const entries = [
+        "camera",
+        "photon",
+        "cameraRepair",
+        "photonRepair",
+        "hash",
+        "gather",
+        "update",
+      ] as const;
+      const pipelines = await Promise.all(
+        entries.map(async (entry) => {
+          const started = performance.now();
+          const pipeline = await device.createComputePipelineAsync({
+            layout: "auto",
+            compute: { module: (entry === "camera" || entry === "photon") ? fastModule : module, entryPoint: entry + "Main" },
+          });
+          timing?.(entry + "Main", performance.now() - started);
+          return pipeline;
+        }),
+      );
+      return Object.fromEntries(entries.map((entry, i) => [entry, pipelines[i]!])) as Record<(typeof entries)[number], GPUComputePipeline>;
+    });
+  }
+  async setWearMask(mask: number): Promise<boolean> {
+    const revision = ++this.wearRevision;
+    if (mask === this.wearMask) return false;
+    const [sampler, precise, capacity] = this.wearOptions;
+    const pipelines = await SppmIntegrator.compilePipelines(this.device, sampler, precise, undefined, capacity, mask);
+    if (revision !== this.wearRevision || this.disposed) return false;
+    this.pipelines = pipelines; this.wearMask = mask;
+    return true;
   }
   get bytes(): number {
     return (

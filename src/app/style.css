@@ -252,6 +252,15 @@ details[open] summary {
   display: grid;
   gap: 10px;
 }
+.wear-settings:not([hidden]) {
+  display: grid;
+  gap: 10px;
+  padding: 10px 0 10px 10px;
+  border-left: 2px solid #3b414e;
+  min-width: 0;
+}
+.wear-settings > button { justify-self: start; }
+.wear-settings > details > .group { padding: 8px 0; }
 #environment-settings:not([hidden]),
 #hdr-settings:not([hidden]) {
   display: grid;

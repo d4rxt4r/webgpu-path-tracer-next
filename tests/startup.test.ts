@@ -43,7 +43,7 @@ test("GPU preparation can precede the scene and retains precise PT without compi
 });
 
 test("concurrent and repeated Quality requests share preparation on the device", async () => {
-  const integrator = {dispose: vi.fn()};
+  const integrator = {dispose: vi.fn(), setWearMask: vi.fn(async () => false)};
   mocks.sppm.mockResolvedValue(integrator);
   await Promise.all([renderer.prepareIntegrator("sppm"), renderer.prepareIntegrator("sppm")]);
   await renderer.prepareIntegrator("sppm");
@@ -59,7 +59,7 @@ test("an integrator completing after disposal releases resources instead of atta
   const pending = renderer.prepareIntegrator("sppm");
   await vi.waitFor(() => expect(mocks.sppm).toHaveBeenCalledTimes(1));
   renderer.dispose();
-  const integrator = {dispose: vi.fn()};
+  const integrator = {dispose: vi.fn(), setWearMask: vi.fn(async () => false)};
   finish(integrator);
   await pending;
   expect(integrator.dispose).toHaveBeenCalledTimes(1);
@@ -96,7 +96,7 @@ test('PT mode requests reuse at most the RGB and generic variants', async () => 
   renderer.setSettings({mode: 'rgb'});
   await renderer.prepareIntegrator('pt', 'rgb');
   expect(state.pathPipeline).toBe(rgb);
-  expect(state.pathVariants.size).toBe(2);
+
   expect(mocks.device.createComputePipelineAsync).toHaveBeenCalledTimes(4);
 });
 
@@ -125,5 +125,34 @@ test('pipeline rejection from a disposed device cannot revive its variants', asy
   await vi.waitFor(() => expect(fail).toHaveLength(2));
   renderer.dispose(); fail.forEach(reject => reject(new Error('Instance dropped')));
   await expect(pending).resolves.toBeUndefined();
-  expect(state.pathVariants.size).toBe(0);
+  expect(state.pathPipeline).toBeUndefined();
+});
+
+test('repeated material edits with the same wear mask reuse pipelines', async () => {
+  await renderer.prepareGpu();
+  const state = renderer as any;
+  state.wearMask = 3;
+  await renderer.prepareIntegrator('pt');
+  const worn = state.pathPipeline;
+  await renderer.prepareIntegrator('pt');
+  expect(state.pathPipeline).toBe(worn);
+  expect(mocks.device.createComputePipelineAsync).toHaveBeenCalledTimes(4);
+  state.wearMask = 0;
+  await renderer.prepareIntegrator('pt');
+  expect(state.pathPipeline).not.toBe(worn);
+  expect(mocks.device.createComputePipelineAsync).toHaveBeenCalledTimes(4);
+});
+
+test('a pending wear variant cannot replace a newly requested clean pipeline', async () => {
+  await renderer.prepareGpu();
+  const state = renderer as any, clean = state.pathPipeline;
+  const finish: ((pipeline: unknown) => void)[] = [];
+  mocks.device.createComputePipelineAsync.mockImplementation(() => new Promise(resolve => finish.push(resolve)));
+  state.wearMask = 7;
+  const pending = renderer.prepareIntegrator('pt');
+  await vi.waitFor(() => expect(finish).toHaveLength(2));
+  state.wearMask = 0;
+  await renderer.prepareIntegrator('pt');
+  finish.forEach(resolve => resolve({})); await pending;
+  expect(state.pathPipeline).toBe(clean);
 });

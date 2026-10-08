@@ -22,6 +22,17 @@ export function createSettingsLink(root: ParentNode, address: string, camera: Ca
 /** Restore only existing settings controls, within the same limits as the UI. */
 export function restoreSettingsLink(root: ParentNode, query: URLSearchParams, initial: CameraDescription): CameraDescription | undefined {
   if (query.get("settings") !== "1") return;
+  query = new URLSearchParams(query);
+  for (const name of ["scratches", "scuffs", "fingerprints"]) {
+    const legacy = query.get(`wear-${name}`), value = Number(legacy);
+    if (legacy !== null && legacy.trim() && Number.isFinite(value) && value >= 0 && value <= 1) {
+      if (!query.has(`wear-${name}-enabled`)) query.set(`wear-${name}-enabled`, value > 0 ? "1" : "0");
+      if (!query.has(`wear-${name}-intensity`)) query.set(`wear-${name}-intensity`, String(value || .5));
+    }
+    if (!query.has(`wear-${name}-seed`) && query.has("wear-seed")) query.set(`wear-${name}-seed`, query.get("wear-seed")!);
+    const scale = root.querySelector<HTMLInputElement>(`#wear-${name}-scale`);
+    if (scale && query.get(`wear-${name}-space`) === "scene") { scale.min = "0.00001"; scale.max = "1000"; }
+  }
   const fields = controls(root);
   for (const field of fields) {
     const raw = query.get(field.id);
@@ -35,7 +46,7 @@ export function restoreSettingsLink(root: ParentNode, query: URLSearchParams, in
     } else if (field.type === "number" || field.type === "range") {
       const input = field as HTMLInputElement, value = Number(raw);
       if (raw.trim() && Number.isFinite(value) && (!input.min || value >= Number(input.min)) && (!input.max || value <= Number(input.max))
-        && (input.step !== "1" || Number.isInteger(value))) input.value = raw;
+        && (input.step !== "1" || Number.isInteger(value))) input.value = input.id.startsWith("wear-") ? String(value) : raw;
     }
   }
   if (!query.has("glass-mode") && query.has("filter-glass")) {

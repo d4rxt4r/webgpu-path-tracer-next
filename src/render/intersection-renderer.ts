@@ -1,3 +1,6 @@
+import { surfaceWearMask } from "../scene/surface-wear";
+import { specializeSurfaceWear } from "../transport/wear-source";
+import { pipelineVariant } from "./pipeline-variants";
 import { GpuEnvironment } from '../gpu/environment';
 import { defaultEnvironment, type EnvironmentSettings } from '../scene/environment';
 import type { HdrImage } from '../assets/hdr';
@@ -118,7 +121,7 @@ export class IntersectionRenderer {
   private sobol?: GPUBuffer;
   private pathPipeline?: GPUComputePipeline;
   private pathRepairPipeline?: GPUComputePipeline;
-  private pathVariants = new Map<'rgb' | 'generic', { pipeline: GPUComputePipeline; repair: GPUComputePipeline }>();
+  private wearMask = 0;
   private specializedPtSource = false;
   private pathRepairGroup?: GPUBindGroup;
   private precisionIndirect?: GPUBuffer;
@@ -299,8 +302,12 @@ export class IntersectionRenderer {
         else this.environment = createdEnvironment;
       }
       if (scene && this.environment) scene.environment = this.environment;
-      const previous = { scene: this.scene, packed: this.packed, camera: this.camera, triangles: this.stats.triangles, nodes: this.stats.nodes };
+      const previous = { scene: this.scene, packed: this.packed, camera: this.camera, triangles: this.stats.triangles, nodes: this.stats.nodes, wearMask: this.wearMask };
       try {
+        this.wearMask = description.objects.reduce((mask, object) => {
+          const material = description.materials[object.material]!;
+          return mask | (object.visible !== false && material.type === "dielectric" ? surfaceWearMask(material.surfaceWear) : 0);
+        }, 0);
         this.packed = packed;
         this.environment?.setScene(packed);
         this.environment?.update(this.environmentSettings);
@@ -312,7 +319,7 @@ export class IntersectionRenderer {
         this.resize();
         this.updateGroups();
       } catch (error) {
-        this.scene = previous.scene; this.packed = previous.packed; this.camera = previous.camera;
+        this.wearMask = previous.wearMask; this.scene = previous.scene; this.packed = previous.packed; this.camera = previous.camera;
         if (previous.packed) this.environment?.setScene(previous.packed);
         this.environment?.update(this.environmentSettings);
         this.stats.triangles = previous.triangles; this.stats.nodes = previous.nodes;
@@ -611,9 +618,9 @@ export class IntersectionRenderer {
       await preparation;
       if (this.disposed || !this.device || generation !== this.generation) return;
       const key = this.specializedPtSource && mode === 'rgb' ? 'rgb' : 'generic';
-      if (!this.pathVariants.has(key)) await this.prepareOnce(`pt-${key}`, async device => {
-        const generation = this.generation;
-        const source = key === 'rgb' ? rgbPathShader() : pathShader;
+      const mask = this.wearMask, device = this.device;
+      const variant = await pipelineVariant(device, `pt-${key}`, mask, async () => {
+        const source = specializeSurfaceWear(key === 'rgb' ? rgbPathShader() : pathShader, mask);
         const [module, fastModule] = await Promise.all([
           checkedShader(device, source, `PT ${key} precise`),
           checkedShader(device, fastTransportShader(source, this.specializedPtSource), `PT ${key} common`),
@@ -622,25 +629,30 @@ export class IntersectionRenderer {
           device.createComputePipelineAsync({layout: 'auto', compute: {module: fastModule, entryPoint: 'main'}}),
           device.createComputePipelineAsync({layout: 'auto', compute: {module, entryPoint: 'repairMain'}}),
         ]);
-        if (generation === this.generation && !this.disposed) this.pathVariants.set(key, {pipeline, repair});
+        return {pipeline, repair};
+      }).catch(error => {
+        if (generation !== this.generation || this.disposed) return undefined;
+        throw error;
       });
       if (generation !== this.generation || this.disposed) return;
-      const variant = this.pathVariants.get(key);
+      if (mask !== this.wearMask) return;
       if (variant && mode === this.settings.mode && this.pathPipeline !== variant.pipeline) {
         this.pathPipeline = variant.pipeline; this.pathRepairPipeline = variant.repair;
         this.updateGroups();
       }
       return;
     }
-    return this.prepareOnce("sppm", async device => {
+    const mask = this.wearMask;
+    await this.prepareOnce("sppm", async device => {
       const generation = this.generation;
       const sppm = await SppmIntegrator.create(device, this.specializedSppmSampler, false, (entry, ms) => {
         if (generation === this.generation) this.startupTimings[entry] = ms;
-      });
+      }, undefined, mask);
       if (generation !== this.generation || this.disposed) { sppm.dispose(); return; }
       this.sppm = sppm;
       this.updateGroups();
     });
+    if (this.sppm && await this.sppm.setWearMask(mask)) this.updateGroups();
   }
 
   private async prepareDebug(): Promise<void> {
@@ -654,15 +666,19 @@ export class IntersectionRenderer {
     });
   }
 
-  private prepareDenoiser(): Promise<void> {
+  private async prepareDenoiser(): Promise<void> {
     if (!this.denoise.enabled || this.booting || !this.device) return Promise.resolve();
     const pending = this.preparationJobs.get("denoiser");
-    if (pending) return pending;
+    if (pending) {
+      await pending;
+      if (this.denoiser && await this.denoiser.setWearMask(this.wearMask)) this.updateGroups();
+      return;
+    }
     const generation = this.generation;
     return this.prepareOnce("denoiser", async device => {
       const denoiser = await Denoiser.create(device, (entry, ms) => {
         if (generation === this.generation) this.startupTimings[entry] = ms;
-      });
+      }, this.wearMask);
       if (generation !== this.generation || this.disposed) { denoiser.dispose(); return; }
       this.denoiser = denoiser;
       this.updateGroups();
@@ -680,13 +696,14 @@ export class IntersectionRenderer {
     // requested mode before scheduling work rather than dispatching stale work.
     let previous: string;
     do {
-      previous = `${this.view}:${this.settings.integrator}:${this.settings.mode}:${this.photonDensity}`;
+      previous = `${this.view}:${this.settings.integrator}:${this.settings.mode}:${this.photonDensity}:${this.wearMask}`;
       if (this.view === 3 || this.view === 5 || this.view === 6) {
         await this.prepareIntegrator(this.view === 3 ? this.settings.integrator : "pt");
         if (this.photonDensity && this.sppm) await this.sppm.prepareDensity();
       } else await this.prepareDebug();
+      await this.prepareDenoiser();
       if (this.disposed) return;
-    } while (previous !== `${this.view}:${this.settings.integrator}:${this.settings.mode}:${this.photonDensity}`);
+    } while (previous !== `${this.view}:${this.settings.integrator}:${this.settings.mode}:${this.photonDensity}:${this.wearMask}`);
   }
 
   async initialize(): Promise<void> {
@@ -757,7 +774,8 @@ export class IntersectionRenderer {
     device.pushErrorScope("validation");
     try {
       const pathKey = calibratedIntel && this.settings.mode === 'rgb' ? 'rgb' : 'generic';
-      const source = pathKey === 'rgb' ? rgbPathShader() : pathShader;
+      const initialMask = this.wearMask;
+      const source = specializeSurfaceWear(pathKey === 'rgb' ? rgbPathShader() : pathShader, initialMask);
       const [pathModule, displayModule, sobolData, fastPathModule] = await Promise.all([
         checkedShader(device, source, "RGB / spectral path tracer"),
         checkedShader(device, displayShader, "Display"),
@@ -776,7 +794,7 @@ export class IntersectionRenderer {
       if (this.disposed || generation !== this.generation) return;
       this.pathPipeline = pathPipeline;
       this.pathRepairPipeline = pathRepairPipeline;
-      this.pathVariants.set(pathKey, {pipeline: pathPipeline, repair: pathRepairPipeline});
+      await pipelineVariant(device, `pt-${pathKey}`, initialMask, async () => ({pipeline: pathPipeline, repair: pathRepairPipeline}));
       this.precisionIndirect = device.createBuffer({label: "PT precision dispatch", size:12, usage:GPUBufferUsage.INDIRECT | GPUBufferUsage.COPY_DST});
       this.display = display;
       this.uniform = device.createBuffer({
@@ -1613,7 +1631,7 @@ export class IntersectionRenderer {
     this.precisionIndirect?.destroy();
     this.precisionIndirect = undefined;
     this.pathRepairPipeline = undefined;
-    this.pathVariants.clear();
+    this.wearMask = 0;
     this.pathRepairGroup = undefined;
     this.readback?.destroy();
     this.nextReadback?.destroy();

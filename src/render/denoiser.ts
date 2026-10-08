@@ -1,3 +1,5 @@
+import { specializeSurfaceWear } from "../transport/wear-source";
+import { pipelineVariant } from "./pipeline-variants";
 import { checkedShader } from "../gpu/device";
 import { intersectionCore, surfaceWearCore } from "../transport/shaders";
 import guideSource from "./guide.wgsl?raw";
@@ -46,25 +48,31 @@ export class Denoiser {
     private guidePipeline: GPUComputePipeline,
     private filterPipeline: GPUComputePipeline,
   ) {}
-  static async create(device: GPUDevice, timing?: (entry: string, milliseconds: number) => void): Promise<Denoiser> {
-    const [guide, filter] = await Promise.all([
-      checkedShader(
-        device,
-        intersectionCore + "\n" + surfaceWearCore + "\n" + guideSource,
-        "Denoise guides",
-      ),
-      checkedShader(device, filterSource, "Spatial à-trous"),
-    ]);
-    const compile = async (module: GPUShaderModule, entryPoint: string) => {
-      const started = performance.now();
-      const pipeline = await device.createComputePipelineAsync({
-        layout: "auto", compute: {module, entryPoint},
-      });
+  static async create(device: GPUDevice, timing?: (entry: string, milliseconds: number) => void, wearMask = 7): Promise<Denoiser> {
+    const [gp, fp] = await this.compilePipelines(device, timing, wearMask);
+    const denoiser = new Denoiser(device, gp, fp); denoiser.wearMask = wearMask; return denoiser;
+  }
+  private wearMask = -1;
+  private wearRevision = 0;
+  private static async compilePipelines(device: GPUDevice, timing: ((entry: string, milliseconds: number) => void) | undefined, wearMask: number) {
+    const compile = async (source: string, label: string, entryPoint: string) => {
+      const module = await checkedShader(device, source, label), started = performance.now();
+      const pipeline = await device.createComputePipelineAsync({layout: "auto", compute: {module, entryPoint}});
       timing?.(entryPoint, performance.now() - started);
       return pipeline;
     };
-    const [gp, fp] = await Promise.all([compile(guide, "guideMain"), compile(filter, "filterMain")]);
-    return new Denoiser(device, gp, fp);
+    return Promise.all([
+      pipelineVariant(device, "denoise-guides", wearMask, () => compile(
+        specializeSurfaceWear(intersectionCore + "\n" + surfaceWearCore + "\n" + guideSource, wearMask), "Denoise guides", "guideMain")),
+      pipelineVariant(device, "denoise-filter", 0, () => compile(filterSource, "Spatial denoising", "filterMain")),
+    ]);
+  }
+  async setWearMask(mask: number): Promise<boolean> {
+    const revision = ++this.wearRevision;
+    if (mask === this.wearMask) return false;
+    const [guide] = await Denoiser.compilePipelines(this.device, undefined, mask);
+    if (revision !== this.wearRevision) return false;
+    this.guidePipeline = guide; this.wearMask = mask; return true;
   }
   get bytes(): number {
     return this.width * this.height * 32 + this.uniforms.length * 64;
