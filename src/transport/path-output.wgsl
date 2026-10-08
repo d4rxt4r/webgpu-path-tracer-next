@@ -16,7 +16,7 @@ fn renderPathPixel(id:vec2u,repair:bool) {
   let uv = (vec2f(id) + jitter) / vec2f(params.size);
   let p = vec2f(2.0 * uv.x - 1.0, 1.0 - 2.0 * uv.y);
   let direction = normalize(params.forward.xyz + p.x * f32(params.size.x) / f32(params.size.y) * params.right.xyz + p.y * params.up.xyz);
-  let ray = Ray(params.eye.xyz, 0.00001, direction, 1e20);
+  let ray = thinLensRay(params, direction, pixel);
   // A single transport call avoids duplicating the entire megakernel during
   // driver inlining. RGB still uses wavelength zero; spectral sampling and
   // XYZ normalization are unchanged.

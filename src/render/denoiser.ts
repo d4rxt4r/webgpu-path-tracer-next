@@ -8,6 +8,7 @@ import type { GpuScene } from "../gpu/scene";
 
 export interface DenoiseSettings {
   enabled: boolean;
+  imageOnly?: boolean;
   passes: number;
   strength: number;
   filterGlass: boolean;
@@ -172,6 +173,7 @@ export class Denoiser {
       view.setUint32(40, Number(i === passes - 1), true);
       view.setUint32(44, Number(config.compare), true);
       view.setFloat32(48, config.split, true);
+      view.setFloat32(52, Number(settings.imageOnly ?? false), true);
       this.device.queue.writeBuffer(this.uniforms[i]!, 0, data);
       const pass = encoder.beginComputePass();
       pass.setPipeline(this.filterPipeline);

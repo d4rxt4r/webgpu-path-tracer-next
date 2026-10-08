@@ -4,7 +4,7 @@ import { GpuTimer } from "../gpu/timer";
 import { COMPUTE_READBACK_BYTES } from "../render/transport-diagnostics";
 
 /** Small deterministic GPU fixtures, independent of transport noise. */
-export async function verifyDenoise() {
+export async function verifyDenoise(imageOnly = false) {
   const { device, name } = await createDevice();
   const textures: GPUTexture[] = [], buffers: GPUBuffer[] = [];
   let timer: GpuTimer | undefined;
@@ -52,6 +52,7 @@ export async function verifyDenoise() {
       view.setUint32(12, Number(spectral), true); view.setUint32(16, algorithm, true); view.setUint32(20, 3, true);
       view.setFloat32(24, 32, true); view.setFloat32(28, .015, true); view.setFloat32(32, 1, true);
       view.setFloat32(36, 1, true); view.setUint32(40, 1, true); view.setFloat32(48, .5, true);
+      view.setFloat32(52, Number(imageOnly), true);
       const run = async () => {
         device.queue.writeBuffer(uniform, 0, params);
         const encoder = device.createCommandEncoder(); timer?.begin(encoder);
@@ -69,7 +70,7 @@ export async function verifyDenoise() {
       rows.push({ algorithm, spectral, glassMode, gpuMs: constant.gpuMs, completionMs: constant.completionMs });
       for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
         const value = constant.halves[y * 128 + x * 4]!;
-        assert(Math.abs(value - (x < 8 ? 0x3400 : 0x4000)) <= 1, `Constant color or glass silhouette changed: ${algorithm}/${spectral}/${glassMode} at ${x},${y}: ${value}`);
+        assert(imageOnly || Math.abs(value - (x < 8 ? 0x3400 : 0x4000)) <= 1, `Constant color or glass silhouette changed: ${algorithm}/${spectral}/${glassMode} at ${x},${y}: ${value}`);
       }
       // Noise inside each side; glass bypass, blend=0, and split must preserve raw.
       for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) data[(y * width + x) * 4] = (x < 8 ? .25 : 2) + ((x + y) % 2 ? .125 : 0);
@@ -80,10 +81,17 @@ export async function verifyDenoise() {
       for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
         const value = noisy.halves[y * 128 + x * 4]!;
         assert((value & 0x7c00) !== 0x7c00, "Nonfinite denoised output");
-        if (glassMode === 0 && x < 8) assert(value === original(x, y), "Glass bypass changed raw");
+        if (!imageOnly && glassMode === 0 && x < 8) assert(value === original(x, y), "Glass bypass changed raw");
         if (x >= 8 && value !== original(x, y)) changed = true;
       }
       assert(changed, "Filter did not reduce fixture noise");
+      if (imageOnly) {
+        for (let p=0;p<width*height;p++) guideData.set([p%2 ? 1 : -1,0,0,p%3===0 ? 0 : p%2 ? 1000 : -.001],p*4);
+        device.queue.writeTexture({texture:guides},guideData,{bytesPerRow:width*16},[width,height]);
+        const changedGuides=await run();
+        assert(changedGuides.halves.every((v,i)=>v===noisy.halves[i]), 'Image-only filter depends on sharp geometry guides');
+        assert(Array.from({length:8*height},(_,p)=>{const x=p%8,y=Math.floor(p/8);return noisy.halves[y*128+x*4]!==original(x,y);}).some(Boolean),'Image-only filter bypassed glass');
+      }
       view.setUint32(44, 1, true);
       const split = await run();
       for (let y = 0; y < height; y++) for (let x = 0; x < 8; x++) assert(split.halves[y * 128 + x * 4] === original(x, y), "Split changed original half");
@@ -93,7 +101,7 @@ export async function verifyDenoise() {
     }
     const validation = await device.popErrorScope();
     if (validation) throw new Error(validation.message);
-    return { adapter: name, width, height, checks, rows };
+    return { adapter: name, width, height, imageOnly, checks, rows };
   } finally {
     timer?.dispose(); textures.forEach(t => t.destroy()); buffers.forEach(b => b.destroy()); device.destroy();
   }

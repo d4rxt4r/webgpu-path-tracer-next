@@ -53,10 +53,10 @@ describe("bounded compute packets", () => {
     const encoder = {
       copyBufferToBuffer: (_: unknown, offset: number) => copies.push(offset),
     } as unknown as GPUCommandEncoder;
-    const uniforms = new PacketUniforms(device);
+    const uniforms = new PacketUniforms(device, 272);
     uniforms.begin();
     for (let i = 0; i < 256; i++)
-      uniforms.write(encoder, {} as GPUBuffer, new ArrayBuffer(144));
+      uniforms.write(encoder, {} as GPUBuffer, new ArrayBuffer(272));
     expect(new Set(writes).size).toBe(256);
     expect(copies).toEqual(writes);
     expect(() =>

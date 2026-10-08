@@ -1,14 +1,18 @@
 import type { CameraDescription, Vec3 } from "../scene/types";
-import { cameraBasis } from "../scene/camera";
+import { CAMERA_DISTANCE_MIN, CAMERA_DISTANCE_MAX, cameraBasis } from "../scene/camera";
 
 export function attachOrbit(
   canvas: HTMLCanvasElement,
   initial: CameraDescription,
-  update: (camera: CameraDescription) => void,
+  update: (camera: CameraDescription) => void | boolean,
 ): { reset(): void; set(camera: CameraDescription): void; dispose(): void } {
   let camera = structuredClone(initial);
   let pointer: { id: number; x: number; y: number; pan: boolean } | undefined;
-  const emit = (): void => update(structuredClone(camera));
+  const emit = (): void => {
+    if (update(structuredClone(camera)) === false) camera = structuredClone(accepted);
+    else accepted = structuredClone(camera);
+  };
+  let accepted = structuredClone(camera);
   const spherical = (): [number, number, number] => {
     const delta = camera.position.map((v, i) => v - camera.target[i]!);
     const radius = Math.hypot(...delta);
@@ -82,9 +86,9 @@ export function attachOrbit(
           : 1);
     camera.position = position(
       Math.max(
-        0.25,
+        CAMERA_DISTANCE_MIN,
         Math.min(
-          12,
+          CAMERA_DISTANCE_MAX,
           radius * Math.exp(Math.max(-2, Math.min(2, delta * 0.001))),
         ),
       ),

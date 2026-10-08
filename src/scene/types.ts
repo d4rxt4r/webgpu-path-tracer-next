@@ -5,6 +5,18 @@ export interface CameraDescription {
   target: Vec3;
   up: Vec3;
   verticalFov: number;
+  depthOfField?: {
+    enabled?: boolean;
+    /** Diameter in metres, independent of exposure. */
+    apertureDiameter?: number;
+    focusMode?: "target" | "manual" | "point";
+    focusDistance?: number;
+    focusPoint?: Vec3;
+    apertureShape?: "circle" | "polygon";
+    blades?: number;
+    /** Degrees. */
+    rotation?: number;
+  };
 }
 export interface MeshData {
   positions: Float32Array;

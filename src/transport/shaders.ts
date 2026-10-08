@@ -2,6 +2,7 @@ import layouts from "./layouts.wgsl?raw";
 import intersections from "./intersections.wgsl?raw";
 import preciseIntersections from "./precise-intersections.wgsl?raw";
 import debug from "./debug.wgsl?raw";
+import camera from "./camera.wgsl?raw";
 import sampler from "./sampler.wgsl?raw";
 import lighting from "./lighting.wgsl?raw";
 import textures from "./textures.wgsl?raw";
@@ -22,7 +23,7 @@ export const surfaceWearCore = wear;
 export const pathCore =
   intersectionCore +
   "\n" +
-  sampler +
+  sampler + "\n" + camera +
   "\n" +
   spectrum +
   "\n" +

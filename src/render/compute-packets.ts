@@ -58,8 +58,9 @@ export class PacketUniforms {
   private offset = 0;
   private readonly stride: number;
   private readonly capacity = 256;
-  constructor(private device: GPUDevice) {
-    this.stride = Math.max(256, device.limits.minUniformBufferOffsetAlignment);
+  constructor(private device: GPUDevice, maxUniformBytes = 256) {
+    const alignment = Math.max(256, device.limits.minUniformBufferOffsetAlignment);
+    this.stride = Math.ceil(maxUniformBytes / alignment) * alignment;
     this.buffers = Array.from({ length: 2 }, (_, i) =>
       device.createBuffer({
         label: `Compute packet uniforms ${i}`,

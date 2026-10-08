@@ -2,7 +2,7 @@ struct FilterParams {
  step:u32, strength:f32, filterGlass:u32, spectral:u32,
  algorithm:u32, radius:u32, normalPower:f32, depthScale:f32,
  glassStrength:f32, blend:f32, finalPass:u32, compare:u32,
- split:f32, pad0:f32, pad1:f32, pad2:f32
+ split:f32, imageOnly:f32, pad1:f32, pad2:f32
 }
 @group(0) @binding(0) var inputImage:texture_2d<f32>;
 @group(0) @binding(1) var rawImage:texture_2d<f32>;
@@ -14,7 +14,7 @@ fn color(c:vec3f)->vec3f {
  if(params.spectral==0u) {return c;}
  return vec3f(dot(c,vec3f(3.2406,-1.5372,-0.4986)),dot(c,vec3f(-0.9689,1.8758,0.0415)),dot(c,vec3f(0.0557,-0.2040,1.0570)));
 }
-fn compatible(a:vec4f,b:vec4f)->bool {return a.w*b.w>0.0;}
+fn compatible(a:vec4f,b:vec4f)->bool {return params.imageOnly!=0.0 || a.w*b.w>0.0;}
 fn store(p:vec2i,c:vec3f) {
  var result=c;
  if(params.finalPass!=0u) {
@@ -30,14 +30,14 @@ fn filterMain(@builtin(global_invocation_id) id:vec3u) {
   if(any(p>=size)) {return;}
   let center=textureLoad(inputImage,p,0);let guide=textureLoad(guides,p,0);
   // The first surface of a refracted path does not describe its visible background.
-  if(guide.w==0.0||(guide.w<0.0&&params.filterGlass==0u)) {store(p,center.xyz);return;}
+  if(params.imageOnly==0.0 && (guide.w==0.0||(guide.w<0.0&&params.filterGlass==0u))) {store(p,center.xyz);return;}
   var mean=0.0;var second=0.0;
   for(var y=-1;y<=1;y++) {for(var x=-1;x<=1;x++) {
     let q=clamp(p+vec2i(x,y),vec2i(0),size-1);
     let l=luminance(textureLoad(rawImage,q,0).xyz);mean+=l;second+=l*l;
   }}
   // Local spatial variance estimate; never interpreted as a convergence bound.
-  let strength=select(params.strength,params.glassStrength,guide.w<0.0);
+  let strength=select(params.strength,params.glassStrength,guide.w<0.0 && params.imageOnly==0.0);
   let sigma=strength*sqrt(max(0.0,second/9.0-mean*mean/81.0))+0.0001;
   let kernel=array<f32,5>(1,4,6,4,1);var sum=vec3f(0);var weights=0.0;
   let centerL=luminance(center.xyz);
@@ -46,9 +46,9 @@ fn filterMain(@builtin(global_invocation_id) id:vec3u) {
     let q=p+vec2i(x,y)*select(1,i32(params.step),params.algorithm==0u);
     if(any(q<vec2i(0))||any(q>=size)) {continue;}
     let g=textureLoad(guides,q,0);
-    if(g.w*guide.w<=0.0) {continue;}
+    if(params.imageOnly==0.0 && g.w*guide.w<=0.0) {continue;}
     let c=textureLoad(inputImage,q,0).xyz;
-    let imageGlass=guide.w<0.0&&params.filterGlass==2u;
+    let imageGlass=params.imageOnly!=0.0 || (guide.w<0.0&&params.filterGlass==2u);
     let normalWeight=select(pow(max(0.000001,dot(guide.xyz,g.xyz)),params.normalPower),1.0,imageGlass);
     let depthWeight=select(exp(-abs(abs(g.w)-abs(guide.w))/(params.depthScale*abs(guide.w)*f32(params.step)+0.0001)),1.0,imageGlass);
     var distance=abs(luminance(c)-centerL);

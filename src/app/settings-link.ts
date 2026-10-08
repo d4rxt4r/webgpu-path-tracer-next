@@ -1,3 +1,4 @@
+import { CAMERA_DISTANCE_MIN, CAMERA_DISTANCE_MAX, cameraOptics } from "../scene/camera";
 import type { CameraDescription, Vec3 } from "../scene/types";
 
 const controls = (root: ParentNode) => [...root.querySelectorAll<HTMLInputElement | HTMLSelectElement>(".inspector input[id], .inspector select[id]")]
@@ -16,6 +17,7 @@ export function createSettingsLink(root: ParentNode, address: string, camera: Ca
   for (const field of fields) url.searchParams.set(field.id,
     field.type === "checkbox" ? (field as HTMLInputElement).checked ? "1" : "0" : field.value);
   for (const key of ["position", "target", "up"] as const) url.searchParams.set(`camera-${key}`, camera[key].join(","));
+  if (camera.depthOfField) url.searchParams.set("camera-optics", JSON.stringify(camera.depthOfField));
   return url.href;
 }
 
@@ -70,9 +72,11 @@ export function restoreSettingsLink(root: ParentNode, query: URLSearchParams, in
   if (position && target && up) {
     const d = position.map((v, i) => v - target[i]!), length = Math.hypot(...d), upLength = Math.hypot(...up);
     const cross = Math.hypot(d[1]! * up[2] - d[2]! * up[1], d[2]! * up[0] - d[0]! * up[2], d[0]! * up[1] - d[1]! * up[0]);
-    if (length >= 0.25 - 1e-9 && length <= 12 + 1e-9 && Number.isFinite(length) && Math.abs(upLength - 1) < 1e-6
+    if (length >= CAMERA_DISTANCE_MIN - 1e-9 && length <= CAMERA_DISTANCE_MAX + 1e-9 && Number.isFinite(length) && Math.abs(upLength - 1) < 1e-6
       && [...position, ...target].every(value => Math.abs(value) <= 1e6) && cross > length * upLength * 1e-6)
       Object.assign(camera, { position, target, up });
   }
+  const rawOptics = query.get("camera-optics");
+  if (rawOptics) { try { const parsed = JSON.parse(rawOptics); if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error(); camera.depthOfField = parsed; cameraOptics(camera); } catch { delete camera.depthOfField; } }
   return camera;
 }

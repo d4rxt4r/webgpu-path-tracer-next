@@ -1,0 +1,14 @@
+[
+  {
+    "mode": "rgb",
+    "errors": 0,
+    "maxDifference": 0,
+    "nonFinite": 0
+  },
+  {
+    "mode": "spectral",
+    "errors": 0,
+    "maxDifference": 0,
+    "nonFinite": 0
+  }
+]

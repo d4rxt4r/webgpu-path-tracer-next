@@ -1,3 +1,4 @@
+import { validateAperture, pickCameraPoint } from "../accel/camera-optics";
 import { surfaceWearMask } from "../scene/surface-wear";
 import { specializeSurfaceWear } from "../transport/wear-source";
 import { pipelineVariant } from "./pipeline-variants";
@@ -16,7 +17,7 @@ import { ScenePreparer } from "../assets/prepare";
 import { definitions } from "../accel/pack";
 import type { PreparedScene } from "../assets/prepare";
 import type { CameraDescription, SceneDescription } from "../scene/types";
-import { cameraBasis } from "../scene/camera";
+import { cameraBasis, cameraOptics } from "../scene/camera";
 import { makeStructuredView } from "webgpu-utils";
 import { GpuScene } from "../gpu/scene";
 import { loadSobol } from "../assets/sobol";
@@ -308,6 +309,7 @@ export class IntersectionRenderer {
           const material = description.materials[object.material]!;
           return mask | (object.visible !== false && material.type === "dielectric" ? surfaceWearMask(material.surfaceWear) : 0);
         }, 0);
+        validateAperture(packed, cameraRevision === this.cameraRevision ? camera : this.camera!);
         this.packed = packed;
         this.environment?.setScene(packed);
         this.environment?.update(this.environmentSettings);
@@ -337,10 +339,16 @@ export class IntersectionRenderer {
   }
   setCamera(camera: CameraDescription): void {
     cameraBasis(camera);
+    cameraOptics(camera);
+    if (this.packed) validateAperture(this.packed, camera);
     this.camera = structuredClone(camera);
     this.cameraRevision++;
     this.invalidate();
     this.schedule(true);
+  }
+  pickFocus(x: number, y: number) {
+    if (!this.packed || !this.camera) return;
+    return pickCameraPoint(this.packed, this.camera, x * this.stats.width, y * this.stats.height, this.stats.width, this.stats.height);
   }
   setDebugView(view: DebugView): void {
     if (view === "photon-density") {
@@ -802,7 +810,7 @@ export class IntersectionRenderer {
         size: this.parameters.arrayBuffer.byteLength,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
-      this.packetUniforms = new PacketUniforms(device);
+      this.packetUniforms = new PacketUniforms(device, this.parameters.arrayBuffer.byteLength);
       this.displayUniform = device.createBuffer({
         label: "Display parameters",
         size: this.displayParameters.arrayBuffer.byteLength,
@@ -1173,6 +1181,8 @@ export class IntersectionRenderer {
     this.redraw = false;
     try {
       const basis = cameraBasis(camera);
+      validateAperture(this.packed!, camera);
+      const optics = cameraOptics(camera);
       const eyeKey = camera.position.join(",");
       if (this.mediaCache?.packed !== this.packed || this.mediaCache?.eye !== eyeKey)
         this.mediaCache = { packed: this.packed!, eye: eyeKey, shells: cameraShells(this.packed!, camera.position) };
@@ -1245,6 +1255,7 @@ export class IntersectionRenderer {
               forward: [...basis.forward, 0],
               right: [...basis.right, 0],
               up: [...basis.up, 0],
+              optics: [optics.radius, optics.distance, optics.shape === "polygon" ? optics.blades : 0, optics.rotation * Math.PI / 180],
               tile,
               maxDepth: this.settings.maxDepth,
               seed: this.settings.seed,
@@ -1393,7 +1404,7 @@ export class IntersectionRenderer {
         if (commit || this.filterDirty || this.guidesDirty || !this.filtered) {
           this.filtered = this.denoiser!.encode(
             encoder,
-            this.denoise,
+            { ...this.denoise, imageOnly: cameraOptics(this.camera!).active },
             this.settings.mode === "spectral",
             this.guidesDirty,
           );

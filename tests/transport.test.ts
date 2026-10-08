@@ -64,9 +64,10 @@ describe("RGB transport packing", () => {
       Object.keys(makeShaderDataDefinitions(pathShader).storages).length,
     ).toBeLessThanOrEqual(8);
     expect(definitions.structs.DisplayParams!.size).toBe(16);
-    expect(definitions.structs.CameraParams!.fields.tile!.offset).toBe(80);
+    expect(definitions.structs.CameraParams!.fields.optics!.offset).toBe(80);
+    expect(definitions.structs.CameraParams!.fields.tile!.offset).toBe(96);
     expect(definitions.structs.CameraParams!.fields.lightCount!.offset).toBe(
-      108,
+      124,
     );
   });
   it("normalizes area sampling and packs all emitters", () => {

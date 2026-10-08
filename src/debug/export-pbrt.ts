@@ -1,3 +1,4 @@
+import { cameraOptics } from "../scene/camera";
 import { bakeTriangles } from "../accel/geometry";
 import { hasSurfaceWear } from "../scene/surface-wear";
 import type {
@@ -25,12 +26,13 @@ export function exportPbrt(
     throw new Error("PBRT reference export does not support procedural surface wear; disable wear first");
   const spectrum = (name: string, table: SpectrumTable) =>
     `"spectrum ${name}" [${table.flat().join(" ")}]`;
-  const camera = scene.camera;
+  const camera = scene.camera, optics = cameraOptics(camera);
+  if (optics.active && optics.shape === "polygon") throw new Error("PBRT export does not support polygonal apertures");
   const lines = [
     "# Generated spectral reference scene. PBRT v4, CIE1931 sensor, linear sRGB, no white balance.",
     "Scale -1 1 1",
     `LookAt ${camera.position.join(" ")} ${camera.target.join(" ")} ${camera.up.join(" ")}`,
-    `Camera "perspective" "float fov" [${camera.verticalFov}]`,
+    `Camera "perspective" "float fov" [${camera.verticalFov}] "float lensradius" [${optics.radius}] "float focaldistance" [${optics.distance}]`,
     `Film "rgb" "integer xresolution" [${width}] "integer yresolution" [${height}] "string filename" ["${filename}"] "string sensor" ["cie1931"] "float iso" [${100 / CIE_Y_INTEGRAL}] "float whitebalance" [0]`,
     'PixelFilter "box" "float xradius" [0.5] "float yradius" [0.5]',
     `Sampler "sobol" "integer pixelsamples" [${samples}]`,

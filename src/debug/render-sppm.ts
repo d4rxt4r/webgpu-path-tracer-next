@@ -1,3 +1,5 @@
+import { GpuTimer } from "../gpu/timer";
+import { validateAperture } from "../accel/camera-optics";
 import { cameraShells } from "../accel/camera-media";
 import { makeStructuredView } from "webgpu-utils";
 import { createDevice, type DeviceInfo } from "../gpu/device";
@@ -7,7 +9,7 @@ import { buildBvh } from "../accel/bvh";
 import { definitions, packBvh } from "../accel/pack";
 import { packTransport } from "../accel/materials";
 import { loadSobol } from "../assets/sobol";
-import { cameraBasis } from "../scene/camera";
+import { cameraBasis, cameraOptics } from "../scene/camera";
 import type { SceneDescription } from "../scene/types";
 import { TRANSPORT_QUEUE_BYTES } from "../render/transport-diagnostics";
 import { SppmIntegrator } from "../render/sppm-integrator";
@@ -20,6 +22,7 @@ export async function renderSppm(
   scene: SceneDescription,
   options: {
     iterations: number;
+    measure?: boolean;
     width?: number;
     height?: number;
     mode?: "rgb" | "spectral";
@@ -44,6 +47,7 @@ export async function renderSppm(
     integrator: SppmIntegrator | undefined,
     image: GPUTexture | undefined;
   let denoiser: Denoiser | undefined;
+  let timer: GpuTimer | undefined;
   const create = (size: number, usage: GPUBufferUsageFlags) => {
     const buffer = device.createBuffer({ size, usage });
     buffers.push(buffer);
@@ -64,6 +68,7 @@ export async function renderSppm(
       packed = { ...packBvh(bvh), ...packTransport(scene, bvh) };
     if (mode === "spectral" && !packed.spectralReady)
       throw new Error("Acceptance scene needs spectra");
+    validateAperture(packed, scene.camera);
     gpu = new GpuScene(device, packed);
     const directions = await loadSobol();
     const sobol = create(
@@ -104,7 +109,7 @@ export async function renderSppm(
       accumulation,
       texture: image,
     });
-    const basis = cameraBasis(scene.camera);
+    const basis = cameraBasis(scene.camera), optics = cameraOptics(scene.camera);
     const shells = cameraShells(packed, scene.camera.position);
     const initialShells = new Uint32Array(32); initialShells.set(shells);
     let jobs = 0;
@@ -114,11 +119,15 @@ export async function renderSppm(
       floorMeanY: number;
       elapsedMs: number;
     }[] = [];
+    const timing = options.measure && device.features.has("timestamp-query") ? create(80, GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST) : undefined;
+    if (timing) timer = new GpuTimer(device);
+    let gpuMs = 0;
     const started = performance.now();
     while (integrator.iterations < options.iterations) {
       parameters.set({
         size: [width, height],
         frame: integrator.iterations,
+        optics: [optics.radius, optics.distance, optics.shape === "polygon" ? optics.blades : 0, optics.rotation * Math.PI / 180],
         eye: [...basis.eye, 0],
         forward: [...basis.forward, 0],
         right: [...basis.right, 0],
@@ -132,8 +141,11 @@ export async function renderSppm(
       });
       device.queue.writeBuffer(camera, 0, parameters.arrayBuffer);
       const encoder = device.createCommandEncoder();
+      timer?.begin(encoder);
       integrator.encodeStep(encoder);
+      if (timing) timer?.end(encoder, timing);
       device.queue.submit([encoder.finish()]);
+      if (timing) { await timing.mapAsync(GPUMapMode.READ); gpuMs += timer!.read(timing.getMappedRange()); timing.unmap(); }
       if (++jobs % 32 === 0) await device.queue.onSubmittedWorkDone();
       if (
         integrator.phase === "camera" &&
@@ -181,6 +193,8 @@ export async function renderSppm(
         });
       }
     }
+    await device.queue.onSubmittedWorkDone();
+    const completionMs = performance.now() - started;
     const encoder = device.createCommandEncoder();
     encoder.copyBufferToBuffer(accumulation, 0, readback, 0, accumulation.size);
     encoder.copyBufferToBuffer(errors, 0, readback, accumulation.size, 128);
@@ -203,7 +217,7 @@ export async function renderSppm(
       const encoder = device.createCommandEncoder();
       const output = denoiser.encode(
         encoder,
-        options.denoise,
+        {...options.denoise, imageOnly: optics.active},
         mode === "spectral",
         true,
       );
@@ -267,6 +281,8 @@ export async function renderSppm(
       debugPoint = point.views;
     }
     return {
+      gpuMs: timer ? gpuMs : null,
+      completionMs,
       debugPoint,
       width,
       height,
@@ -280,6 +296,7 @@ export async function renderSppm(
       adapter: name,
     };
   } finally {
+    timer?.dispose();
     denoiser?.dispose();
     integrator?.dispose();
     image?.destroy();

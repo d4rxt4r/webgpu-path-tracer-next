@@ -1,0 +1,135 @@
+{
+  "adapter": "intel gen-12lp",
+  "width": 16,
+  "height": 8,
+  "imageOnly": true,
+  "checks": 8118,
+  "rows": [
+    {
+      "algorithm": 0,
+      "spectral": false,
+      "glassMode": 0,
+      "gpuMs": 0.131072,
+      "completionMs": 7.4000000059604645
+    },
+    {
+      "algorithm": 0,
+      "spectral": false,
+      "glassMode": 1,
+      "gpuMs": 0.065536,
+      "completionMs": 3.2000000029802322
+    },
+    {
+      "algorithm": 0,
+      "spectral": false,
+      "glassMode": 2,
+      "gpuMs": 0.065536,
+      "completionMs": 4.299999997019768
+    },
+    {
+      "algorithm": 1,
+      "spectral": false,
+      "glassMode": 0,
+      "gpuMs": 0.65536,
+      "completionMs": 2.7999999970197678
+    },
+    {
+      "algorithm": 1,
+      "spectral": false,
+      "glassMode": 1,
+      "gpuMs": 0.065536,
+      "completionMs": 3
+    },
+    {
+      "algorithm": 1,
+      "spectral": false,
+      "glassMode": 2,
+      "gpuMs": 0.065536,
+      "completionMs": 4.100000008940697
+    },
+    {
+      "algorithm": 2,
+      "spectral": false,
+      "glassMode": 0,
+      "gpuMs": 0.32768,
+      "completionMs": 3.1000000089406967
+    },
+    {
+      "algorithm": 2,
+      "spectral": false,
+      "glassMode": 1,
+      "gpuMs": 0.32768,
+      "completionMs": 3
+    },
+    {
+      "algorithm": 2,
+      "spectral": false,
+      "glassMode": 2,
+      "gpuMs": 0.262144,
+      "completionMs": 3.2999999970197678
+    },
+    {
+      "algorithm": 0,
+      "spectral": true,
+      "glassMode": 0,
+      "gpuMs": 0,
+      "completionMs": 4.5999999940395355
+    },
+    {
+      "algorithm": 0,
+      "spectral": true,
+      "glassMode": 1,
+      "gpuMs": 0.065536,
+      "completionMs": 3
+    },
+    {
+      "algorithm": 0,
+      "spectral": true,
+      "glassMode": 2,
+      "gpuMs": 0.065536,
+      "completionMs": 2.7999999970197678
+    },
+    {
+      "algorithm": 1,
+      "spectral": true,
+      "glassMode": 0,
+      "gpuMs": 0,
+      "completionMs": 3.2000000029802322
+    },
+    {
+      "algorithm": 1,
+      "spectral": true,
+      "glassMode": 1,
+      "gpuMs": 0.065536,
+      "completionMs": 3.7000000029802322
+    },
+    {
+      "algorithm": 1,
+      "spectral": true,
+      "glassMode": 2,
+      "gpuMs": 0.065536,
+      "completionMs": 3
+    },
+    {
+      "algorithm": 2,
+      "spectral": true,
+      "glassMode": 0,
+      "gpuMs": 0.32768,
+      "completionMs": 3.7000000029802322
+    },
+    {
+      "algorithm": 2,
+      "spectral": true,
+      "glassMode": 1,
+      "gpuMs": 0.32768,
+      "completionMs": 3.1000000089406967
+    },
+    {
+      "algorithm": 2,
+      "spectral": true,
+      "glassMode": 2,
+      "gpuMs": 0.32768,
+      "completionMs": 2.7999999970197678
+    }
+  ]
+}

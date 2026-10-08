@@ -1,3 +1,4 @@
+import { cameraOptics, distanceFraction, logDistance } from "../scene/camera";
 import { cleanSurface, rastagotchiWear, wearControlIds, wearEffects } from "../scene/surface-wear";
 import { applyArrangement, setupEnvironment } from './environment-ui';
 import { applyMaterialEditor, baseMaterial, initializeMaterialEditor, materialControlIds, materialMetadata, syncMaterialEditor, textureMemory } from "./material-editor";
@@ -152,11 +153,13 @@ let idleTimer: ReturnType<typeof setTimeout> | undefined,
 let profile: Profile = controlScene ? "custom" : "quality";
 
 function syncRanges(): void {
+  for (const slider of document.querySelectorAll<HTMLInputElement>("[data-log-for]")) { const field = input(slider.dataset.logFor!); slider.value = String(1000 * distanceFraction(Number(field.value), Number(field.min), Number(field.max))); }
   for (const slider of document.querySelectorAll<HTMLInputElement>(
     "input[type=range]:not([data-log-for])",
   ))
     input(`${slider.id}-value`).value = slider.value;
 }
+let refreshOpticsUi: (() => void) | undefined;
 function syncSettings(): void {
   selectInput("profile").value = profile;
   selectInput("mode").value = target.mode;
@@ -212,6 +215,7 @@ function syncSettings(): void {
       scenePending;
   }
   syncRanges();
+  refreshOpticsUi?.();
 }
 syncSettings();
 if (query.get('settings') === '1' && query.get('scene-layout') === 'open') {
@@ -220,6 +224,7 @@ if (query.get('settings') === '1' && query.get('scene-layout') === 'open') {
     input(id + suffix).max = '10';
   }
 }
+const originalCamera = structuredClone(description.camera);
 const linkedCamera = restoreSettingsLink(document, query, description.camera);
 const hasSharedSettings = linkedCamera !== undefined;
 if (linkedCamera) {
@@ -401,16 +406,28 @@ async function start(): Promise<void> {
         | "linear",
     });
     syncSettings();
+    syncOptics();
   };
   const settle = (): void => {
     clearTimeout(idleTimer);
     applyTarget();
   };
   const orbit = attachOrbit(canvas, description.camera, (camera) => {
+    try { renderer.setCamera(camera); } catch (error) {
+      input('fov').value = String(currentCamera.verticalFov);
+      input('camera-distance').value = String(Number(Math.hypot(...currentCamera.position.map((v,i)=>v-currentCamera.target[i]!)).toPrecision(12)));
+      syncOptics();
+      const status = document.querySelector<HTMLElement>('#camera-status')!;
+      status.hidden = false;
+      status.textContent = String(error);
+      return false;
+    }
     currentCamera = camera;
+    document.querySelector<HTMLElement>('#camera-status')!.hidden = true;
+    syncOptics();
     input("fov").value = String(camera.verticalFov);
     input("camera-distance").value = String(
-      Math.hypot(...camera.position.map((v, i) => v - camera.target[i]!)),
+      Number(Math.hypot(...camera.position.map((v, i) => v - camera.target[i]!)).toPrecision(12)),
     );
     syncRanges();
     if (
@@ -425,8 +442,50 @@ async function start(): Promise<void> {
       renderer.setSettings({ ...target, ...profiles.preview });
       idleTimer = setTimeout(settle, 250);
     }
-    renderer.setCamera(camera);
   });
+  let pickingFocus = false;
+  const focusStatus = document.querySelector<HTMLElement>('#focus-status')!;
+  function syncOptics(): void {
+    const d = currentCamera.depthOfField ?? {}, optics = cameraOptics(currentCamera);
+    input('dof-enabled').checked = !!d.enabled;
+    input('aperture-diameter').value = String((d.apertureDiameter ?? .02) * 1000);
+    input('focus-distance').value = String(d.focusDistance ?? Math.hypot(...currentCamera.position.map((v,i)=>v-currentCamera.target[i]!)));
+    input('focus-distance').dataset.default = String(Math.hypot(...originalCamera.position.map((v,i)=>v-originalCamera.target[i]!)));
+    selectInput('focus-mode').value = d.focusMode ?? 'target'; selectInput('aperture-shape').value = d.apertureShape ?? 'circle';
+    input('aperture-blades').value = String(d.blades ?? 6); input('aperture-rotation').value = String(d.rotation ?? 0);
+    document.querySelector<HTMLElement>('#dof-settings')!.hidden = !d.enabled;
+    document.querySelector<HTMLElement>('#manual-focus')!.hidden = d.focusMode !== 'manual';
+    document.querySelector<HTMLElement>('#polygon-settings')!.hidden = d.apertureShape !== 'polygon';
+    focusStatus.textContent = pickingFocus ? 'Нажмите на поверхность; Escape — отмена.' : `Фокус: ${optics.distance.toFixed(3)} м${optics.behind ? ' — точка позади камеры, применена минимальная дистанция.' : ''}`;
+    for (const id of ['denoise-normal','denoise-depth','glass-strength']) for (const suffix of ['', '-value']) input(id+suffix).disabled = optics.active || !input('denoiser').checked;
+    selectInput('glass-mode').disabled = optics.active || !input('denoiser').checked;
+    document.querySelector('#denoise-status')!.textContent = optics.active
+      ? 'При глубине резкости фильтруется весь кадр по изображению; защита геометрии и отдельные режимы стекла недоступны.'
+      : selectInput('denoise-algorithm').value === 'nlm' ? 'NLM применяется на паузе или после достижения цели. При накоплении показан оригинал.' : '';
+    syncRanges();
+  }
+  function changeOptics(event: Event): void {
+    // Logarithmic number fields commit on change; let users finish typing.
+    if (event.isTrusted && event.type === 'input' && (event.target as HTMLInputElement).id === 'focus-distance') return;
+    const d = { ...currentCamera.depthOfField, enabled: input('dof-enabled').checked, apertureDiameter: value('aperture-diameter') / 1000,
+      focusMode: selectInput('focus-mode').value as 'target' | 'manual' | 'point', focusDistance: value('focus-distance'),
+      apertureShape: selectInput('aperture-shape').value as 'circle' | 'polygon', blades: value('aperture-blades'), rotation: value('aperture-rotation') };
+    try { orbit.set({ ...currentCamera, depthOfField: d }); } catch (error) { syncOptics(); focusStatus.textContent = String(error); }
+  }
+  for (const id of ['dof-enabled','focus-mode','aperture-shape']) input(id).addEventListener('change', changeOptics);
+  for (const id of ['aperture-diameter','focus-distance','aperture-blades','aperture-rotation']) input(id).addEventListener('input', changeOptics);
+  button('pick-focus').addEventListener('click', () => { pickingFocus = true; canvas.style.cursor='crosshair'; syncOptics(); });
+  window.addEventListener('keydown', event => { if (event.key === 'Escape' && pickingFocus) { pickingFocus=false; canvas.style.cursor=''; syncOptics(); } });
+  canvas.addEventListener('pointerdown', event => {
+    if (!pickingFocus || event.button !== 0) return;
+    event.stopImmediatePropagation(); event.preventDefault();
+    const rect=canvas.getBoundingClientRect(), point=renderer.pickFocus((event.clientX-rect.left)/rect.width,(event.clientY-rect.top)/rect.height);
+    pickingFocus=false; canvas.style.cursor='';
+    if (point) { try { orbit.set({...currentCamera, depthOfField:{...currentCamera.depthOfField,focusMode:'point',focusPoint:point}}); } catch (error) { focusStatus.textContent=String(error); } }
+    else { syncOptics(); focusStatus.textContent += ' Промах: прежний фокус сохранён.'; }
+  }, {capture:true});
+  refreshOpticsUi = syncOptics;
+  syncOptics();
   const objStatus = document.querySelector<HTMLElement>("#obj-status")!;
   const describeModel = (model: BuiltinObj, name: string, glass: boolean, thin = !model.solid): string => {
     let text = `${name} · ${model.triangles.toLocaleString("ru-RU")} треугольников · Оболочек: ${model.shells ?? 1}`;
@@ -647,7 +706,8 @@ async function start(): Promise<void> {
   ])
     input(id).addEventListener("input", queueScene);
   for (const id of ["fov", "camera-distance"])
-    input(id).addEventListener("input", () => {
+    input(id).addEventListener("input", (event) => {
+      if (id === 'camera-distance' && event.isTrusted) return;
       const distance = value("camera-distance"),
         delta = currentCamera.position.map(
           (v, i) => v - currentCamera.target[i]!,
@@ -707,7 +767,7 @@ async function start(): Promise<void> {
   for (const slider of document.querySelectorAll<HTMLInputElement>("[data-log-for]")) {
     const scale = input(slider.dataset.logFor!);
     slider.addEventListener("input", () => {
-      scale.value = String(Number((Number(scale.min) * (Number(scale.max)/Number(scale.min)) ** (Number(slider.value)/1000)).toPrecision(6)));
+      scale.value = String(Number(logDistance(Number(slider.value)/1000, Number(scale.min), Number(scale.max)).toPrecision(6)));
       scale.dispatchEvent(new Event("input"));
     });
     scale.addEventListener("change", () => {
@@ -730,7 +790,7 @@ async function start(): Promise<void> {
     });
   }
   attachMiddleReset(controlScene);
-  button("reset").addEventListener("click", () => orbit.reset());
+  button("reset").addEventListener("click", () => orbit.set({...structuredClone(originalCamera), depthOfField: undefined}));
   button("restart").addEventListener("click", () =>
     renderer.setCamera(currentCamera),
   );
