@@ -1,7 +1,8 @@
+import { numericLimits, validNumeric, readControl, writeControl } from "./numeric-controls";
 import { CAMERA_DISTANCE_MIN, CAMERA_DISTANCE_MAX, cameraOptics } from "../scene/camera";
 import type { CameraDescription, Vec3 } from "../scene/types";
 
-const controls = (root: ParentNode) => [...root.querySelectorAll<HTMLInputElement | HTMLSelectElement>(".inspector input[id], .inspector select[id]")]
+const controls = (root: ParentNode) => [...root.querySelectorAll<HTMLInputElement | HTMLSelectElement>(".inspector input[id], .inspector select[id], .viewport-toolbar select[id]")]
   .filter(control => !control.id.endsWith("-value") && control.type !== "file");
 
 export function createSettingsLink(root: ParentNode, address: string, camera: CameraDescription): string {
@@ -15,7 +16,7 @@ export function createSettingsLink(root: ParentNode, address: string, camera: Ca
   url.hash = "";
   url.searchParams.set("settings", "1");
   for (const field of fields) url.searchParams.set(field.id,
-    field.type === "checkbox" ? (field as HTMLInputElement).checked ? "1" : "0" : field.value);
+    field.type === "checkbox" ? (field as HTMLInputElement).checked ? "1" : "0" : readControl(root, field.id));
   for (const key of ["position", "target", "up"] as const) url.searchParams.set(`camera-${key}`, camera[key].join(","));
   if (camera.depthOfField) url.searchParams.set("camera-optics", JSON.stringify(camera.depthOfField));
   return url.href;
@@ -46,6 +47,7 @@ export function restoreSettingsLink(root: ParentNode, query: URLSearchParams, in
     } else if (field.type === "color") {
       if (/^#[0-9a-f]{6}$/i.test(raw)) field.value = raw;
     } else if (field.type === "number" || field.type === "range") {
+      if (numericLimits[field.id]) { if (validNumeric(field.id, raw)) writeControl(root, field.id, raw); continue; }
       const input = field as HTMLInputElement, value = Number(raw);
       if (raw.trim() && Number.isFinite(value) && (!input.min || value >= Number(input.min)) && (!input.max || value <= Number(input.max))
         && (input.step !== "1" || Number.isInteger(value))) input.value = input.id.startsWith("wear-") ? String(value) : raw;
@@ -59,7 +61,7 @@ export function restoreSettingsLink(root: ParentNode, query: URLSearchParams, in
     const radius = fields.find(field => field.id === "denoise-radius");
     if (radius) radius.value = "3";
   }
-  const read = (id: string) => Number(fields.find(field => field.id === id)!.value);
+  const read = (id: string) => Number(readControl(root, id));
   const camera = structuredClone(initial);
   camera.verticalFov = read("fov");
   const distance = read("camera-distance"), delta = initial.position.map((v, i) => v - initial.target[i]!);

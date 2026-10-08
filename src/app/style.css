@@ -73,14 +73,14 @@ input[type="checkbox"] {
 .editor {
   height: 100dvh;
   display: grid;
-  grid-template-rows: 43px minmax(0, 1fr) 42px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   overflow: hidden;
 }
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 14px;
+  padding: 8px 14px;
   background: #21232a;
   border-bottom: 1px solid #383b44;
   gap: 12px;
@@ -91,16 +91,10 @@ input[type="checkbox"] {
   gap: 10px;
   white-space: nowrap;
 }
-.brand svg {
-  color: #a8b4ff;
-}
 .brand h1 {
   font-size: 13px;
   font-weight: 600;
   margin: 0;
-}
-.brand span {
-  color: #7d8392;
 }
 .top-actions {
   display: flex;
@@ -109,7 +103,13 @@ input[type="checkbox"] {
 }
 .top-actions button {
   padding: 4px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
+.top-actions svg { flex: none; }
+.topbar, .top-actions { flex-wrap: wrap; }
 .workspace {
   min-height: 0;
   display: grid;
@@ -135,19 +135,8 @@ input[type="checkbox"] {
 .viewport-toolbar select {
   min-height: 24px;
 }
-.profile-buttons {
-  display: flex;
-  gap: 3px;
-}
-.profile-buttons button {
-  border-color: transparent;
-  background: transparent;
-  min-height: 24px;
-}
-.profile-buttons button.selected {
-  background: #3f4765;
-  color: #e1e6ff;
-}
+.viewport-toolbar .field { display: flex; align-items: center; gap: 8px; }
+.viewport-toolbar .setting-row { width: auto; }
 .viewport {
   display: flex;
   align-items: center;
@@ -167,20 +156,6 @@ canvas {
 }
 canvas:active {
   cursor: grabbing;
-}
-.viewport-overlay {
-  position: absolute;
-  top: 14px;
-  left: 16px;
-  pointer-events: none;
-  display: grid;
-  gap: 5px;
-  color: #d1d4df;
-  font-size: 11px;
-  text-shadow: 0 1px 3px #000;
-}
-.viewport-overlay span {
-  color: #9198a7;
 }
 .viewport-help {
   padding: 5px 10px;
@@ -227,12 +202,6 @@ canvas:active {
   padding: 8px 14px;
   font-size: 12px;
   color: #a9b0c0;
-}
-.view-setting {
-  padding: 12px 14px;
-  border-bottom: 1px solid #373a43;
-  display: grid;
-  gap: 8px;
 }
 details {
   border-bottom: 1px solid #373a43;
@@ -375,14 +344,17 @@ details[open] summary {
   margin-top: 12px;
 }
 .statusbar {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 5px 14px;
+  gap: 20px;
+  white-space: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding: 12px 18px;
   background: #202229;
   border-top: 1px solid #383b44;
-  font-size: 10px;
+  font-size: 11px;
+  line-height: 1.6;
 }
 .statusbar strong {
   font-weight: 500;
@@ -393,24 +365,18 @@ details[open] summary {
   margin: 0;
   color: #808899;
   line-height: 1.5;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .statusbar #elapsed {
+  margin-left: auto;
   white-space: nowrap;
   color: #8c94a5;
 }
+.statusbar > * { flex: none; }
+.status-details, .scene-status { display: flex; align-items: center; gap: 18px; }
+.scene-status #activity { color: #aeb5c4; }
 @media (max-width: 800px) {
   .workspace {
     grid-template-columns: minmax(0, 1fr) 264px;
-  }
-  .brand span {
-    display: none;
-  }
-  .profile-buttons button {
-    font-size: 10px;
-    padding: 3px 6px;
   }
   .viewport-toolbar {
     padding: 4px 6px;
@@ -433,9 +399,6 @@ details[open] summary {
     grid-template-columns: 75px minmax(0, 1fr);
     gap: 5px;
   }
-  .profile-buttons {
-    display: none;
-  }
   .topbar {
     padding: 0 8px;
   }
@@ -446,10 +409,8 @@ details[open] summary {
     padding: 4px 7px;
   }
   .statusbar {
-    gap: 8px;
-    padding: 5px 8px;
+    gap: 16px;
+    padding: 12px;
   }
-  .statusbar #elapsed {
-    display: none;
-  }
+
 }

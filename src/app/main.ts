@@ -1,3 +1,4 @@
+import { bindNumericControls, numericLimits, readControl, writeControl } from "./numeric-controls";
 import { cameraOptics, distanceFraction, logDistance } from "../scene/camera";
 import { cleanSurface, rastagotchiWear, wearControlIds, wearEffects } from "../scene/surface-wear";
 import { applyArrangement, setupEnvironment } from './environment-ui';
@@ -10,7 +11,7 @@ import { attachSettingsHelp } from "./settings-help";
 import { attachMiddleReset } from "./settings-reset";
 import { createSettingsLink, restoreSettingsLink } from "./settings-link";
 import "./style.css";
-import { renderEditor } from "./editor-ui";
+import { renderEditor, pauseButtonContent } from "./editor-ui";
 import { createDevice } from "../gpu/device";
 import { cornellScene } from "../scene/cornell";
 import type { SphereMaterial } from "../scene/cornell";
@@ -61,7 +62,7 @@ const selectInput = (id: string): HTMLSelectElement =>
   document.querySelector<HTMLSelectElement>(`#${id}`)!;
 const button = (id: string): HTMLButtonElement =>
   document.querySelector<HTMLButtonElement>(`#${id}`)!;
-const value = (id: string): number => Number(input(id).value);
+const value = (id: string): number => Number(readControl(document, id));
 const canvas = document.querySelector("canvas")!;
 const status = document.querySelector<HTMLElement>("#status")!;
 const stats = document.querySelector<HTMLElement>("#stats")!;
@@ -78,6 +79,7 @@ document.addEventListener("keydown", (event) => {
     event.preventDefault();
   }
 });
+bindNumericControls(document, error => { errorPanel.hidden = false; errorMessage.textContent = error.message; });
 const description = cornellScene(initialMaterial);
 if (initialScene === "buddha") {
   input("object-y").value = "0.86";
@@ -113,7 +115,7 @@ function applyRastagotchiPreset(): void {
 }
 if (initialMaterial === "lava") {
   input("texture-scale").value = "6";
-  input("texture-width").value = "0.04";
+  writeControl(document, "texture-width", "0.04");
 }
 function currentModelIsSolid(): boolean {
   const selected = selectInput("scene").value;
@@ -157,7 +159,7 @@ function syncRanges(): void {
   for (const slider of document.querySelectorAll<HTMLInputElement>(
     "input[type=range]:not([data-log-for])",
   ))
-    input(`${slider.id}-value`).value = slider.value;
+    if (numericLimits[slider.id]) writeControl(document, slider.id, readControl(document, slider.id)); else input(`${slider.id}-value`).value = slider.value;
 }
 let refreshOpticsUi: (() => void) | undefined;
 function syncSettings(): void {
@@ -170,15 +172,10 @@ function syncSettings(): void {
   input("seed").value = String(target.seed);
   input("photons").value = String(target.photonsPerIteration);
   selectInput("batch").value = String(target.photonBatchSize);
-  input("radius").value = String(target.initialRadius);
-  input("memory-budget").value = String(target.memoryBudgetMiB);
+  writeControl(document, "radius", String(target.initialRadius));
+  writeControl(document, "memory-budget", String(target.memoryBudgetMiB));
   const memoryProfile = selectInput("memory-profile");
   memoryProfile.value = Array.from(memoryProfile.options).some(option => option.value === String(target.memoryBudgetMiB)) ? String(target.memoryBudgetMiB) : "custom";
-  document
-    .querySelectorAll<HTMLButtonElement>("[data-profile]")
-    .forEach((b) =>
-      b.classList.toggle("selected", b.dataset.profile === profile),
-    );
   if (ready) {
     if (
       target.integrator !== "sppm" &&
@@ -231,7 +228,7 @@ if (linkedCamera) {
   description.camera = linkedCamera;
   input("camera-distance").value = String(Math.hypot(...linkedCamera.position.map((v, i) => v - linkedCamera.target[i]!)));
   for (const [id, key] of Object.entries(pathControls)) {
-    const raw = document.querySelector<HTMLInputElement | HTMLSelectElement>(`#${id}`)!.value;
+    const raw = readControl(document, id);
     target = { ...target, [key]: key === "mode" || key === "integrator" || key === "strategy" ? raw : Number(raw) };
   }
   profile = selectInput("profile").value as Profile;
@@ -302,7 +299,6 @@ async function start(): Promise<void> {
           ? " · GPU timestamp: недоступен"
           : ` · GPU ${info.gpuMs.toFixed(2)} мс`;
       stats.title = stats.textContent;
-      document.querySelector<HTMLElement>("#progress")!.textContent = progress;
       activity.textContent = targetPending ? "Preview / подготовка выбранного режима…" : interacting
         ? "Preview / движение камеры"
         : `${profile === "custom" ? "Вручную" : profile} · ${info.integrator.toUpperCase()} / ${info.phase === "camera" ? "накопление" : phase}`;
@@ -344,11 +340,11 @@ async function start(): Promise<void> {
         !userPaused
       ) {
         userPaused = true;
-        button("pause").textContent = "Продолжить";
+        button("pause").innerHTML = pauseButtonContent(userPaused);
         renderer.pause();
       }
-      button("pause").disabled =
-        info.status === "error" || info.status === "recovering";
+      button("restart").disabled = button("pause").disabled =
+        !ready || info.status === "error" || info.status === "recovering";
       if (ready)
         button("export-png").disabled = button("export-pfm").disabled =
           startupPending || targetPending || lastSamples === 0 ||
@@ -414,7 +410,7 @@ async function start(): Promise<void> {
   };
   const orbit = attachOrbit(canvas, description.camera, (camera) => {
     try { renderer.setCamera(camera); } catch (error) {
-      input('fov').value = String(currentCamera.verticalFov);
+      writeControl(document, "fov", String(currentCamera.verticalFov));
       input('camera-distance').value = String(Number(Math.hypot(...currentCamera.position.map((v,i)=>v-currentCamera.target[i]!)).toPrecision(12)));
       syncOptics();
       const status = document.querySelector<HTMLElement>('#camera-status')!;
@@ -425,7 +421,7 @@ async function start(): Promise<void> {
     currentCamera = camera;
     document.querySelector<HTMLElement>('#camera-status')!.hidden = true;
     syncOptics();
-    input("fov").value = String(camera.verticalFov);
+    writeControl(document, "fov", String(camera.verticalFov));
     input("camera-distance").value = String(
       Number(Math.hypot(...camera.position.map((v, i) => v - camera.target[i]!)).toPrecision(12)),
     );
@@ -501,7 +497,7 @@ async function start(): Promise<void> {
   const textures = textureMemory();
   let committedTextures = textures.capture();
   const sceneFields = ["scene-layout", "ground", "area-light", "scene", "material", ...sceneControlIds.filter(id => id !== "absorption"), ...textureControlIds, ...materialControlIds];
-  const captureSceneUi = () => Object.fromEntries(sceneFields.map(id => { const control = document.getElementById(id) as HTMLInputElement; return [id, control.type === "checkbox" ? control.checked : control.value]; }));
+  const captureSceneUi = () => Object.fromEntries(sceneFields.map(id => { const control = document.getElementById(id) as HTMLInputElement; return [id, control.type === "checkbox" ? control.checked : readControl(document, id)]; }));
   let committedUi = captureSceneUi();
   let committedRepair = input("repair-obj").checked;
   const restoreSceneUi = () => {
@@ -511,7 +507,7 @@ async function start(): Promise<void> {
     const option = selectInput("scene").querySelector<HTMLOptionElement>('[value="uploaded"]');
     if (uploadedObj && option) option.textContent = uploadedObj.name;
     else option?.remove();
-    for (const [id, value] of Object.entries(committedUi)) { const control = document.getElementById(id) as HTMLInputElement; if (typeof value === "boolean") control.checked = value; else control.value = value; }
+    for (const [id, value] of Object.entries(committedUi)) { const control = document.getElementById(id) as HTMLInputElement; if (typeof value === "boolean") control.checked = value; else writeControl(document, id, value); }
     scenePending = false;
     syncObjectScale(); syncSettings();
   };
@@ -637,12 +633,6 @@ async function start(): Promise<void> {
       showError(error);
     }
   });
-  document.querySelectorAll<HTMLButtonElement>("[data-profile]").forEach((b) =>
-    b.addEventListener("click", () => {
-      selectInput("profile").value = b.dataset.profile!;
-      selectInput("profile").dispatchEvent(new Event("change"));
-    }),
-  );
   for (const [id, key] of Object.entries(pathControls))
     document
       .querySelector(`#${id}`)!
@@ -657,7 +647,7 @@ async function start(): Promise<void> {
           const next =
             key === "mode" || key === "integrator" || key === "strategy"
               ? control.value
-              : Number(control.value);
+              : value(id);
           const previous = target, previousProfile = profile;
           target = { ...target, [key]: next };
           profile = "custom";
@@ -674,7 +664,7 @@ async function start(): Promise<void> {
   selectInput("memory-profile").addEventListener("change", () => {
     const selected = selectInput("memory-profile").value;
     if (selected === "custom") return;
-    input("memory-budget").value = selected;
+    writeControl(document, "memory-budget", selected);
     input("memory-budget").dispatchEvent(new Event("input"));
   });
   input("auto-preview").addEventListener("change", () => {
@@ -734,7 +724,7 @@ async function start(): Promise<void> {
   });
   button("apply-nlm").addEventListener("click", () => {
     userPaused = true;
-    button("pause").textContent = "Продолжить";
+    button("pause").innerHTML = pauseButtonContent(userPaused);
     applyDisplay();
     void renderer.applyNlm().catch(showError);
   });
@@ -746,6 +736,7 @@ async function start(): Promise<void> {
   for (const slider of document.querySelectorAll<HTMLInputElement>(
     "input[type=range]:not([data-log-for])",
   )) {
+    if (numericLimits[slider.id]) continue;
     slider.addEventListener("input", () => {
       input(`${slider.id}-value`).value = slider.value;
     });
@@ -802,7 +793,7 @@ async function start(): Promise<void> {
     )
       input("sample-limit").value = "0";
     userPaused = !userPaused;
-    button("pause").textContent = userPaused ? "Продолжить" : "Пауза";
+    button("pause").innerHTML = pauseButtonContent(userPaused);
     if (userPaused) renderer.pause();
     else renderer.resume();
   });
@@ -982,7 +973,7 @@ async function start(): Promise<void> {
 }
 void start().catch((error) => {
   status.textContent = "Ошибка запуска";
-  button("pause").disabled = true;
+  button("restart").disabled = button("pause").disabled = true;
   errorPanel.hidden = false;
   errorMessage.textContent =
     error instanceof Error ? error.message : String(error);

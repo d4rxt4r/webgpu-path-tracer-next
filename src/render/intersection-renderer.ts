@@ -1,3 +1,4 @@
+import { validNumeric } from "../scene/numeric-settings";
 import { validateAperture, pickCameraPoint } from "../accel/camera-optics";
 import { surfaceWearMask } from "../scene/surface-wear";
 import { specializeSurfaceWear } from "../transport/wear-source";
@@ -415,7 +416,7 @@ export class IntersectionRenderer {
       next.maxPixels > settingsLimits.maxPixels ||
       !Number.isFinite(next.memoryBudgetMiB) ||
       next.memoryBudgetMiB < settingsLimits.minMemoryMiB ||
-      next.memoryBudgetMiB > settingsLimits.maxMemoryMiB
+      !validNumeric("memory-budget", String(next.memoryBudgetMiB))
     )
       throw new Error("Invalid path tracing settings");
     if (this.device) {

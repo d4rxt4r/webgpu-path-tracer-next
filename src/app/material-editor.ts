@@ -1,3 +1,4 @@
+import { readControl, writeControl } from "./numeric-controls";
 import type { SphereMaterial } from "../scene/cornell";
 import type { SceneDescription, SurfaceWearV2 } from "../scene/types";
 import { defaultDielectric, dielectricMaterial, hexToLinear, linearToHex, type DielectricSettings } from "../scene/dielectric-settings";
@@ -37,7 +38,7 @@ export function materialMetadata(solid: boolean) {
       cauchy: settings.dispersion ? material.cauchy : undefined, absorption: material.absorption,
       absorptionSpectrum: material.absorptionSpectrum, transmissionSpectrum: material.transmissionSpectrum };
   }
-  if (field("material").value === "textured") return { actualMode: undefined, texture: field("texture-kind").value, ...Object.fromEntries(textureControlIds.map(id => [id, Number(field(id).value)])) };
+  if (field("material").value === "textured") return { actualMode: undefined, texture: field("texture-kind").value, ...Object.fromEntries(textureControlIds.map(id => [id, Number(readControl(document, id))])) };
   return { actualMode: undefined, albedo: Number(field("albedo").value) };
 }
 export function syncMaterialEditor(solid: boolean, ready = true): void {
@@ -76,14 +77,14 @@ export function initializeMaterialEditor(material: SphereMaterial): void {
   syncMaterialEditor(true, false);
 }
 export function textureMemory() {
-  const read = () => Object.fromEntries(textureControlIds.map(id => [id, Number(field(id).value)])) as TextureControls;
+  const read = () => Object.fromEntries(textureControlIds.map(id => [id, Number(readControl(document, id))])) as TextureControls;
   let current = field("texture-kind").value;
   const marble = read();
   let states: Record<string, TextureControls> = { marble: { ...marble, "texture-scale": 9, "texture-width": 0.1 }, lava: { ...marble, "texture-scale": 6, "texture-width": 0.04 } };
   return {
     switch: () => {
       states[current] = read(); current = field("texture-kind").value;
-      for (const [id, value] of Object.entries(states[current]!)) field(id).value = String(value);
+      for (const [id, value] of Object.entries(states[current]!)) writeControl(document, id, String(value));
     },
     capture: () => { states[current] = read(); return structuredClone({ current, states }); },
     restore: (snapshot: { current: string; states: Record<string, TextureControls> }) => { current = snapshot.current; states = structuredClone(snapshot.states); },

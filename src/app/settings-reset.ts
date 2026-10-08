@@ -1,3 +1,4 @@
+import { readControl, writeControl } from "./numeric-controls";
 import { nbk7Ior } from "../transport/spectrum";
 
 /** Defaults are independent of the last selected render preset. */
@@ -33,8 +34,8 @@ export function attachMiddleReset(controlScene: boolean): void {
       const id = (field.dataset.logFor ?? field.id).replace(/-value$/, "");
       const primary = document.getElementById(id) as HTMLInputElement;
       const initial = numericDefault(id, controlScene);
-      if (!Number.isFinite(initial) || Number(primary.value) === initial) return;
-      primary.value = String(initial);
+      if (!Number.isFinite(initial) || Number(readControl(document, id)) === initial) return;
+      writeControl(document, id, String(initial));
       primary.dispatchEvent(new Event(primary.type === "range" ? "input" : "change", { bubbles: true }));
       if (!field.dataset.logFor) field.value = primary.value;
     });

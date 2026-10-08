@@ -89,7 +89,7 @@ export const settingHelp: Record<string, string> = {
   "denoise-strength": "Сила сглаживания шума. Большое значение может размывать детали.",
   "filter-glass": "Применять фильтр к стеклу. По умолчанию выключено: первая поверхность не описывает преломлённый фон, поэтому фильтр может размывать детали и каустики.",
   "memory-profile": "Готовый бюджет памяти приложения. Это не измеренный объём VRAM. Большой бюджет позволяет повысить разрешение, но не отменяет лимиты GPU.",
-  "memory-budget": "Мягкий бюджет GPU-ресурсов рендера в MiB. При нехватке памяти разрешение уменьшается. Фактические лимиты и доступность памяти зависят от GPU и браузера.",
+  "memory-budget": "Мягкий бюджет GPU-ресурсов рендера в MiB. Числовой ввод допускает больше 4096 MiB. Этот бюджет не выделяется целиком: при нехватке памяти разрешение уменьшается. Фактические лимиты и доступность памяти зависят от GPU и браузера.",
   "export-png": "Экспорт последнего полного прохода в PNG с текущими настройками отображения.",
   "export-pfm": "Экспорт линейного RGB в Raw PFM и параметров в JSON после полного прохода. Сохраняет отрицательные компоненты; экранный фильтр и tone mapping не применяются.",
   restart: "Начать накопление заново с текущими настройками сцены и камеры.",
@@ -131,6 +131,7 @@ export function attachSettingsHelp(): void {
   for (const [id, description] of Object.entries(settingHelp)) {
     const control = document.getElementById(id);
     if (!control) continue;
+    if (id === "restart") { control.title = description; continue; }
     const numeric = control instanceof HTMLInputElement && ["range", "number"].includes(control.type);
     const text = description + (numeric ? " Нажатие колёсика — сброс к значению по умолчанию." : "");
     const icon = document.createElement("span");

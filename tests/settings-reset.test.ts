@@ -17,6 +17,7 @@ function setup() {
   };
   vi.stubGlobal("document", {
     getElementById: (id: keyof typeof fields) => fields[id],
+    querySelector: (selector: string) => fields[selector.slice(1) as keyof typeof fields],
     querySelectorAll: () => [fields.exposure, fields["exposure-value"], fields.seed],
   });
   return fields;

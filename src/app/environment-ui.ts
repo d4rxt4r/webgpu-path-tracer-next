@@ -1,3 +1,4 @@
+import { readControl, writeControl } from "./numeric-controls";
 import { HdrImporter, hdrPresets } from '../assets/hdr-import';
 import type { HdrImage } from '../assets/hdr';
 import type { IntersectionRenderer } from '../render/intersection-renderer';
@@ -28,7 +29,7 @@ export function environmentSettings(): EnvironmentSettings {
   return {
     source: control('environment-source').value as EnvironmentSettings['source'],
     color: [1, 3, 5].map(i => linear(parseInt(hex.slice(i, i + 2), 16) / 255)) as [number, number, number],
-    strength: Number(control('environment-strength').value), rotation: Number(control('environment-rotation').value),
+    strength: Number(readControl(document, 'environment-strength')), rotation: Number(control('environment-rotation').value),
     background: control('environment-background').checked, exposure: Number(control('background-exposure').value), blur: Number(control('background-blur').value),
   };
 }
@@ -39,7 +40,7 @@ export function applyArrangement(scene: SceneDescription): void {
 export function setupEnvironment(renderer: IntersectionRenderer, queueScene: () => void, showError: (error: unknown) => void): { initialize(): Promise<void>; dispose(): void; metadata(): object } {
   const importer = new HdrImporter(); let localFile: File | undefined, image: HdrImage | undefined, key = '', revision = 0;
   let committedFile: File | undefined, committedKey = '';
-  let committed = Object.fromEntries(ids.map(id => [id, control(id).type === 'checkbox' ? control(id).checked : control(id).value]));
+  let committed = Object.fromEntries(ids.map(id => [id, control(id).type === 'checkbox' ? control(id).checked : readControl(document, id)]));
   const status = document.getElementById('hdr-status')!;
   const update = async () => {
     const token = ++revision;
@@ -59,13 +60,13 @@ export function setupEnvironment(renderer: IntersectionRenderer, queueScene: () 
       if (token !== revision) return;
       image = nextImage; if (settings.source === 'hdr') key = nextKey;
       committedFile = localFile; committedKey = key;
-      committed = Object.fromEntries(ids.map(id => [id, control(id).type === 'checkbox' ? control(id).checked : control(id).value]));
+      committed = Object.fromEntries(ids.map(id => [id, control(id).type === 'checkbox' ? control(id).checked : readControl(document, id)]));
       status.textContent = settings.source === 'hdr' && image ? `${name === 'uploaded' ? localFile!.name : (document.getElementById('environment-map') as HTMLSelectElement).selectedOptions[0]!.text} · ${image.width}×${image.height}` : '';
     } catch (error) {
       if (token !== revision || error instanceof DOMException && error.name === 'AbortError') return;
       localFile = committedFile; key = committedKey;
       for (const [id, value] of Object.entries(committed)) {
-        if (typeof value === 'boolean') control(id).checked = value; else control(id).value = value;
+        if (typeof value === 'boolean') control(id).checked = value; else writeControl(document, id, value);
         const number = document.getElementById(id + '-value') as HTMLInputElement | null; if (number) number.value = String(value);
       }
       status.textContent = 'HDR не применён. Предыдущее окружение сохранено.'; sync(); showError(error);

@@ -7,7 +7,7 @@ test("the copy icon produces a URL that restores all controls and the camera", a
   const copy = page.getByRole("button", { name: "Скопировать ссылку" });
   await expect(copy).toBeEnabled({ timeout: 120000 });
   await expect(copy).toHaveText("");
-  const snapshot = () => page.locator(".inspector input[id], .inspector select[id]").evaluateAll(fields => Object.fromEntries(
+  const snapshot = () => page.locator(".inspector input[id], .inspector select[id], .viewport-toolbar select[id]").evaluateAll(fields => Object.fromEntries(
     (fields as (HTMLInputElement | HTMLSelectElement)[]).filter(field => !field.id.endsWith("-value") && field.type !== "file")
       .map(field => [field.id, field.type === "checkbox" ? (field as HTMLInputElement).checked : field.value])));
   const before = await snapshot();
