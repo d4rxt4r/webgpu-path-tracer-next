@@ -63,8 +63,10 @@ interface TextureParameters {
 export type TexturedMaterial = TextureParameters &
   ({ type: "marble" } | { type: "lava" });
 export type MaterialDescription =
-  | { type: "diffuse"; reflectance: Vec3; spectrum?: SpectrumTable }
-  | { type: "emissive"; emission: Vec3; spectrum?: SpectrumTable }
+  | { type: "diffuse"; reflectance: Vec3; spectrum?: SpectrumTable; roughness?: number }
+  | { type: "emissive"; emission: Vec3; spectrum?: SpectrumTable; reflectance?: Vec3; reflectanceSpectrum?: SpectrumTable }
+  | { type: "metal"; preset: "aluminum" | "gold" | "copper" | "silver" | "custom"; roughness: number; reflectance?: Vec3; spectrum?: SpectrumTable }
+  | { type: "plastic"; reflectance: Vec3; spectrum?: SpectrumTable; roughness: number; ior: number }
   | {
       type: "dielectric";
       ior: number;

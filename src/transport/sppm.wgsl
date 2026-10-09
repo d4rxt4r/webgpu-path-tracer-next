@@ -46,9 +46,9 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
 
     if(medium!=NO_HIT) {let inside=materials[triangles[medium].material];beta*=exp(-spectralColor(inside.absorption,inside.absorptionOffset,wavelength)*length(position-previous));}
     let n=select(ng,-ng,dot(ng,-ray.direction)<0.0);
-    if(material.kind==1u||material.kind==4u) {if(dot(ng,-ray.direction)>0.0) {point.direct+=beta*surfaceEmission(material,position,wavelength);} if(material.kind==1u) {break;}}
+    if(material.kind==1u||material.kind==4u||material.kind==9u) {if(dot(ng,-ray.direction)>0.0) {point.direct+=beta*surfaceEmission(material,position,wavelength);} if(material.kind==1u) {break;}}
     let dimension=3u+depth*7u;
-    if(material.kind==0u||material.kind==3u||material.kind==4u) {
+    if(material.kind==0u||material.kind==3u||material.kind==4u||material.kind==9u) {
       if(sample1D(params.frame,dimension+5u,pixel,params.seed)<coatingProbability(material)) {
         if(depth==params.maxDepth) {break;}
         let ns=surface.normal;let oriented=select(ns,-ns,dot(ns,n)<0.0);
@@ -77,6 +77,32 @@ fn cameraPoint(initial: Ray, pixel: u32, wavelength: f32) -> SppmPoint {
         }
       }
       break;
+    }
+    if((material.kind>=6u && material.kind<=8u) || material.kind==10u) {
+      if(material.textureParams.x>0.0 || material.kind==8u || material.kind==10u) {
+        // Smooth plastic samples its mirror component before creating a diffuse point.
+        if(material.kind==8u && material.textureParams.x==0.0 && sample1D(params.frame,dimension+5u,pixel,params.seed)<0.5) {
+          if(depth==params.maxDepth) {break;}
+          let event=sampleOpaque(material,ray.direction,n,wavelength,vec2f(0),0.0);beta*=event.weight;
+          previous=position;spawnedTriangle=hit.triangle;ray=Ray(offsetSurface(triangle,hit,event.direction),0.0,event.direction,1e20);originLow=vec3f(0);depth++;crossings=0u;continue;
+        }
+        point.position=position;point.surface=triangle.surface;point.normal=n;point.shading=n;point.wo=-ray.direction;
+        point.material=triangle.material;point.boundary=triangle.padding0;point.bsdf=2u;point.weight=beta;point.valid=1u;
+        if(material.kind==8u && material.textureParams.x==0.0) {point.weight*=2.0;}
+        if(params.lightCount>0u || environment.sampling.y>0.0) {
+          let light=sampleSceneLight(sample1D(params.frame,dimension,pixel,params.seed),vec2f(sample1D(params.frame,dimension+1u,pixel,params.seed),sample1D(params.frame,dimension+2u,pixel,params.seed)),params.lightCount,wavelength);
+          let direct=opaqueDirect(material,position,triangle,hit,point.wo,n,wavelength,light,1u);
+          if(direct.error==5u && !PRECISE_TRANSPORT) {point.valid=2u;break;}
+          if(direct.error!=0u) {reportTransportError(1u,1u,pixel,depth,hit.triangle,medium);break;}
+          point.direct+=point.weight*direct.radiance;
+        }
+        break;
+      }
+      if(depth==params.maxDepth) {break;}
+      let event=sampleOpaque(material,ray.direction,n,wavelength,vec2f(0),0.0);beta*=event.weight;
+      previous=position;spawnedTriangle=hit.triangle;
+      if(depth>=4u) {beta=rouletteWeight(beta,etaScale,sample1D(params.frame,dimension+6u,pixel,params.seed));if(all(beta==vec3f(0))) {break;}}
+      ray=Ray(offsetSurface(triangle,hit,event.direction),0.0,event.direction,1e20);originLow=vec3f(0);depth++;crossings=0u;continue;
     }
     if(material.kind==5u) {
       let ns0=surface.normal;let ns=select(ns0,-ns0,dot(ns0,n)<0.0);
@@ -197,7 +223,7 @@ fn tracePhoton(id:vec3u) {
     if(!all(beta>=vec3f(0))||!all(beta<vec3f(FAR))) {reportTransportError(5u,2u,index,depth,hit.triangle,medium);break;}
     if(material.kind==1u) {break;}
     let dimension=5u+depth*7u;var wi:vec3f;
-    if(material.kind==0u||material.kind==3u||material.kind==4u) {
+    if(material.kind==0u||material.kind==3u||material.kind==4u||material.kind==9u) {
       // The first direct diffuse hit is estimated by camera NEE, not photons.
       if(depth>0u&&any(beta>vec3f(0))) {photons[first+depth]=Photon(position,triangle.surface,n,1u,beta,0u,vec3i(0),0u,-ray.direction,triangle.padding0);}
       if(depth==params.maxDepth) {break;}
@@ -208,6 +234,11 @@ fn tracePhoton(id:vec3u) {
         beta*=surfaceColor(material,position,wavelength);
         wi=cosineDirection(n,vec2f(sample1D(index,dimension+3u,stream,seed),sample1D(index,dimension+4u,stream,seed)));
       }
+    } else if((material.kind>=6u && material.kind<=8u) || material.kind==10u) {
+      if(depth>0u && (material.textureParams.x>0.0 || material.kind==8u || material.kind==10u) && any(beta>vec3f(0))) {photons[first+depth]=Photon(position,triangle.surface,n,1u,beta,0u,vec3i(0),0u,-ray.direction,triangle.padding0);}
+      if(depth==params.maxDepth) {break;}
+      let event=sampleOpaque(material,ray.direction,n,wavelength,vec2f(sample1D(index,dimension+3u,stream,seed),sample1D(index,dimension+4u,stream,seed)),sample1D(index,dimension+5u,stream,seed));
+      beta*=event.weight;wi=event.direction;
     } else if(material.kind==5u) {
       if(!PRECISE_TRANSPORT && needsPreciseOrigin(ray,triangle,hit)) {photons[first].padding=1u;break;}
       if(material.textureParams.x>0.0 && depth>0u && any(beta>vec3f(0))) {photons[first+depth]=Photon(position,triangle.surface,n,1u,beta,0u,vec3i(0),0u,-ray.direction,triangle.padding0);}
@@ -269,11 +300,13 @@ fn tracePhoton(id:vec3u) {
       let index=link-1u;
       if(index>=sppm.batchCount*(params.maxDepth+1u)||visited>=arrayLength(&photons)) {reportTransportError(4u,3u,pixel,0u,index,NO_HIT);return;}
       let photon=photons[index];let delta=photon.position-point.position;
-      let aligned=select(dot(photon.normal,point.normal)>0.95,abs(dot(photon.normal,point.normal))>0.95,point.bsdf!=0u);
+      let aligned=select(dot(photon.normal,point.normal)>0.95,abs(dot(photon.normal,point.normal))>0.95,point.bsdf==1u);
       if(all(photon.cell==targetCell)&&photon.surface==point.surface&&aligned&&dot(delta,delta)<=radius*radius&&abs(dot(delta,point.normal))<=0.1*radius) {
         if(point.bsdf==0u) {phi+=point.weight*photon.flux;count++;}
         else if(photon.boundary==point.boundary) {
-          let evaluated=roughDielectricEval(wornMaterial(materials[point.material],point.position,point.normal),point.wo,photon.incoming,point.normal,point.shading,point.eta,iterationWavelength().wavelength,false);
+          var evaluated:RoughEval;
+          if(point.bsdf==2u) {evaluated=opaqueEval(materials[point.material],point.wo,photon.incoming,point.normal,iterationWavelength().wavelength);}
+          else {evaluated=roughDielectricEval(wornMaterial(materials[point.material],point.position,point.normal),point.wo,photon.incoming,point.normal,point.shading,point.eta,iterationWavelength().wavelength,false);}
           if(any(evaluated.f>vec3f(0))) {phi+=point.weight*evaluated.f*photon.flux;count++;}
         }
       }

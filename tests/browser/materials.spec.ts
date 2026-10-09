@@ -24,7 +24,7 @@ test("material editor preserves dielectric and texture values, resets and export
   await page.goto("/?scene=control");
   await expect(page.locator("#status")).toHaveText("WebGPU готов", { timeout: 60000 });
   await page.locator("#material").evaluate(el => { el.closest("details")!.open = true; });
-  await expect(page.locator("#material option")).toHaveText(["Диффузный", "Диэлектрик", "Текстурный"]);
+  expect(await page.locator('#material option').evaluateAll(options => options.map(o => (o as HTMLOptionElement).value))).toEqual(['diffuse', 'dielectric', 'metal', 'plastic', 'emissive', 'textured']);
   await page.locator("#material").selectOption("dielectric");
   await page.locator("#ior-value").fill("1.8");
   await page.locator("#ior-value").press("Tab");

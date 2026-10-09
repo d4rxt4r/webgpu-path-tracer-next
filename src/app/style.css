@@ -231,7 +231,19 @@ details[open] summary {
 .wear-settings > button { justify-self: start; }
 .wear-settings > details > .group { padding: 8px 0; }
 #environment-settings:not([hidden]),
-#hdr-settings:not([hidden]) {
+#hdr-settings:not([hidden]),
+#dielectric-settings:not([hidden]),
+#diffuse-settings:not([hidden]),
+#dispersion-settings:not([hidden]),
+#texture-group:not([hidden]),
+#lava-settings:not([hidden]),
+#metal-settings:not([hidden]),
+#metal-custom-settings:not([hidden]),
+#plastic-settings:not([hidden]),
+#emissive-settings:not([hidden]),
+#dof-settings:not([hidden]),
+#manual-focus:not([hidden]),
+#polygon-settings:not([hidden]) {
   display: grid;
   gap: 10px;
   min-width: 0;

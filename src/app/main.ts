@@ -1,3 +1,5 @@
+import { setupDiffuseEditor, diffuseControlIds } from "./diffuse-editor";
+import { setupOpaqueEditor, opaqueControlIds } from "./opaque-editor";
 import { bindNumericControls, numericLimits, readControl, writeControl } from "./numeric-controls";
 import { cameraOptics, distanceFraction, logDistance } from "../scene/camera";
 import { cleanSurface, rastagotchiWear, wearControlIds, wearEffects } from "../scene/surface-wear";
@@ -223,6 +225,8 @@ if (query.get('settings') === '1' && query.get('scene-layout') === 'open') {
 }
 const originalCamera = structuredClone(description.camera);
 const linkedCamera = restoreSettingsLink(document, query, description.camera);
+setupOpaqueEditor();
+setupDiffuseEditor();
 const hasSharedSettings = linkedCamera !== undefined;
 if (linkedCamera) {
   description.camera = linkedCamera;
@@ -583,6 +587,7 @@ async function start(): Promise<void> {
   };
   const environmentUi = setupEnvironment(renderer, queueScene, showError);
   input("repair-obj").addEventListener("change", queueScene);
+  input("metal-preset").addEventListener("change",()=>{syncMaterialEditor(currentModelIsSolid());queueScene();});
   button("import-obj").addEventListener("click", () => input("obj-file").click());
   input("obj-file").addEventListener("change", async () => {
     const file = input("obj-file").files?.[0]; input("obj-file").value = "";
@@ -692,6 +697,8 @@ async function start(): Promise<void> {
     "roughness",
     "albedo",
     ...textureControlIds,
+    ...diffuseControlIds,
+    ...opaqueControlIds.filter(id=>id!=="metal-preset" && id!=="metal-custom-set" && id!=="metal-color-default"),
     ...wearControlIds,
   ])
     input(id).addEventListener("input", queueScene);
@@ -745,6 +752,7 @@ async function start(): Promise<void> {
         n = Number(number.value);
       if (
         !Number.isFinite(n) ||
+        ((slider.id.startsWith("metal-") || slider.id.startsWith("diffuse-")) && slider.step === "1" && !Number.isInteger(n)) ||
         n < Number(slider.min) ||
         n > Number(slider.max)
       ) {
@@ -850,6 +858,7 @@ async function start(): Promise<void> {
                   sceneControls,
                   material,
                   materialSettings: materialMetadata(currentModelIsSolid()),
+                  materialControls: Object.fromEntries(["material", "ior", "albedo", ...materialControlIds, ...textureControlIds].map(id=>[id,input(id).type==="checkbox"?input(id).checked:readControl(document,id)])),
                   display: {
                     denoiser: input("denoiser").checked,
                     passes: value("denoise-passes"),

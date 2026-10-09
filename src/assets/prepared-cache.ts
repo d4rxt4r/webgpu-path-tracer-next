@@ -1,3 +1,4 @@
+import diffuseMaterial from "../scene/diffuse-material.ts?raw";
 import type { SceneDescription } from '../scene/types';
 import type { PackedScene } from '../accel/pack';
 import type { PackedTransport } from '../accel/materials';
@@ -7,6 +8,8 @@ import geometry from '../accel/geometry.ts?raw';
 import bvh from '../accel/bvh.ts?raw';
 import pack from '../accel/pack.ts?raw';
 import unpack from '../accel/unpack.ts?raw';
+import conductorData from '../transport/conductor-data.json?raw';
+import opaqueMaterials from '../scene/opaque-materials.ts?raw';
 import materials from '../accel/materials.ts?raw';
 import layouts from '../transport/layouts.wgsl?raw';
 import spectrum from '../transport/spectrum.ts?raw';
@@ -33,7 +36,7 @@ export async function sceneKeys(scene: SceneDescription): Promise<{geometry: str
     }))));
   const normalize = (sources: string[]): string[] => sources.map(source => source.replaceAll('\r\n', '\n'));
   geometryVersion ??= textHash(normalize([geometry, bvh, pack, layouts, dependencies]));
-  transportVersion ??= textHash(normalize([unpack, materials, layouts, spectrum, wear, wearSpace, spectralData, spectralMetadata, dependencies]));
+  transportVersion ??= textHash(normalize([unpack, materials, diffuseMaterial, conductorData, opaqueMaterials, layouts, spectrum, wear, wearSpace, spectralData, spectralMetadata, dependencies]));
   const [geometryImplementation, transportImplementation] = await Promise.all([geometryVersion, transportVersion]);
   const geometryKey = 'geometry-2:' + await textHash({ version: scene.version, implementation: geometryImplementation, meshes, objects: scene.objects, materialSlots: Array.from(scene.materials, material => Boolean(material)) });
   const prepared = 'transport-2:' + await textHash({ geometry: geometryKey, implementation: transportImplementation, materials: scene.materials, lights: scene.lights });

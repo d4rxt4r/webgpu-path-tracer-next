@@ -8,6 +8,7 @@ import lighting from "./lighting.wgsl?raw";
 import textures from "./textures.wgsl?raw";
 import wear from "./surface-wear.wgsl?raw";
 import environment from "./environment.wgsl?raw";
+import opaque from "./opaque.wgsl?raw";
 import tracer from "./path-tracer.wgsl?raw";
 import media from "./media.wgsl?raw";
 import dielectric from "./dielectric.wgsl?raw";
@@ -39,6 +40,6 @@ export const pathCore =
   "\n" +
   media +
   "\n" +
-  environment + "\n" + tracer;
+  environment + "\n" + opaque + "\n" + tracer;
 export const pathShader = pathCore + "\n" + color + "\n" + diagnostics + "\n" + output;
 export const displayShader = layouts + "\n" + color + "\n" + display;

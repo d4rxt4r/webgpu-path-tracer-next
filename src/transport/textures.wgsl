@@ -30,6 +30,7 @@ fn texturePattern(material: Material, position: vec3f) -> f32 {
   return pattern;
 }
 fn surfaceColor(material: Material, position: vec3f, wavelength: f32) -> vec3f {
+  if(material.kind==9u) {return spectralColor(material.absorption,material.absorptionOffset,wavelength);}
   let base=spectralColor(material.color,material.spectrumOffset,wavelength);
   var color=base;
   if(material.kind==3u) {
@@ -39,7 +40,7 @@ fn surfaceColor(material: Material, position: vec3f, wavelength: f32) -> vec3f {
 }
 fn surfaceEmission(material: Material, position: vec3f, wavelength: f32) -> vec3f {
   var emission=vec3f(0);
-  if(material.kind==1u) {emission=spectralColor(material.color,material.spectrumOffset,wavelength);}
+  if(material.kind==1u || material.kind==9u) {emission=spectralColor(material.color,material.spectrumOffset,wavelength);}
   else if(material.kind==4u) {emission=spectralColor(material.absorption,material.absorptionOffset,wavelength)*material.ior*texturePattern(material,position);}
   return emission;
 }
@@ -47,7 +48,7 @@ fn surfaceEmission(material: Material, position: vec3f, wavelength: f32) -> vec3
 // The delta coat is sampled identically by radiance and importance transport.
 fn coatingProbability(material: Material) -> f32 {
   var probability=0.0;
-  if(material.kind>=3u && material.textureParams.w>0.0) {
+  if((material.kind==3u || material.kind==4u) && material.textureParams.w>0.0) {
     probability=material.textureParams.w;
   }
   return probability;

@@ -49,7 +49,7 @@ fn tracePathWithMedia(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, max
       let inside = materials[triangles[medium].material];
       beta *= exp(-spectralColor(inside.absorption, inside.absorptionOffset, wavelength) * length(position - previousPosition));
     }
-    if (material.kind == 1u || material.kind == 4u) {
+    if (material.kind == 1u || material.kind == 4u || material.kind == 9u) {
       if (dot(ng, -ray.direction) > 0.0) {
         var weight = 1.0;
         if (depth > 0u && !previousDelta) {
@@ -125,6 +125,18 @@ fn tracePathWithMedia(initial: Ray, sampleIndex: u32, pixel: u32, seed: u32, max
       let origin=transportOrigin(ray,originLow,triangle,hit,event.direction);
       ray = Ray(origin.position, 0.0, event.direction, 1e20);originLow=origin.residual;spawnedTriangle=hit.triangle;
       depth++;crossings=0u;continue;
+    }
+    if((material.kind>=6u && material.kind<=8u) || material.kind==10u) {
+      if(strategy!=2u && (lightCount>0u || environment.sampling.y>0.0)) {
+        let light=sampleSceneLight(sample1D(sampleIndex,dimension,pixel,seed),vec2f(sample1D(sampleIndex,dimension+1u,pixel,seed),sample1D(sampleIndex,dimension+2u,pixel,seed)),lightCount,wavelength);
+        let direct=opaqueDirect(material,position,triangle,hit,-ray.direction,n,wavelength,light,strategy);
+        if(direct.error!=0u) {return PathResult(vec3f(0),direct.error,interactions);}radiance+=beta*direct.radiance;
+      }
+      let event=sampleOpaque(material,ray.direction,n,wavelength,vec2f(sample1D(sampleIndex,dimension+3u,pixel,seed),sample1D(sampleIndex,dimension+4u,pixel,seed)),sample1D(sampleIndex,dimension+5u,pixel,seed));
+      if(all(event.weight==vec3f(0))) {break;}beta*=event.weight;
+      previousPosition=position;lightPosition=position;previousPdf=event.pdf;previousDelta=event.transmitted==1u;
+      if(depth>=4u) {beta=rouletteWeight(beta,etaScale,sample1D(sampleIndex,dimension+6u,pixel,seed));if(all(beta==vec3f(0))) {break;}}
+      ray=Ray(offsetSurface(triangle,hit,event.direction),0.0,event.direction,1e20);originLow=vec3f(0);spawnedTriangle=hit.triangle;depth++;crossings=0u;continue;
     }
     let coating=coatingProbability(material);
     if (strategy != 2u && (lightCount > 0u || environment.sampling.y>0.0)) {

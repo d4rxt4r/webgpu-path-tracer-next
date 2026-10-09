@@ -1,3 +1,4 @@
+import { conductorData } from "../scene/opaque-materials";
 import { cameraOptics } from "../scene/camera";
 import { bakeTriangles } from "../accel/geometry";
 import { hasSurfaceWear } from "../scene/surface-wear";
@@ -45,12 +46,16 @@ export function exportPbrt(
       ? material.absorptionSpectrum.some(([, value]) => value > 0)
       : material.absorption.some((value) => value > 0));
   for (const material of scene.materials) {
+    if(material.type==="diffuse" && (material.roughness??0)>0) throw new Error("PBRT v4 export cannot exactly reproduce normalized Oren-Nayar; set diffuse roughness to zero");
     if (material.type === "dielectric" && material.thin)
       throw new Error("PBRT export cannot reproduce the renderer's tinted rough thin-interface approximation");
     if (material.type === "marble" || material.type === "lava")
       throw new Error(
         "PBRT reference export does not support procedural marble/lava materials",
       );
+    if(material.type === "plastic" || material.type === "metal" && material.preset === "custom") throw new Error("PBRT export cannot exactly reproduce plastic FresnelBlend or custom-color Schlick metal");
+    if(material.type === "metal") continue;
+    if(material.type === "emissive" && material.reflectance && !material.reflectanceSpectrum && material.reflectance.some(v=>v!==material.reflectance![0])) throw new Error("PBRT spectral export requires an explicit emitter reflectance spectrum");
     const rgb =
       material.type === "diffuse"
         ? material.reflectance
@@ -81,11 +86,16 @@ export function exportPbrt(
       throw new Error(
         "PBRT reference export does not support procedural marble/lava materials",
       );
+    if(material.type === "plastic" || material.type === "metal" && material.preset === "custom") throw new Error("PBRT export cannot exactly reproduce plastic FresnelBlend or custom-color Schlick metal");
     lines.push("AttributeBegin");
     if (material.type === "diffuse")
       lines.push(
         `Material "diffuse" ${spectrum("reflectance", material.spectrum ?? constantSpectrum(material.reflectance[0]))}`,
       );
+    else if (material.type === "metal" && material.preset !== "custom") {
+      const tables=conductorData[material.preset],alpha=material.roughness**2;
+      lines.push(`Material "conductor" ${spectrum("eta",tables.eta)} ${spectrum("k",tables.k)} "float uroughness" [${alpha}] "float vroughness" [${alpha}] "bool remaproughness" [false]`);
+    }
     else if (material.type === "emissive") {
       const emission =
         material.spectrum ?? constantSpectrum(material.emission[0]);
@@ -93,9 +103,9 @@ export function exportPbrt(
       // Film ISO above separately converts its CIE integral to our normalized XYZ.
       lines.push(
         `AreaLightSource "diffuse" ${spectrum("L", emission)} "float scale" [${Math.fround(CIE_Y_INTEGRAL * integrateXyz(emission)[1])}]`,
-        `Material "diffuse" ${spectrum("reflectance", constantSpectrum(0))}`,
+        `Material "diffuse" ${spectrum("reflectance", material.reflectanceSpectrum ?? constantSpectrum(material.reflectance?.[0] ?? 0))}`,
       );
-    } else {
+    } else if(material.type === "dielectric") {
       const eta =
         material.iorModel === "nbk7"
           ? Array.from(

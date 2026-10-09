@@ -6,7 +6,7 @@ import dielectric from './path-dielectric.wgsl?raw';
  */
 export function rgbPathShader(): string {
   const start = pathShader.indexOf('    if (material.kind == 5u) {');
-  const end = pathShader.indexOf('    let coating=coatingProbability(material);', start);
+  const end = pathShader.indexOf('    if((material.kind>=6u && material.kind<=8u) || material.kind==10u) {', start);
   if (start < 0 || end < 0) throw new Error('PT dielectric specialization marker missing');
   return (pathShader.slice(0, start) + dielectric + '\n' + pathShader.slice(end)).replaceAll('params.transportMode', '0u');
 }

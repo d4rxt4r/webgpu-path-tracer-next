@@ -1,3 +1,5 @@
+import { diffuseCoefficients } from "../scene/diffuse-material";
+import { conductorData, interpolate, metalPresets } from "../scene/opaque-materials";
 import { wearMetric } from "../scene/wear-space";
 import { makeStructuredView } from "webgpu-utils";
 import { mat4 } from "gl-matrix";
@@ -58,6 +60,30 @@ export function packTransport(
   description.materials.forEach((material, i) => {
     const spectrumOffset = (3 + 2 * i) * 471,
       absorptionOffset = spectrumOffset + 471;
+    if (material.type === "metal" || material.type === "plastic") {
+      const physical=material.type === "metal" && material.preset !== "custom";
+      const color=material.type === "plastic" || !physical ? material.reflectance : undefined;
+      if (!Number.isFinite(material.roughness) || material.roughness<0 || material.roughness>1 ||
+          (material.type === "metal" && ![...metalPresets,"custom"].includes(material.preset)) ||
+          (material.type === "plastic" && (!Number.isFinite(material.ior) || material.ior<1 || material.ior>2.5)) ||
+          (!physical && (!color || color.length!==3 || !color.every(v=>Number.isFinite(v)&&v>=0&&v<=1))))
+        throw new Error("Invalid metal/plastic material");
+      let eta=[0,0,0], k=[0,0,0];
+      if (material.type === "metal" && material.preset !== "custom") {
+        const tables=conductorData[material.preset];
+        eta=[610,550,460].map(nm=>interpolate(tables.eta,nm)); k=[610,550,460].map(nm=>interpolate(tables.k,nm));
+        spectra.set(bakeSpectrum(tables.eta,false),spectrumOffset);spectra.set(bakeSpectrum(tables.k,false),absorptionOffset);
+      } else {
+        if (!material.spectrum && color!.some(v=>v!==color![0])) spectralReady=false;
+        spectra.set(bakeSpectrum(material.spectrum ?? constantSpectrum(color![0]),true),spectrumOffset);
+      }
+      makeStructuredView(materialDef, materials, i * materialDef.size).set({
+        color: physical ? eta : color, absorption:k, kind:physical?6:material.type==="metal"?7:8,
+        ior:material.type==="plastic"?material.ior:1, spectrumOffset,absorptionOffset,
+        textureParams:[material.roughness,0,0,0],
+      });
+      return;
+    }
     if (material.type === "marble" || material.type === "lava") {
       const values = [
         material.scale,
@@ -125,6 +151,7 @@ export function packTransport(
       });
       return;
     }
+    if(material.type==="diffuse" && (!Number.isFinite(material.roughness??0) || (material.roughness??0)<0 || (material.roughness??0)>1)) throw new Error("Invalid diffuse roughness");
     const color =
       material.type === "dielectric"
         ? material.absorption
@@ -219,10 +246,17 @@ export function packTransport(
       )
     )
       throw new Error("Invalid material spectrum");
+    if (material.type === "emissive" && material.reflectance) {
+      if (material.reflectance.length!==3 || !material.reflectance.every(v=>Number.isFinite(v)&&v>=0&&v<=1)) throw new Error("Invalid emitter base");
+      if (!material.reflectanceSpectrum && material.reflectance.some(v=>v!==material.reflectance![0])) spectralReady=false;
+      spectra.set(bakeSpectrum(material.reflectanceSpectrum ?? constantSpectrum(material.reflectance[0]),true),absorptionOffset);
+    }
+    if (!color.every(v=>Number.isFinite(Math.fround(v)))) throw new Error("Emission exceeds GPU limits");
     makeStructuredView(materialDef, materials, i * materialDef.size).set({
       color,
-      kind: material.type === "diffuse" ? 0 : 1,
-      absorption: [0, 0, 0],
+      kind: material.type === "diffuse" ? (material.roughness?10:0) : material.reflectance ? 9 : 1,
+      textureParams:material.type==="diffuse" && material.roughness?[material.roughness,...diffuseCoefficients(material.roughness),0]:[0,0,0,0],
+      absorption: material.type === "emissive" ? material.reflectance ?? [0,0,0] : [0,0,0],
       ior: 1,
       spectrumOffset,
       absorptionOffset,
@@ -251,7 +285,10 @@ export function packTransport(
       throw new Error("Emissive object missing from area lights");
   // Sorted IDs support logarithmic PDF lookup for detailed emissive meshes.
   const lightTriangles = bvh.triangles
-    .filter((triangle) => objects.has(triangle.surface))
+    .filter((triangle) => {
+      const m=description.materials[triangle.material]!;
+      return objects.has(triangle.surface) && (m.type === "emissive" ? m.emission.some(v=>v>0) : m.type === "lava" && m.emissionPower>0 && m.secondary.some(v=>v>0));
+    })
     .sort((a, b) => a.id - b.id);
   const areas = lightTriangles.map((t) => {
     const ab = t.b.map((v, i) => v - t.a[i]!),
@@ -269,6 +306,13 @@ export function packTransport(
   const lights = new ArrayBuffer(
     Math.max(1, lightTriangles.length) * lightDef.size,
   );
+  // Compute each emission peak once, including for high-poly luminous models.
+  const spectralPeaks=description.materials.map((material,i)=>{
+    if(material.type!=="emissive" && material.type!=="lava") return 0;
+    const offset=(3+2*i+Number(material.type==="lava"))*471;
+    let peak=0;for(const v of spectra.subarray(offset,offset+471)) peak=Math.max(peak,v);
+    return peak*(material.type==="lava"?material.emissionPower:1);
+  });
   let cdf = 0;
   lightTriangles.forEach((triangle, i) => {
     const material = description.materials[triangle.material]!;
@@ -279,6 +323,7 @@ export function packTransport(
         ? material.emission
         : material.secondary.map((v) => v * material.emissionPower);
     const probability = areas[i]! / totalArea;
+    if (!Number.isFinite(Math.fround(spectralPeaks[triangle.material]!*Math.PI*totalArea)) || !emission.every(v=>Number.isFinite(Math.fround(v*Math.PI*totalArea)))) throw new Error("Emitter flux exceeds GPU limits");
     cdf += probability;
     makeStructuredView(lightDef, lights, i * lightDef.size).set({
       ...triangle,
@@ -290,6 +335,7 @@ export function packTransport(
       spectrumOffset: (3 + 2 * triangle.material) * 471,
     });
   });
+  if (!spectra.every(Number.isFinite)) throw new Error("Transport parameters exceed GPU limits");
   return {
     materials,
     lights,

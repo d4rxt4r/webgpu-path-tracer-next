@@ -1,3 +1,5 @@
+import { applyDiffuseEditor, syncDiffuseEditor, diffuseControlIds } from "./diffuse-editor";
+import { applyOpaqueEditor, syncOpaqueEditor, opaqueSettings, opaqueControlIds } from "./opaque-editor";
 import { readControl, writeControl } from "./numeric-controls";
 import type { SphereMaterial } from "../scene/cornell";
 import type { SceneDescription, SurfaceWearV2 } from "../scene/types";
@@ -6,7 +8,7 @@ import { textureControlIds, type TextureControls } from "../scene/editor";
 import { nbk7Ior } from "../transport/spectrum";
 import { wearControlIds, wearEffects, wearCommonFields, wearDetailFields, defaultWearEffect } from "../scene/surface-wear";
 
-export const materialControlIds = ["dielectric-mode", "dispersion", "abbe", "transmission-color", "transmission-depth", "roughness", "texture-kind", ...wearControlIds];
+export const materialControlIds = [...diffuseControlIds,...opaqueControlIds,"dielectric-mode", "dispersion", "abbe", "transmission-color", "transmission-depth", "roughness", "texture-kind", ...wearControlIds];
 const field = (id: string) => document.getElementById(id) as HTMLInputElement;
 export function baseMaterial(): SphereMaterial {
   const type = field("material").value;
@@ -28,9 +30,11 @@ export function readDielectric(): DielectricSettings {
   };
 }
 export function applyMaterialEditor(scene: SceneDescription, solid: boolean): void {
+  applyOpaqueEditor(scene);
+  applyDiffuseEditor(scene);
   if (field("material").value === "dielectric") scene.materials[4] = dielectricMaterial(readDielectric(), solid);
 }
-export function materialMetadata(solid: boolean) {
+function activeMaterialMetadata(solid: boolean) {
   if (field("material").value === "dielectric") {
     const settings = readDielectric(), material = dielectricMaterial(settings, solid);
     if (material.type !== "dielectric") throw new Error("Unexpected dielectric material");
@@ -39,9 +43,12 @@ export function materialMetadata(solid: boolean) {
       absorptionSpectrum: material.absorptionSpectrum, transmissionSpectrum: material.transmissionSpectrum };
   }
   if (field("material").value === "textured") return { actualMode: undefined, texture: field("texture-kind").value, ...Object.fromEntries(textureControlIds.map(id => [id, Number(readControl(document, id))])) };
-  return { actualMode: undefined, albedo: Number(field("albedo").value) };
+  return { actualMode: undefined, albedo: Number(field("albedo").value), ...(field("material").value==="diffuse"?{color:field("diffuse-color").value, roughness:Number(field("diffuse-roughness").value)}:{}) };
 }
+export function materialMetadata(solid: boolean) {return {...activeMaterialMetadata(solid), opaque:opaqueSettings()};}
 export function syncMaterialEditor(solid: boolean, ready = true): void {
+  syncOpaqueEditor(ready);
+  syncDiffuseEditor(ready);
   const type = field("material").value, texture = field("texture-kind").value;
   for (const [id, visible] of [["dielectric-settings", type === "dielectric"], ["diffuse-settings", type === "diffuse"], ["texture-group", type === "textured"], ["dispersion-settings", field("dispersion").checked], ["lava-settings", texture === "lava"]] as const)
     document.getElementById(id)!.hidden = !visible;

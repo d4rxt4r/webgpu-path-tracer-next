@@ -1,0 +1,10 @@
+{
+  "adapter": "intel gen-12lp",
+  "fixture": "four visible points, ten photons, one colliding hash bucket",
+  "results": [
+    { "kind": 6, "counts": [2, 3, 1, 0], "maxError": 3.550914620120693e-7, "errors": 0, "invalidLinks": 3 },
+    { "kind": 7, "counts": [2, 3, 1, 0], "maxError": 3.178914393942023e-7, "errors": 0, "invalidLinks": 3 },
+    { "kind": 8, "counts": [2, 3, 1, 0], "maxError": 3.178914393942023e-7, "errors": 0, "invalidLinks": 3 }
+  ],
+  "note": "invalidLinks is the expected diagnostic count after deliberately replacing the hash head with an out-of-range link."
+}
