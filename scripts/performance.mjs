@@ -124,7 +124,7 @@ function parsePfm(data, width, height) {
 const reference = referenceFile
   ? parsePfm(await readFile(referenceFile), width, height)
   : undefined;
-const directory = `docs/validation/performance-${tag}`;
+const directory = `artifacts/validation/performance-${tag}`;
 await mkdir(directory, { recursive: true });
 const port = Number(option("port", 5331)),
   address = `http://127.0.0.1:${port}`;
@@ -183,7 +183,7 @@ try {
   const baselineReport = baselineTag
     ? JSON.parse(
         await readFile(
-          `docs/validation/performance-${baselineTag}/report.json`,
+          `artifacts/validation/performance-${baselineTag}/report.json`,
           "utf8",
         ),
       )
@@ -541,7 +541,7 @@ try {
               try {
                 before = JSON.parse(
                   await readFile(
-                    `docs/validation/performance-${baselineTag}/${key}.raw.json`,
+                    `artifacts/validation/performance-${baselineTag}/${key}.raw.json`,
                     "utf8",
                   ),
                 );
@@ -549,7 +549,7 @@ try {
                 if (error.code !== "ENOENT") throw error;
                 before = parsePfm(
                   await readFile(
-                    `docs/validation/performance-${baselineTag}/${key}.pfm`,
+                    `artifacts/validation/performance-${baselineTag}/${key}.pfm`,
                   ),
                   result.width,
                   result.height,

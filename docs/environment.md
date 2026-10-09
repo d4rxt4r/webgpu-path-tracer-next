@@ -14,17 +14,6 @@ Spectral environment emission uses seven nonnegative PBRT illuminant RGB bases, 
 
 Environment parameter changes update uniforms and reset accumulation without rebuilding the BVH. Map and quality changes replace textures. Cached decoded data restores textures after device loss. Disposal releases all GPU resources and terminates pending HDR imports.
 
-## Validation scope (05.10.2026)
+## Checks
 
-See the [current audit and roadmap](development-roadmap.md). Diagnostic functions and manual scenarios below do not imply a completed browser acceptance run.
-
-### Automated unit tests
-
-- `npm test`: Radiance decoding, orientation, corrupt RLE/size checks, bundled assets, PDF normalization, spherical mip energy including irregular sizes, spectral normalization, and open-scene visibility.
-### Available GPU diagnostic functions
-
-`src/debug/verify-environment.ts` provides independent GPU Lambertian energy acceptance (MIS / Light only / BSDF only), texture CDF/PDF comparison, and CPU/GPU spectral comparison. Dedicated automated browser coverage is planned; this module's presence does not mean it passed in this audit.
-
-### Manual browser checks
-
-Use the connected browser for scene controls, backgrounds, presets/uploads, PT/SPPM, RGB/spectral, budget rejection, settings links, and recovery. These scenarios were not repeated in this documentation package; future runs must record the adapter, settings and result.
+See [verification](verification.md). `src/debug/verify-environment.ts` provides Lambertian MIS/light/BSDF energy, CDF/PDF and spectral diagnostics. Availability does not imply completed GPU acceptance. HDR sources and licenses are in [assets/hdr/README.md](../assets/hdr/README.md).

@@ -6,7 +6,7 @@ import { chromium, expect } from '@playwright/test';
 
 const address='http://127.0.0.1:5319';
 const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1','--port','5319','--strictPort'],{stdio:'ignore',windowsHide:true});
-const directory=new URL('../docs/validation/',import.meta.url);
+const directory=new URL('../artifacts/validation/',import.meta.url);
 let browser;
 try {
   await mkdir(directory,{recursive:true});

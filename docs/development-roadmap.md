@@ -1,128 +1,25 @@
-# Аудит реализации, тестов и документации
+# Development roadmap
 
-Дата: **05.10.2026**. Проверенный исходный commit: **`70f319e7d5d64d5d10c33cd088e6e470acb57919`**. Этот пакет меняет только документацию. Исправления приложения, тестов и CI — следующие задачи; публичные API и эталонные артефакты не меняются. [План v1](implementation-plan.md) — историческая основа: текущий продукт вышел за его первоначальные ограничения.
+Consolidated against the checkout following `b9e58d4` on 2026-10-09. These are remaining tasks, not completed fixes. Current material, camera, wear, denoiser and cache capabilities are documented separately.
 
-## Границы проверки
+## Correctness and repeatable evidence
 
-Таблица сохраняет результаты предыдущего аудита из принятого плана. Исходный план не содержит отдельных логов или commit тех запусков; браузерные результаты не представлены как повторно подтверждённые в этом пакете.
+- Reproduce and classify high-poly/Quality intersection reports on fixed geometry and settings. Historical reports include Suzanne at 817x375 and Rastagotchi spectral SPPM, depth 32, seed 1, 520x452, camera iteration 0. Later targeted checks do not establish that every such case is fixed. Preserve internal error codes and add an independent CPU comparison for any fix.
+- Investigate raw PT differences between independent sessions reported during the 2026-10-06 startup study. Controlled paired runs passed, but that does not explain cross-session differences or identify a driver cause.
+- Classify the full browser suite on a recorded adapter. Review old UI fixtures, readiness timeouts and OBJ route interceptions; include no-WebGPU startup, HDR replacement, cancelled loads, budget rejection and device recovery. Early WebGPU layout initialization remains a review target.
+- Generate independent references for current geometry with source/scene hashes, multiple seeds and declared ROI. Targeted plane/BSDF/gather checks do not replace glass/caustic convergence or a built-in-model regression matrix.
+- Add unit checks before deployment build. The current Pages workflow builds on `main`; ordinary development commits here use `master`. Reconcile deployment triggers explicitly when changing CI.
 
-| Проверка | Результат предыдущего аудита |
-|---|---|
-| Unit-тесты | 101 тест в 21 файле прошёл |
-| TypeScript и production build | Прошли |
-| Инвентаризация браузерных тестов | 52 теста в 20 файлах |
-| Выборочный браузерный прогон | 4 теста упали, 1 прошёл |
-| GPU-сэмплер | 2496 значений, расхождений с CPU нет |
-| Полный браузерный прогон | Не выполнен |
-| Markdown-ссылки на локальные файлы | Отсутствующих целей не обнаружено |
-| Упоминания путей внутри документации | Найдены ссылки на удалённые файлы |
+## Quality and resources
 
-**Повторно выполнено 05.10.2026:** `npm test` — 101/101 в 21 файле; `npm run build` — TypeScript и production build прошли; `npx playwright test --list` — 52 теста в 20 файлах. Браузерные вычисления, GPU-сэмплер и полный браузерный прогон в этом документационном пакете не повторялись. Проверка ссылок, UTF-8 и diff описана в конце файла. Статический аудит подтверждает наличие реализации, но не физическую корректность всех режимов или качество всех сцен.
+- Compare raw glass/caustics/spectral output against stable independent references before tuning filters. Existing denoiser results use a noisy, correlated 32-sample guide; full-frame error sometimes increases.
+- Measure first useful frame, compilation, memory peaks, readback and recovery separately. Keep only optimizations that pass image gates and controlled timing comparisons. Existing startup caches and specialization are already implemented.
+- Broaden HDR GPU acceptance and lifecycle coverage; available diagnostic modules are not proof of full automated acceptance.
 
-Четыре выборочных падения предыдущего аудита разделены по причинам:
+## Product development
 
-- **Длительная инициализация:** компиляция превышает ожидания теста; требуется измерение подготовки и согласованные таймауты.
-- **Раннее обращение к WebGPU:** вычисление layout в `settings-limits.ts` падает до отображения понятной ошибки при отсутствии API. Исправлять приложение, тест сохранять.
-- **Перехват OBJ:** `**/assets/Suzanne.obj*` затрагивает служебный импорт Vite `?import&url`, а не только запрос данных модели. Исправлять тестовый перехват.
+- UV base-color/roughness textures with correct color spaces, mip filtering and budgets; then normal/emission maps.
+- Static GLB import, followed by needed PBR extensions; multiple objects, instances and BLAS/TLAS without duplicated geometry.
+- Physical conductor presets, custom metal, plastic and reflecting emission are implemented. Anisotropy, multilayer coating and volume scattering remain future work, subject to a separate specification.
 
-Эти четыре результата не доказывают неисправность всего рендерера. Отдельно предыдущий аудит воспроизвёл `intersection` на первом проходе камеры стандартной high-poly Suzanne при **817×375**. Это P0 приложения; внутренний код пересечения нужно сохранять в диагностике. Полный браузерный набор необходим для классификации оставшихся проблем.
-
-## Требование → реализация → подтверждение → ограничение → задача
-
-| Требование | Текущая реализация | Подтверждение в репозитории | Ограничение | Следующая задача |
-|---|---|---|---|---|
-| RGB/спектральный PT и SPPM | Четыре сочетания транспорта, NEE/MIS и накопление | `src/transport/path-tracer.wgsl`, `sppm.wgsl`, `spectrum.ts`; transport/spectrum/sppm tests | Наличие режима не доказывает качество нынешней геометрии | P0-T, P1-Q |
-| Software BVH | CPU построение, упаковка и GPU обход | `src/accel/bvh.ts`, `pack.ts`, `src/transport/threaded-bvh.wgsl`; accel/packing и browser intersections | High-poly пересечение, регрессии со старыми индексами | P0-T, P0-E |
-| Стекло и rough dielectric | GGX, гладкий и тонкий/объёмный перенос | `dielectric.wgsl`, `rough-dielectric.wgsl`; transport tests и debug verify | Художественный спектр из RGB; thin не даёт объёмных каустик | P1-Q |
-| Оболочки | Независимые границы сред, camera media и photon gathering | `media.wgsl`, `src/accel/camera-media.ts`; shells tests и verify-shells | До 32 одновременно активных оболочек; самопересечения и совпадающие поверхности не поддерживаются | P0-T, P1-Q |
-| OBJ и ремонт | Worker, нормали, триангуляция, закрытие отверстий, откат | `src/assets/obj.ts`, `mesh-repair.ts`, `builtin-obj.ts`; obj/repair/worker tests | Нет MTL/UV; ремонт не булево объединение и не полная проверка самопересечений | P0-E, P2-S |
-| Редактор и процедурные материалы | diffuse/dielectric/textured, marble/lava | `src/app/material-editor.ts`, `src/scene/textured-materials.ts`, `textures.wgsl` | Художественная дисперсия; фиксированные индексы Cornell | P2-M, P2-S |
-| HDR/Open | Декодирование, importance sampling, MIS и фотоны окружения | `src/assets/hdr.ts`, `src/gpu/environment.ts`, `environment.wgsl`, environment tests и verify-environment | Доступная GPU-диагностика ещё не автоматическая приёмка | P0-E, P1-R |
-| Фильтрация | GPU à-trous/bilateral/NLM, отдельное стекло, сравнение, сохранение raw | `src/render/denoiser.ts`, `guide.wgsl`, `atrous.wgsl`; [локальная матрица](validation/denoise-2026-10-08/README.md) | Локальная дисперсия не оценка сходимости; сравнение с 32 samples не независимый эталон | P1-F |
-| Экспорт и ссылки | PNG/PFM/JSON, настройки в URL, PBRT debug export | `src/app/export.ts`, `settings-link.ts`, `src/debug/export-pbrt.ts` | Локальные OBJ/HDR не передаются ссылкой; PBRT не универсальный экспортёр | P0-Q |
-| Ресурсы и восстановление | Пиксельный/памятный бюджет, лимиты устройства, восстановление окружения | `src/render/size.ts`, `settings-limits.ts`, renderer и lifecycle tests | Нужны проверки пиков, readback и отмены устаревших операций | P1-R |
-
-## Очередь реализации
-
-Каждая строка — будущая работа. Зависимости задают порядок получения доказательств, а не требуют преждевременной абстракции.
-
-| ID / приоритет | Работа | Зависимости | Критерий готовности |
-|---|---|---|---|
-| P0-T — корректность | Исправить high-poly Suzanne при 817×375; сохранить внутренний код ошибки пересечения | Воспроизведение на фиксированной геометрии и независимый CPU-result | Стандартная сцена завершает итерации; регрессия воспроизводит исходный случай и проходит после исправления |
-| P0-W — запуск | Исправить раннее обращение к WebGPU без API | Нет | Понятная ошибка вместо сбоя модуля; существующий тест отсутствия WebGPU проходит |
-| P0-E — тестовые доказательства | Фикстуры, перехваты, UTF-8, готовность, новые кадры; полный браузерный набор; автоматические проверки окружения; CI unit перед build | P0-W; P0-T для успешной high-poly регрессии | Все падения классифицированы: приложение/тест/окружение; GPU-протокол содержит среду; новые сценарии покрыты |
-| P0-Q — происхождение и эталоны | Пересоздать эталоны текущей геометрии с хешами исходников, сцен и параметров; preflight PBRT; отдельный каталог capture-запуска | P0-T, P0-E | Чужой эталон отвергается; неподдерживаемый экспорт явно отклоняется; архив `stage*` защищён от случайной перезаписи |
-| P1-Q — качество изображения | Raw-сравнения стекла, каустик и спектра на нескольких roughness, глубинах, радиусах и независимых seed; отдельно измеренный N-BK7 и художественная дисперсия | P0-Q | Устойчивость эталона зафиксирована; диффузные контрольные сцены ≤2%, согласованная область каустик ≤5%; ROI и параметры опубликованы |
-| P1-F — фильтрация | Необходимые guide-данные и оценка шума; PT/SPPM отдельно; стекло по умолчанию без сглаживания | P1-Q | Фильтр уменьшает ошибку относительно независимого эталона и сохраняет raw-накопление |
-| P1-R — запуск и ресурсы | Сначала компилировать выбранный режим; этапы подготовки; пиковые выделения/readback; отмена устаревших загрузок; упростить WGSL string replacements | P0-E, P0-T для замеров первого кадра | Первый полезный кадр быстрее по повторяемому замеру; бюджеты проверены при смене сцены/HDR/device recovery; отменённая операция не меняет состояние |
-| P2-M — материалы и текстуры | GGX-проводники с измеренными η/k; UV base color/roughness, затем normal/emission, цветовые пространства и mip | P1-Q, P1-R; normal/emission после base color/roughness | Независимые проверки энергии/PDF, согласованные визуальные эталоны; текстуры входят в бюджет |
-| P2-S — сцены | Статический GLB, затем необходимые PBR-расширения; несколько объектов, BLAS/TLAS и instances; убрать фиксированные индексы Cornell | P2-M для материалов, P1-R | Материалы, transforms и идентичность оболочек сохраняются; instances не дублируют геометрию |
-| P2-D — исследовательские источники | Восстановить первичные ссылки исследования вместо внутренних идентификаторов | Доступ к исходным источникам; не блокирует P0 | Проверяемые ссылки поддерживают утверждения; невосстановленные источники остаются явно обозначенными |
-| P3-V — объёмы | Homogeneous, затем heterogeneous media сначала в PT | P1-Q, P1-R; heterogeneous после homogeneous | Каждый этап имеет физические и ресурсные проверки; SPPM требует отдельной реализации объёмного переноса |
-| P3-P — preview | Temporal preview сначала для непрозрачных поверхностей | P1-F, P1-R | Проверены движение, disocclusion, история и ресурсы; raw reference сохраняется |
-| P3-D — диагностика | Ограниченный отладчик лучей | P0-T, P1-R | Ограничены данные и память; запись позволяет воспроизвести проблемный путь |
-
-Wavefront, BVH4, CSR, пакеты длин волн и другие крупные оптимизации остаются экспериментами до измеренной пользы на актуальных сценах. Они добавляют очереди, память, синхронизацию и сложность; результат зависит от сцены, режима и адаптера. Исторические [измерения](performance.md) сохраняют методику и отрицательные результаты, но не обосновывают включение на нынешней геометрии без сравнения скорости и raw-качества. YAGNI относится к спекулятивным требованиям и абстракциям, а не к корректности, тестированию и явно требуемому качеству.
-
-## Актуальность и необходимость тестов
-
-Основные группы нужны. CPU и GPU проверяют разные реализации; совпадение предмета проверки не основание удалить одну из них. CPU проверяет формулы, структуру данных и границы; GPU — WGSL, layout, dispatch и численный результат на устройстве. Удалять или объединять только конкретные повторы без самостоятельного смысла.
-
-Все перечисленные действия входят в **P0-E**, кроме исправления приложения **P0-W**. Общая приёмка — актуальные фикстуры и meaningful assertions, затем полный набор с классификацией каждого падения.
-
-| Тесты / область | Решение и отдельный критерий готовности |
-|---|---|
-| Transport, spectrum, BVH, packing, SPPM, geometry, resources | Сохранить. Инварианты: конечность/энергия/PDF, спектральная нормировка, ближайшее попадание, layout/escape links, обновление радиуса/потока, оболочки и ресурсные пределы. Ожидаемые результаты независимы от проверяемой реализации |
-| `settings-reset.test.ts` | diffuse/dielectric/textured и отдельный texture-kind вместо старых фикстур; сохранить события, disabled и связанные slider/input |
-| Browser dielectric/spectral/SPPM | Убрать отсутствующие glass/nbk7/nbk7-constant из UI-сценариев; физические проверки измеренного N-BK7 сохранить через сцены ядра |
-| `transport-queue.spec.ts`, `transport-replay.spec.ts` | CP1251 → UTF-8, сохранить overflow и replay; прежние проверки читаемы и работают |
-| Нет WebGPU | Сохранить тест, исправить ранний layout в settings-limits (P0-W); проверять actionable error |
-| Отсутствующий OBJ | Перехватывать данные модели, пропускать Vite `?import&url`; проверять именно HTTP-ошибку загрузки |
-| Suzanne «all transport modes» | Явно перебрать RGB/spectral × PT/SPPM; нынешние spectral/SPPM повторяют defaults и пропускают PT. Нужен новый кадр каждого режима |
-| Каталог моделей | Объединить общий smoke; отдельно сохранить repair, rollback, thin/volume и полную Buddha |
-| Кадры после переключений | revision, presentedRevision и прирост кадров вместо одного frames > 0; старый кадр не удовлетворяет проверке |
-| Готовность | Общий helper: запуск до 120 с, обычное действие до 30 с, немедленный выход при ошибке приложения. Численные сценарии сохраняют отдельные лимиты |
-| Изолированные GPU-проверки | Минимальная страница по примеру sampler-host, без компиляции всего редактора |
-| Старые индексы треугольников | Перепроверить после смены моделей; фиксированная геометрия и независимый CPU-result; не зависеть от случайного индекса |
-| HTML | Удалить проверку отсутствия `<p class="hint">`: она не проверяет поведение; остальные контрактные проверки сохранить |
-| Packing | Escape-ссылки вычислять независимо, не читать expected из проверяемого буфера; ошибка упаковки действительно обнаруживается |
-| Названия OBJ/Suzanne | Привести к поведению; shader variants перенести из OBJ-группы в подходящую группу |
-| Новое покрытие | High-poly на обычном разрешении, GPU-окружение, HDR-смена, отмена загрузки, бюджетный отказ, device recovery; нужны воспроизводимые сценарии с указанным адаптером |
-| CI | Unit перед build. GPU на явно указанном пригодном окружении; software adapter обозначать отдельно |
-
-Сейчас `.github/workflows/deploy.yml` выполняет build, но не unit-тесты. Новые GPU-проверки дополняют существующие lifecycle-тесты, а не заменяют их. Изолированный sampler проверяет 2496 комбинаций для двух GPU-реализаций и независимого CPU-сэмплера; это доказательство сэмплера, не всего транспорта.
-
-## Актуальность и необходимость документации
-
-| Документ / артефакт | Действие и границы |
-|---|---|
-| [README](../README.md) | Текущий запуск, функции, defaults, ограничения, команды и известные проблемы |
-| Этот файл | Единственный подробный текущий аудит и дальнейшие задачи |
-| [Исследование](deep-research-report.md) | Сохранить, добавить статус; переносимые проверяемые ссылки оставить, невосстановленные citation-источники явно отметить |
-| [План v1](implementation-plan.md) | Сохранить первоначальные решения, обозначить расширение продукта |
-| [Журнал](implementation-status.md) | История и датированная запись аудита; старые результаты и числа не переписывать |
-| [Приёмка](acceptance.md) | Старая геометрия и прохождение отдельно от текущих критериев P1-Q |
-| [Performance](performance.md) | Версия/сцена ограничивают замеры; полезные эксперименты сохранить |
-| [Environment](environment.md) | Разделить unit, доступные GPU-диагностические функции и ручные проверки |
-| [Transport-fix](validation/transport-fix/README.md) | Архив проверки прежней геометрии |
-| [HDR](../assets/hdr/README.md) | Сохранить источники, лицензии и преобразования |
-| Изображения/PFM/JSON | Сохранить доказательные артефакты; отсутствие Markdown-ссылки не основание для удаления |
-
-Исторические упоминания удалённых `scripts/prepare-suzanne.py`, `scripts/prepare-buddha.py`, `src/assets/suzanne-meta.json`, `src/assets/buddha-meta.json` и BIN-ресурсов описывают прошлую версию, а не действующие команды. Текущие скрипты исходных моделей — `scripts/export-suzanne-original.py` и `scripts/export-buddha-original.py`. Подмена старых процедур новыми создала бы ложную воспроизводимость старых чисел.
-
-Capture-скрипты должны сохранять результат в отдельном каталоге запуска, защищать исторические `stage*` от случайной перезаписи и включать commit, хеши shader/геометрии/сцены/параметров, seed, разрешение, браузер, GPU, режим и происхождение эталона. Существующая проверка совместимости PBRT-reference в `scripts/acceptance.mjs` сохраняется и дополняется. `export-pbrt.ts` уже отказывает для thin и процедурных marble/lava; требуется проверка всей поддерживаемости сцены перед экспортом, включая окружение и модели материалов.
-
-## Порядок выполнения и приёмка
-
-1. Документация: полный аудит, README, статусы и взаимные ссылки.
-2. Локальные ссылки, UTF-8, существование команд и diff без изменения эталонов.
-3. P0-W/P0-E: отсутствие WebGPU, перехваты, кодировки, старые контролы и ожидания.
-4. Полный браузерный набор, отдельная классификация каждого падения.
-5. P0-T/P0-Q: high-poly транспорт и новая численная приёмка.
-6. P1 качество/фильтрация/ресурсы, затем P2/P3 по зависимостям.
-
-Документационный пакет готов, когда README соответствует коду, аудит собран здесь, исторические результаты ограничены версией и геометрией, выполненные проверки отделены от запланированных. Исправления кода и тестов не считаются выполненными по факту записи задачи.
-
-### Проверка документационного пакета 05.10.2026
-
-Повторно проверены 10 Markdown-файлов: README, документация в `docs/` и HDR README. Отсутствующих целей локальных Markdown-ссылок не обнаружено; файлы читаются строгим UTF-8. Команды README соответствуют `package.json`. `git diff --check` прошёл. В исследовании 73 непереносимых citation-токена заменены явными отметками невосстановленного источника; внешние ссылки не изобретались. Diff ограничен документацией, изображения, PFM, JSON, код, тесты и CI не изменены. Исторические упоминания удалённых путей сохранены с объяснением их области действия.
+Use [verification](verification.md) to distinguish recorded acceptance from proposed work. No old audit count or failure is presented as a new run.

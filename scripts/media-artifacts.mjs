@@ -4,7 +4,7 @@ import {createServer} from 'node:http';
 import {mkdir, writeFile} from 'node:fs/promises';
 import {resolve, join} from 'node:path';
 
-const directory = resolve('docs/validation/medium-performance');
+const directory = resolve('artifacts/validation/medium-performance');
 await mkdir(directory, {recursive:true});
 const server = createServer(async (request, response) => {
   response.setHeader('Access-Control-Allow-Origin', 'http://127.0.0.1:5360');

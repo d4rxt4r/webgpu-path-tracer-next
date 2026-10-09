@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { readFile, writeFile, mkdtemp, rm } from "node:fs/promises";
+import { readFile, writeFile, mkdtemp, rm, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve, extname } from "node:path";
 import { createServer } from "node:https";
@@ -9,6 +9,8 @@ const argument = (name) => {
   const i = process.argv.indexOf(name);
   return i < 0 ? undefined : process.argv[i + 1];
 };
+await mkdir("artifacts/validation", { recursive: true });
+
 const openssl = argument("--openssl") ?? "openssl";
 const temporary = await mkdtemp(join(tmpdir(), "path-tracer-https-"));
 const run = (command, args) =>
@@ -135,7 +137,7 @@ try {
           pageScroll: document.documentElement.scrollHeight > innerHeight,
         }));
       await page.screenshot({
-        path: `docs/validation/stage10-${name.toLowerCase()}.png`,
+        path: `artifacts/validation/stage10-${name.toLowerCase()}.png`,
       });
       if (errors.length || dimensions.pageScroll)
         throw new Error(`${name} runtime errors`);
@@ -305,7 +307,7 @@ try {
         p.bytes <= 192 * 1048576,
     );
   await writeFile(
-    "docs/validation/stage10-runtime.json",
+    "artifacts/validation/stage10-runtime.json",
     JSON.stringify(report, null, 2) + "\n",
   );
   if (!report.passed)

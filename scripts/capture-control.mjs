@@ -57,7 +57,7 @@ try {
     const { linearRgb, linearXyz, sampleCounts, ...metadata } = capture;
     return { pixels: Array.from(linearRgb), xyzPixels: linearXyz ? Array.from(linearXyz) : undefined, convergence, metadata: { ...metadata, scene: suzanne ? 'cornell-nbk7-suzanne' : spectral ? 'cornell-nbk7-sphere' : glass ? 'cornell-glass-sphere' : 'cornell-diffuse-sphere', stage, referenceKind: 'GPU regression capture', adapter: lastStats.adapter, managedBytes: lastStats.bytes, elapsedMs: performance.now() - started } };
   }, { glass, spectral, sppm, stage, suzanne });
-  const directory = new URL('../docs/validation/', import.meta.url); await mkdir(directory, { recursive: true });
+  const directory = new URL('../artifacts/validation/', import.meta.url); await mkdir(directory, { recursive: true });
   await page.locator('#control-canvas').screenshot({ path: fileURLToPath(new URL(`stage${stage}-cornell.png`, directory)) });
   const { width, height } = result.metadata;
   const writePfm = async (values, filename) => {

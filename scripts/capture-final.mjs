@@ -1,6 +1,6 @@
 import { createServer } from "vite";
 import { chromium } from "@playwright/test";
-import { writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 const reference = process.argv.includes("--reference");
 const buddha = process.argv.includes("--buddha");
 const material = process.argv.includes("--lava") ? "lava" : "marble";
@@ -9,6 +9,8 @@ const prefix = buddha
   : reference
     ? "reference-look"
     : "stage10-final";
+
+await mkdir("artifacts/validation", { recursive: true });
 
 const server = await createServer({
   server: { host: "127.0.0.1", port: 5323, strictPort: true, hmr: false },
@@ -141,22 +143,22 @@ try {
           (y * image.width + x) * 12 + c * 4,
         );
   await writeFile(
-    `docs/validation/${prefix}.pfm`,
+    `artifacts/validation/${prefix}.pfm`,
     Buffer.concat([
       Buffer.from(`PF\n${image.width} ${image.height}\n-1.0\n`),
       data,
     ]),
   );
   await writeFile(
-    `docs/validation/${prefix}-raw.png`,
+    `artifacts/validation/${prefix}-raw.png`,
     Buffer.from(image.rawPng, "base64"),
   );
   await writeFile(
-    `docs/validation/${prefix}-filtered.png`,
+    `artifacts/validation/${prefix}-filtered.png`,
     Buffer.from(image.filteredPng, "base64"),
   );
   await writeFile(
-    `docs/validation/${prefix}.json`,
+    `artifacts/validation/${prefix}.json`,
     JSON.stringify(image.metadata, null, 2) + "\n",
   );
   console.log(JSON.stringify(image.metadata));

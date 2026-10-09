@@ -1,6 +1,5 @@
 import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
 import { createServer } from "node:net";
 import { gzipSync } from "node:zlib";
 import { createHash } from "node:crypto";
@@ -21,17 +20,13 @@ const baselineOnly = process.argv.includes("--baseline-only");
 const spp = Number(argument("--reference-spp") ?? 32768);
 if (![iterations, spp].every((n) => Number.isInteger(n) && n > 0))
   throw new Error("Invalid sample count");
-const referenceDirectory = resolve(
-  fileURLToPath(new URL("../docs/validation/", import.meta.url)),
-);
-const directory = argument("--output")
-  ? resolve(argument("--output"))
-  : referenceDirectory;
-if (
-  reuseReference &&
-  directory.toLowerCase() === referenceDirectory.toLowerCase()
-)
-  throw new Error("Use --output to preserve the existing acceptance artifacts");
+const referenceArgument = argument("--reference-dir");
+if (reuseReference && !referenceArgument)
+  throw new Error("--reuse-reference requires --reference-dir <directory>");
+const directory = resolve(argument("--output") ?? "artifacts/validation/quality");
+const referenceDirectory = referenceArgument ? resolve(referenceArgument) : directory;
+if (reuseReference && directory.toLowerCase() === referenceDirectory.toLowerCase())
+  throw new Error("Use a separate --output to preserve the reference artifacts");
 await mkdir(directory, { recursive: true });
 const run = (executable, args) =>
   new Promise((resolve, reject) => {

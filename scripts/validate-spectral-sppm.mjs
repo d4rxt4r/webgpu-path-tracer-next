@@ -7,7 +7,7 @@ import { createServer } from 'node:net';
 const argument=name=>{const index=process.argv.indexOf(name);return index<0?undefined:process.argv[index+1];};
 const pbrt=argument('--pbrt');if(!pbrt)throw new Error('Provide --pbrt <path to PBRT v4 executable>');
 const selected=argument('--case');if(selected&&!['prism','slab','cornell','constant'].includes(selected))throw new Error('Unknown reference case');
-const directory=fileURLToPath(new URL('../docs/validation/',import.meta.url));await mkdir(directory,{recursive:true});
+const directory=fileURLToPath(new URL('../artifacts/validation/',import.meta.url));await mkdir(directory,{recursive:true});
 const run=(executable,args,options={})=>new Promise((resolve,reject)=>{
   const child=spawn(executable,args,{windowsHide:true,...options});let stderr='';child.stderr?.on('data',chunk=>{stderr+=chunk;});child.on('error',reject);child.on('exit',code=>code===0?resolve(stderr):reject(new Error(`${executable} exited ${code}: ${stderr}`)));
 });

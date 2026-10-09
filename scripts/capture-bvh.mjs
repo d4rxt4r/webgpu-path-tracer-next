@@ -1,6 +1,8 @@
 import { createServer } from "vite";
 import { chromium } from "@playwright/test";
-import { writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
+
+await mkdir("artifacts/validation", { recursive: true });
 
 const server = await createServer({
   server: { host: "127.0.0.1", port: 5325, strictPort: true, hmr: false },
@@ -75,11 +77,11 @@ try {
   });
   for (const image of result.images)
     await writeFile(
-      `docs/validation/stage10-bvh-${image.name}.png`,
+      `artifacts/validation/stage10-bvh-${image.name}.png`,
       Buffer.from(image.bytes),
     );
   await writeFile(
-    "docs/validation/stage10-occlusion.json",
+    "artifacts/validation/stage10-occlusion.json",
     JSON.stringify(
       {
         ...result.numeric,
